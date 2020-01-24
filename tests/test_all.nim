@@ -9,3 +9,4 @@
 ###
 
 import ./pathname_000_test
+import ./pathname_001_test
