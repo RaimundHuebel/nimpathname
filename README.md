@@ -23,13 +23,13 @@ Use Nim Pathname
    ```nim
    import pathname
 
-   let aPath        = newPathname("/var/lib/a_directory/")
-   let currPath     = newPathname()
-   let tempPath     = pathnameFromTempDir()
-   let appDirPath   = pathnameFromAppDir()
-   let rootPath     = pathnameFromRootDir()
-   let userHomePath = pathnameFromUserHomeDir()
-   let userDataPath = pathnameFromUserConfigDir()
+   let aPath        = Pathname.new("/var/lib/a_directory/")
+   let currPath     = Pathname.new()
+   let tempPath     = Pathname.fromTempDir()
+   let appDirPath   = Pathname.fromAppDir()
+   let rootPath     = Pathname.fromRootDir()
+   let userHomePath = Pathname.fromUserHomeDir()
+   let userDataPath = Pathname.fromUserConfigDir()
 
    echo aPath.toPathStr()
    ```
