@@ -687,13 +687,15 @@ suite "Pathname Tests 000":
 
 
     test "#normalize()":
-        check "a" == Pathname.new("a"   ).normalize().toPathStr()
-        check "a" == Pathname.new("a/"  ).normalize().toPathStr()
-        check "a" == Pathname.new("a//" ).normalize().toPathStr()
+        check "." == Pathname.new("").normalize().toPathStr()
 
-        check "/b" == Pathname.new("/b"    ).normalize().toPathStr()
-        check "/b" == Pathname.new("/b/"   ).normalize().toPathStr()
-        check "/b" == Pathname.new("//b//" ).normalize().toPathStr()
+        check "a" == Pathname.new("a"  ).normalize().toPathStr()
+        check "a" == Pathname.new("a/" ).normalize().toPathStr()
+        check "a" == Pathname.new("a//").normalize().toPathStr()
+
+        check "/b" == Pathname.new("/b"   ).normalize().toPathStr()
+        check "/b" == Pathname.new("/b/"  ).normalize().toPathStr()
+        check "/b" == Pathname.new("//b//").normalize().toPathStr()
 
         check "." == Pathname.new("."  ).normalize().toPathStr()
         check "." == Pathname.new("./" ).normalize().toPathStr()
@@ -719,14 +721,15 @@ suite "Pathname Tests 000":
 
 
     test "#cleanpath()":
-        # Info: Copy and Paste von #normalize()
-        check "a" == Pathname.new("a"   ).cleanpath().toPathStr()
-        check "a" == Pathname.new("a/"  ).cleanpath().toPathStr()
-        check "a" == Pathname.new("a//" ).cleanpath().toPathStr()
+        check "." == Pathname.new("").cleanpath().toPathStr()
 
-        check "/b" == Pathname.new("/b"    ).cleanpath().toPathStr()
-        check "/b" == Pathname.new("/b/"   ).cleanpath().toPathStr()
-        check "/b" == Pathname.new("//b//" ).cleanpath().toPathStr()
+        check "a" == Pathname.new("a"  ).cleanpath().toPathStr()
+        check "a" == Pathname.new("a/" ).cleanpath().toPathStr()
+        check "a" == Pathname.new("a//").cleanpath().toPathStr()
+
+        check "/b" == Pathname.new("/b"   ).cleanpath().toPathStr()
+        check "/b" == Pathname.new("/b/"  ).cleanpath().toPathStr()
+        check "/b" == Pathname.new("//b//").cleanpath().toPathStr()
 
         check "." == Pathname.new("."  ).cleanpath().toPathStr()
         check "." == Pathname.new("./" ).cleanpath().toPathStr()
@@ -751,14 +754,13 @@ suite "Pathname Tests 000":
         check "/" == Pathname.new("///..///").cleanpath().toPathStr()
 
 
-    test "#isExisting()":
+
+    test "#isExisting() with regular files":
+        check true == Pathname.new(fixturePath("README.md"  )).isExisting()
+
         check true == Pathname.new(fixturePath("sample_dir"  )).isExisting()
         check true == Pathname.new(fixturePath("sample_dir/" )).isExisting()
         check true == Pathname.new(fixturePath("sample_dir//")).isExisting()
-
-        check true == Pathname.new(fixturePath("sample_dir/a_dir"  )).isExisting()
-        check true == Pathname.new(fixturePath("sample_dir/a_dir/" )).isExisting()
-        check true == Pathname.new(fixturePath("sample_dir/a_dir//")).isExisting()
 
         check true == Pathname.new(fixturePath("sample_dir/a_file"  )).isExisting()
         #check true == Pathname.new(fixturePath("sample_dir/a_file/" )).isExisting() # TODO: fails
@@ -772,35 +774,74 @@ suite "Pathname Tests 000":
         check false == Pathname.new(fixturePath("non_existing_file/" )).isExisting()
         check false == Pathname.new(fixturePath("non_existing_file//")).isExisting()
 
+        check false == Pathname.new(fixturePath("sample_dir//non_existing_file"  )).isExisting()
+        check false == Pathname.new(fixturePath("sample_dir//non_existing_file/" )).isExisting()
+        check false == Pathname.new(fixturePath("sample_dir//non_existing_file//")).isExisting()
+
+        check false == Pathname.new(fixturePath("non_existing_dir//non_existing_file"  )).isExisting()
+        check false == Pathname.new(fixturePath("non_existing_dir//non_existing_file/" )).isExisting()
+        check false == Pathname.new(fixturePath("non_existing_dir//non_existing_file//")).isExisting()
+
+        check false == Pathname.new("/NON_EXISTING_FILE"  ).isExisting()
+        check false == Pathname.new("/NON_EXISTING_FILE/" ).isExisting()
+        check false == Pathname.new("/NON_EXISTING_FILE//").isExisting()
+
+
+    test "#isExisting() with directories":
+        check true == Pathname.new(fixturePath("sample_dir"  )).isExisting()
+        check true == Pathname.new(fixturePath("sample_dir/" )).isExisting()
+        check true == Pathname.new(fixturePath("sample_dir//")).isExisting()
+
+        check true == Pathname.new(fixturePath("sample_dir/a_dir"  )).isExisting()
+        check true == Pathname.new(fixturePath("sample_dir/a_dir/" )).isExisting()
+        check true == Pathname.new(fixturePath("sample_dir/a_dir//")).isExisting()
+
         check false == Pathname.new(fixturePath("non_existing_dir"  )).isExisting()
         check false == Pathname.new(fixturePath("non_existing_dir/" )).isExisting()
         check false == Pathname.new(fixturePath("non_existing_dir//")).isExisting()
 
-        check "TODO: further Tests on #isExisting" == ""
+        check false == Pathname.new("/NON_EXISTING_DIR"  ).isExisting()
+        check false == Pathname.new("/NON_EXISTING_DIR/" ).isExisting()
+        check false == Pathname.new("/NON_EXISTING_DIR//").isExisting()
 
 
-    test "#isFile()":
-        check false == Pathname.new(fixturePath("sample_dir"  )).isFile()
-        check false == Pathname.new(fixturePath("sample_dir/" )).isFile()
-        check false == Pathname.new(fixturePath("sample_dir//")).isFile()
+    test "#isExisting() with device-files":
+        check true == Pathname.new("/dev/null"   ).isExisting()
+        check true == Pathname.new("/dev/zero"   ).isExisting()
+        check true == Pathname.new("/dev/random" ).isExisting()
+        check true == Pathname.new("/dev/urandom").isExisting()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).isFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir/" )).isFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir//")).isFile()
+        check true == Pathname.new("/dev/loop0").isExisting()
+        check true == Pathname.new("/dev/loop1").isExisting()
 
-        check true == Pathname.new(fixturePath("sample_dir/a_file"  )).isFile()
-        #check true == Pathname.new(fixturePath("sample_dir/a_file/" )).isFile() # TODO: fails
-        #check true == Pathname.new(fixturePath("sample_dir/a_file//")).isFile() # TODO: fails
+        check false == Pathname.new("/dev/NON_EXISTING_FILE" ).isExisting()
+        check false == Pathname.new("/dev/NON_EXISTING_DIR/" ).isExisting()
+        check false == Pathname.new("/dev/NON_EXISTING_DIR//").isExisting()
 
-        check true == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isFile()
-        #check true == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isFile() # TODO: fails
-        #check true == Pathname.new(fixturePath("sample_dir/a_file.no2//")).isFile() # TODO: fails
 
-        check false == Pathname.new(fixturePath("non_existing_file"  )).isFile()
-        check false == Pathname.new(fixturePath("non_existing_file/" )).isFile()
-        check false == Pathname.new(fixturePath("non_existing_file//")).isFile()
+    test "#isRegularFile()":
+        check true == Pathname.new(fixturePath("sample_dir/a_file"  )).isRegularFile()
+        #check true == Pathname.new(fixturePath("sample_dir/a_file/" )).isRegularFile() # TODO: fails
+        #check true == Pathname.new(fixturePath("sample_dir/a_file//")).isRegularFile() # TODO: fails
 
-        check "TODO: further Tests on #isFile" == ""
+        check false == Pathname.new(fixturePath("sample_dir"  )).isRegularFile()
+        check false == Pathname.new(fixturePath("sample_dir/" )).isRegularFile()
+        check false == Pathname.new(fixturePath("sample_dir//")).isRegularFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).isRegularFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_dir/" )).isRegularFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_dir//")).isRegularFile()
+
+        check true == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isRegularFile()
+        #check true == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isRegularFile() # TODO: fails
+        #check true == Pathname.new(fixturePath("sample_dir/a_file.no2//")).isRegularFile() # TODO: fails
+
+        check false == Pathname.new(fixturePath("non_existing_file"  )).isRegularFile()
+        check false == Pathname.new(fixturePath("non_existing_file/" )).isRegularFile()
+        check false == Pathname.new(fixturePath("non_existing_file//")).isRegularFile()
+
+        check false == Pathname.new("/dev/null").isRegularFile()
+        check false == Pathname.new("/dev/zero").isRegularFile()
 
 
     test "#isDirectory()":
@@ -847,3 +888,71 @@ suite "Pathname Tests 000":
         check false == Pathname.new(fixturePath("non_existing_dir//")).isSymlink()
 
         check "TODO: further Tests on #isSymlink" == ""
+
+
+
+    test "#isDeviceFile()":
+        check false == Pathname.new(fixturePath("sample_dir/a_file")).isDeviceFile()
+        check false == Pathname.new(fixturePath("sample_dir/"      )).isDeviceFile()
+
+        check true == Pathname.new("/dev/null"   ).isDeviceFile()
+        check true == Pathname.new("/dev/zero"   ).isDeviceFile()
+        check true == Pathname.new("/dev/random" ).isDeviceFile()
+        check true == Pathname.new("/dev/urandom").isDeviceFile()
+
+        check true == Pathname.new("/dev/loop0").isDeviceFile()
+        check true == Pathname.new("/dev/loop1").isDeviceFile()
+
+        check false == Pathname.new("/dev/NON_EXISTING"  ).isDeviceFile()
+        check false == Pathname.new("/dev/NON_EXISTING/" ).isDeviceFile()
+        check false == Pathname.new("/dev/NON_EXISTING//").isDeviceFile()
+
+
+    test "#isCharacterDeviceFile()":
+        check false == Pathname.new(fixturePath("sample_dir/a_file")).isCharacterDeviceFile()
+        check false == Pathname.new(fixturePath("sample_dir/"      )).isCharacterDeviceFile()
+
+        check true == Pathname.new("/dev/null"   ).isCharacterDeviceFile()
+        check true == Pathname.new("/dev/zero"   ).isCharacterDeviceFile()
+        check true == Pathname.new("/dev/random" ).isCharacterDeviceFile()
+        check true == Pathname.new("/dev/urandom").isCharacterDeviceFile()
+
+        check false == Pathname.new("/dev/loop0").isCharacterDeviceFile()
+        check false == Pathname.new("/dev/loop1").isCharacterDeviceFile()
+
+        check false == Pathname.new("/dev/NON_EXISTING"  ).isCharacterDeviceFile()
+        check false == Pathname.new("/dev/NON_EXISTING/" ).isCharacterDeviceFile()
+        check false == Pathname.new("/dev/NON_EXISTING//").isCharacterDeviceFile()
+
+
+    test "#isBlockDeviceFile()":
+        check false == Pathname.new(fixturePath("sample_dir/a_file")).isBlockDeviceFile()
+        check false == Pathname.new(fixturePath("sample_dir/"      )).isBlockDeviceFile()
+
+        check false == Pathname.new("/dev/null"   ).isBlockDeviceFile()
+        check false == Pathname.new("/dev/zero"   ).isBlockDeviceFile()
+        check false == Pathname.new("/dev/random" ).isBlockDeviceFile()
+        check false == Pathname.new("/dev/urandom").isBlockDeviceFile()
+
+        check true == Pathname.new("/dev/loop0").isBlockDeviceFile()
+        check true == Pathname.new("/dev/loop1").isBlockDeviceFile()
+
+        check false == Pathname.new("/dev/NON_EXISTING"  ).isBlockDeviceFile()
+        check false == Pathname.new("/dev/NON_EXISTING/" ).isBlockDeviceFile()
+        check false == Pathname.new("/dev/NON_EXISTING//").isBlockDeviceFile()
+
+
+
+    test "#fileType()":
+        check true == Pathname.new(fixturePath("sample_dir/a_file")).fileType().isRegularFile()
+
+        check true == Pathname.new(fixturePath("sample_dir")).fileType().isDirectory()
+
+        check true == Pathname.new(fixturePath("/dev/null")).fileType().isCharacterDeviceFile()
+
+        check true == Pathname.new(fixturePath("/dev/loop0")).fileType().isBlockDeviceFile()
+
+        check true == Pathname.new(fixturePath("/dev/null") ).fileType().isDeviceFile()
+        check true == Pathname.new(fixturePath("/dev/loop0")).fileType().isDeviceFile()
+
+        check "TODO: Further test Pathname#fileType (also bad-cases)" == ""

@@ -37,6 +37,8 @@
 import os
 import strutils
 
+when defined(Posix):
+    import posix
 
 
 ## Import: realpath (@see module posix)
@@ -50,37 +52,189 @@ else:
     {.fatal: "The current plattform is not supported by utils.file_stat!".}
 
 
-proc canonicalizePathString*(pathstr: string) :string =
-    ## Liefert den canonischen Pfad von den gegebenen Pfad.
-    ## Dabei muss das Letzte Element des Pfades existieren, sonst schlägt der Befehl fehl.
-    if pathstr == "":
-        raise newException(Exception, "invalid param: pathstr")
-    const maxSize = PATH_MAX
-    result = newString(maxSize)
-    if nil == posixRealpath(pathstr, result):
-        raiseOSError(osLastError())
-    result[maxSize.int-1] = 0.char
-    let realSize = result.cstring.len
-    result.setLen(realSize)
-    return result
+#proc canonicalizePathString(pathstr: string): string =
+#    ## Liefert den canonischen Pfad von den gegebenen Pfad.
+#    ## Dabei muss das Letzte Element des Pfades existieren, sonst schlägt der Befehl fehl.
+#    if pathstr == "":
+#        raise newException(Exception, "invalid param: pathstr")
+#    const maxSize = PATH_MAX
+#    result = newString(maxSize)
+#    if nil == posixRealpath(pathstr, result):
+#        raiseOSError(osLastError())
+#    result[maxSize.int-1] = 0.char
+#    let realSize = result.cstring.len
+#    result.setLen(realSize)
+#    return result
 
 
-#DEPRECATED proc normalizePathString*(pathstr: string) :string =
-#DEPRECATED     ## Normalisiert ein Pfadnamen auf die kürzeste Darstellung.
-#DEPRECATED     ## @see https://nim-lang.org/docs/os.html#normalizedPath
-#DEPRECATED     ## @see https://www.linuxjournal.com/content/normalizing-path-names-bash
-#DEPRECATED     ## @see https://ruby-doc.org/stdlib/libdoc/pathname/rdoc/Pathname.html#method-i-cleanpath
-#DEPRECATED     ## @see https://ruby-doc.org/stdlib/libdoc/pathname/rdoc/Pathname.html#method-i-realpath
-#DEPRECATED
-#DEPRECATED     # os.normalizePath  is available since Nim v0.19.0
-#DEPRECATED     #echo "[WARN] Pathname.normalize - untested os.normalizePath"
-#DEPRECATED     return os.normalizedPath(pathstr)
+type FileType* {.pure.} = enum
+    UNKNOWN = 0,
+    REGULAR_FILE,
+    DIRECTORY,
+    SYMLINK,
+    CHARACTER_DEVICE,
+    BLOCK_DEVICE
+
+proc isUnknown*(self: FileType): bool =
+    return self == FileType.UNKNOWN
+
+proc isRegularFile*(self: FileType): bool =
+    return self == FileType.REGULAR_FILE
+
+proc isDirectory*(self: FileType): bool =
+    return self == FileType.DIRECTORY
+
+proc isSymLink*(self: FileType): bool =
+    return self == FileType.SYMLINK
+
+proc isDeviceFile*(self: FileType): bool =
+    return self == FileType.CHARACTER_DEVICE  or  self == FileType.BLOCK_DEVICE
+
+proc isCharacterDeviceFile*(self: FileType): bool =
+    return self == FileType.CHARACTER_DEVICE
+
+proc isBlockDeviceFile*(self: FileType): bool =
+    return self == FileType.BLOCK_DEVICE
+
+
+
+
+proc isAbsolutePathStringPosix(pathstr: string): bool =
+    ## Gibt an ob es sich um ein absoluten Pfad unter Posix-Systemen handelt.
+    ## @see https://nim-lang.org/docs/os.html#isAbsolute%2Cstring
+    if pathstr.len == 0: return false
+    return pathstr[0] == '/'
+
+
+proc isAbsolutePathStringWindows(pathstr: string): bool =
+    ## Gibt an ob es sich um ein absoluten Pfad unter Windows/Dos-Systemen handelt.
+    ## @see https://nim-lang.org/docs/os.html#isAbsolute%2Cstring
+    if pathstr.len == 0: return false
+    return (
+        ( pathstr.len >= 1  and  pathstr[0] in { '/', '\\' } ) or
+        ( pathstr.len == 2  and  pathstr[0] in {'a'..'z', 'A'..'Z'}  and  pathstr[1] == ':' ) or
+        ( pathstr.len >= 3  and  pathstr[0] in {'a'..'z', 'A'..'Z'}  and  pathstr[1] == ':'  and  pathstr[2] == '/' )
+    )
+
+
+proc isAbsolutePathStringMacOs(pathstr: string): bool =
+    ## Gibt an ob es sich um ein absoluten Pfad unter MacOs-Systemen handelt.
+    ## @see https://nim-lang.org/docs/os.html#isAbsolute%2Cstring
+    if pathstr.len == 0: return false
+    # according to https://perldoc.perl.org/File/Spec/Mac.html `:a` is a relative path
+    return pathstr[0] != ':'
+
+
+proc isAbsolutePathStringRiscOs(pathstr: string): bool =
+    ## Gibt an ob es sich um ein absoluten Pfad unter RiscOs-Systemen handelt.
+    ## @see https://nim-lang.org/docs/os.html#isAbsolute%2Cstring
+    if pathstr.len == 0: return false
+    return pathstr[0] == '$'
+
+
+proc isAbsolutePathString(pathstr: string): bool {.inline.} =
+    ## Gibt an ob es sich um ein absoluten Pfad im aktuellen Betriebssystem handelt.
+    ## @see https://nim-lang.org/docs/os.html#isAbsolute%2Cstring
+    when doslikeFileSystem:
+        return isAbsolutePathStringWindows(pathstr)
+    elif defined(macos):
+        return isAbsolutePathStringMacOs(pathstr)
+    elif defined(RISCOS):
+        return isAbsolutePathStringRiscOs(pathstr)
+    elif defined(posix):
+        return isAbsolutePathStringPosix(pathstr)
+
+
+
+proc normalizePathString*(pathstr: string): string =
+    ## Normalisiert ein Pfadnamen auf die kürzeste Darstellung.
+    ## @see https://nim-lang.org/docs/os.html#normalizedPath
+    ## @see https://www.linuxjournal.com/content/normalizing-path-names-bash
+    ## @see https://ruby-doc.org/stdlib/libdoc/pathname/rdoc/Pathname.html#method-i-cleanpath
+    ## @see https://ruby-doc.org/stdlib/libdoc/pathname/rdoc/Pathname.html#method-i-realpath
+    if pathstr.len == 0:
+        return "."
+
+    when defined(Posix):
+        let isAbsolutePath = isAbsolutePathStringPosix(pathstr)
+
+        var pathComponents = pathStr.split('/')
+        var pathLength :int = 0
+        var currPos    :int = 0
+
+        while currPos < pathComponents.len:
+            assert( currPos < pathComponents.len )
+            assert( pathLength <= currPos )
+            assert( pathLength >= 0 )
+            assert( currPos    >= 0 )
+
+            let currComponent: string = pathComponents[currPos]
+            if currComponent == "" or currComponent == ".":
+                # Aktuelles Pfad-Element kodiert: Aktueller Pfad
+                # => Ignoriere aktuelles Pfad-Element
+                # => akt. Pfad-Element überspringen == tue nix
+                # currPos += 1
+                discard
+
+            elif isAbsolutePath and currComponent == "..":
+                # Aktuelles Pfad-Element kodiert: Eltern-Pfad innerhalb eines absoluten Pfades ...
+                # => reduziere akzeptierte Pfadliste um letztes Element
+                    pathLength = max(0, pathLength - 1)
+
+            elif not isAbsolutePath and currComponent == "..":
+                # Aktuelles Pfad-Element kodiert: Eltern-Pfad innerhalb eines relativen Pfades ...
+                if pathLength == 0 or pathComponents[pathLength-1] == "..":
+                    # wenn akzeptierte Pfadliste leer ist oder mit ".." endet.
+                    # => füge ".." ans Ende der akzeptierten Pfadliste hinzu,
+                    pathComponents[pathLength] = ".."
+                    pathLength += 1
+                else:
+                    # ... entferne das letzte Pfadelement aus der aktiven Pfadliste,
+                    # wenn die akzeptierte Pfadliste weder leer ist oder mit ".." endet.
+                    pathLength = max(0, pathLength - 1)
+
+            else:
+                # Aktuelles Pfad-Element kodiert: Verzeichnis/Datei
+                # => aktuelles Pfad-Element in die Liste aufnehmen.
+                # => Wenn currPos == pathLength dann nur pathLength um 1 erhöhen
+                #    sonst aktuelles Element ans Ende der aktzeptierten Pfadliste hängen.
+                pathComponents[pathLength] = pathComponents[currPos] # Tut nichts wenn currPos == pathLength
+                pathLength += 1
+
+            # Nächstes Element bearbeiten
+            currPos += 1
+
+        # pathComponents auf Ergebnis-Pfad redurzieren ...
+        pathComponents.setLen(pathLength)
+
+        #var result: string
+        if isAbsolutePath:
+            # Wenn es ursprünglich ein absoluter Pfad war, dann "/" wieder hinzufügen ...
+            result = "/" & pathComponents.join("/")
+        elif pathComponents.len > 0:
+            # Wenn es ein relativer Pfad war, und dieser Elemente hat dann gebe diesen einfach zurück.
+            result = pathComponents.join("/")
+        else:
+            # Wenn es ein relativer Pfad war, und dieser keine Elemente hat, dann gebe aktuellen Pfad zurück.
+            result = "."
+
+        return result
+
+    elif defined(Windows):
+        # os.normalizePath(...) is available since Nim v0.19.0, may have incorrect results.
+        return os.normalizedPath(pathstr)
+
+    else:
+        # os.normalizePath(...) is available since Nim v0.19.0, may have incorrect results.
+        return os.normalizedPath(pathstr)
+
+
+
 
 type Pathname* = ref object
     ## Class for presenting Paths to files and directories,
     ## including a rich fluent API to support easy Development.
     path :string
-
 
 
 
@@ -157,13 +311,13 @@ proc toPathStr*(self :Pathname): string {.inline.} =
 
 proc isAbsolute*(self: Pathname): bool =
     ## Tells if the Pathname contains an absolute path.
-    return os.isAbsolute(self.path)
+    return isAbsolutePathString(self.path)
 
 
 
 proc isRelative*(self: Pathname): bool =
     ## Tells if the Pathname contains an relative path.
-    return not os.isAbsolute(self.path)
+    return not isAbsolutePathString(self.path)
 
 
 
@@ -172,7 +326,9 @@ proc parent*(self :Pathname): Pathname =
     #return Pathname.new(os.parentDir(self.path))
     #return Pathname.new(self.path & "/..")
     #return Pathname.new(normalizePathString(self.path & "/.."))
-    return Pathname.new(os.normalizedPath(os.parentDir(self.path)))
+    #return Pathname.new(os.normalizedPath(os.parentDir(self.path)))
+    #return Pathname.new(os.normalizedPath(self.path & "/.."))
+    return Pathname.new(normalizePathString(self.path & "/.."))
 
 
 
@@ -182,7 +338,7 @@ proc normalize*(self: Pathname): Pathname =
     ## @alias #cleanpath()
     ## @alias #normalize()
     ## @see https://ruby-doc.org/stdlib/libdoc/pathname/rdoc/Pathname.html#method-i-cleanpath
-    let normalizedPathStr = os.normalizedPath(self.path)
+    let normalizedPathStr = normalizePathString(self.path)
 
     # Optimierung für weniger Speicherverbrauch (gib self statt new pathname zurück, wenn identisch, für weniger RAM)
     if normalizedPathStr == self.path:
@@ -307,22 +463,27 @@ proc extname*(self: Pathname): string =
 
 
 
-proc isExisting*(self: Pathname): bool =
-    ## Returns true if the path directs to an existing file-system-entity like a file, directory, device, symlink, ...
-    ## Returns false otherwise.
-    result = false
-    result = result or os.existsFile(self.path)
-    result = result or os.existsDir(self.path)
-    result = result or os.symlinkExists(self.path)
-    return result
+proc fileType*(self: Pathname): FileType =
+    when defined(posix):
+        var res: posix.Stat
+
+        if posix.lstat(self.path, res) <= 0:  return FileType.UNKNOWN
+
+        if posix.S_ISREG(res.st_mode):    return FileType.REGULAR_FILE
+        elif posix.S_ISDIR(res.st_mode):  return FileType.DIRECTORY
+        elif posix.S_ISBLK(res.st_mode):  return FileType.BLOCK_DEVICE
+        elif posix.S_ISCHR(res.st_mode):  return FileType.CHARACTER_DEVICE
+        else:                             return FileType.UNKNOWN
+
+    else:
+        return false
 
 
 
-proc isFile*(self: Pathname): bool =
+proc isRegularFile*(self: Pathname): bool =
     ## Returns true if the path directs to a file, or a symlink that points at a file,
     ## Returns false otherwise.
     return os.existsFile(self.path)
-
 
 
 proc isDirectory*(self: Pathname): bool =
@@ -331,11 +492,58 @@ proc isDirectory*(self: Pathname): bool =
     return os.existsDir(self.path)
 
 
-
 proc isSymlink*(self: Pathname): bool =
     ## Returns true if the path directs to a symlink.
     ## Returns false otherwise.
     return os.symlinkExists(self.path)
+
+
+proc isDeviceFile*(self: Pathname): bool =
+    ## Returns true if the path directs to a device-file (either block or character).
+    ## Returns false otherwise.
+    when defined(posix):
+        # Siehe: https://github.com/nim-lang/Nim/blob/version-1-0/lib/pure/os.nim#L963
+        var res: posix.Stat
+        return (
+            posix.lstat(self.path, res) >= 0 and
+            (posix.S_ISBLK(res.st_mode)  or posix.S_ISCHR(res.st_mode))
+        )
+    else:
+        return false
+
+
+proc isCharacterDeviceFile*(self: Pathname): bool =
+    ## Returns true if the path directs to a block-device-file.
+    ## Returns false otherwise.
+    when defined(posix):
+        # Siehe: https://github.com/nim-lang/Nim/blob/version-1-0/lib/pure/os.nim#L963
+        var res: posix.Stat
+        return posix.lstat(self.path, res) >= 0 and posix.S_ISCHR(res.st_mode)
+    else:
+        return false
+
+
+proc isBlockDeviceFile*(self: Pathname): bool =
+    ## Returns true if the path directs to a block-device-file.
+    ## Returns false otherwise.
+    when defined(posix):
+        # Siehe: https://github.com/nim-lang/Nim/blob/version-1-0/lib/pure/os.nim#L963
+        var res: posix.Stat
+        return posix.lstat(self.path, res) >= 0 and posix.S_ISBLK(res.st_mode)
+    else:
+        return false
+
+
+proc isExisting*(self: Pathname): bool =
+    ## Returns true if the path directs to an existing file-system-entity like a file, directory, device, symlink, ...
+    ## Returns false otherwise.
+    result = false
+    result = result or self.isRegularFile()
+    result = result or self.isDirectory()
+    result = result or self.isSymlink()
+    result = result or self.isDeviceFile()
+    return result
+
 
 
 
@@ -400,7 +608,7 @@ proc toString*(pathnames :seq[Pathname]) :string =
     ## Converts a List of Pathnames to a String for User-Presentation-Purposes (for End-User).
     result = ""
     for pathname in pathnames:
-        if not result.isNilOrEmpty():
+        if result.len > 0:
             result = result & ", "
         result = result & "\"" & pathname.path & "\""
     result = "[" & result & "]"
