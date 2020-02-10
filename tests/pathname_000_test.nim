@@ -951,7 +951,7 @@ suite "Pathname Tests 000":
         check false == Pathname.new("/dev/null").isRegularFile()
         check false == Pathname.new("/dev/zero").isRegularFile()
 
-        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isRegularFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isRegularFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isRegularFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isRegularFile()
 
@@ -994,9 +994,9 @@ suite "Pathname Tests 000":
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isDirectory()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isDirectory()
 
-        check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isDirectory()
-        check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isDirectory()
-        check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isDirectory()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isDirectory()
+        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isDirectory()
+        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isDirectory()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isDirectory()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isDirectory()
@@ -1234,3 +1234,42 @@ suite "Pathname Tests 000":
 
         check true == Pathname.new(fixturePath("sample_dir/NON_EXISTING_FILE" )).fileType().isNotExisting()
         check true == Pathname.new(fixturePath("sample_dir/NON_EXISTING_FILE/")).fileType().isNotExisting()
+
+
+
+    test "#fileStatus() - is<FileMode>()":
+        check true == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().isRegularFile()
+
+        check true == Pathname.new(fixturePath("sample_dir/a_dir")).fileStatus().isDirectory()
+
+        check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_file")).fileStatus().isSymlink()
+
+        check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir")).fileStatus().isSymlink()
+
+        check true == Pathname.new("/dev/null" ).fileStatus().isDeviceFile()
+        check true == Pathname.new("/dev/loop0").fileStatus().isDeviceFile()
+
+        check true == Pathname.new("/dev/null" ).fileStatus().isCharacterDeviceFile()
+        check true == Pathname.new("/dev/loop0").fileStatus().isBlockDeviceFile()
+
+        check true == Pathname.new(fixturePath("sample_dir/a_file"   )).fileStatus().isExisting()
+        check true == Pathname.new(fixturePath("sample_dir/a_dir"    )).fileStatus().isExisting()
+        check true == Pathname.new(fixturePath("sample_dir/a_symlink")).fileStatus().isExisting()
+
+        check true == Pathname.new(fixturePath("NON_EXISTING_FILE" )).fileStatus().isNotExisting()
+        check true == Pathname.new(fixturePath("NON_EXISTING_FILE/")).fileStatus().isNotExisting()
+
+        check true == Pathname.new(fixturePath("sample_dir/NON_EXISTING_FILE" )).fileStatus().isNotExisting()
+        check true == Pathname.new(fixturePath("sample_dir/NON_EXISTING_FILE/")).fileStatus().isNotExisting()
+
+
+    test "#fileStatus() - getFileSizeInBytes()":
+        check 0 == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().getFileSizeInBytes()
+
+        ## When needs update -> change to a file with fixed file size ...
+        check 122 == Pathname.new(fixturePath("README.md")).fileStatus().getFileSizeInBytes()
+
+
+    test "#fileStatus() - getIoBlockSizeInBytes()":
+        check 4096 == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().getIoBlockSizeInBytes()
+        check 4096 == Pathname.new(fixturePath("README.md"        )).fileStatus().getIoBlockSizeInBytes()

@@ -50,6 +50,11 @@ import pathname/file_type
 export pathname.file_type
 
 
+## Import/Export FileInfo-Implementation.
+import pathname/file_status
+export pathname.file_status
+
+
 ### Import: realpath (@see module posix)
 #when defined(Posix):
 #
@@ -480,91 +485,97 @@ proc extname*(self: Pathname): string =
 
 
 
-
 proc fileType*(self: Pathname): FileType =
     ## Returns the FileType of the current Pathname. And tells if the underlying File-System-Entry
     ## is existing, and if it is either a Regular File, Directory, Symlink, or Device-File.
+    ## See also: fileStatus()
+    ## See also: fileType()
     return FileType.fromPathStr(self.path)
 
 
 
-# TODO: Auf fileType() basieren lassen ...
-proc isRegularFile*(self: Pathname): bool =
-    ## Returns true if the path directs to a file, or a symlink that points at a file,
-    ## Returns false otherwise.
-    return os.existsFile(self.path)
+proc fileStatus*(self: Pathname): FileStatus =
+    ## Returns the FileStatus of the current Pathname. Providing additional infos about the underlying
+    ## File-System-Entry.
+    ## See also: fileStatus()
+    ## See also: fileType()
+    return FileStatus.fromPathStr(self.path)
 
 
-# TODO: Auf fileType() basieren lassen ...
-proc isDirectory*(self: Pathname): bool =
-    ## Returns true if the path directs to a directory, or a symlink that points at a directory,
-    ## Returns false otherwise.
-    return os.existsDir(self.path)
 
-
-# TODO: Auf fileType() basieren lassen ...
-proc isSymlink*(self: Pathname): bool =
-    ## Returns true if the path directs to a symlink.
-    ## Returns false otherwise.
-    return os.symlinkExists(self.path)
-
-
-# TODO: Auf fileType() basieren lassen ...
-proc isDeviceFile*(self: Pathname): bool =
-    ## Returns true if the path directs to a device-file (either block or character).
-    ## Returns false otherwise.
-    when defined(posix):
-        # Siehe: https://github.com/nim-lang/Nim/blob/version-1-0/lib/pure/os.nim#L963
-        var res: posix.Stat
-        return (
-            posix.lstat(self.path, res) >= 0 and
-            (posix.S_ISBLK(res.st_mode)  or posix.S_ISCHR(res.st_mode))
-        )
-    else:
-        return false
-
-
-# TODO: Auf fileType() basieren lassen ...
-proc isCharacterDeviceFile*(self: Pathname): bool =
-    ## Returns true if the path directs to a block-device-file.
-    ## Returns false otherwise.
-    when defined(posix):
-        # Siehe: https://github.com/nim-lang/Nim/blob/version-1-0/lib/pure/os.nim#L963
-        var res: posix.Stat
-        return posix.lstat(self.path, res) >= 0 and posix.S_ISCHR(res.st_mode)
-    else:
-        return false
-
-
-# TODO: Auf fileType() basieren lassen ...
-proc isBlockDeviceFile*(self: Pathname): bool =
-    ## Returns true if the path directs to a block-device-file.
-    ## Returns false otherwise.
-    when defined(posix):
-        # Siehe: https://github.com/nim-lang/Nim/blob/version-1-0/lib/pure/os.nim#L963
-        var res: posix.Stat
-        return posix.lstat(self.path, res) >= 0 and posix.S_ISBLK(res.st_mode)
-    else:
-        return false
-
-
-# TODO: Auf fileType() basieren lassen ...
-proc isExisting*(self: Pathname): bool =
+proc isExisting*(self: Pathname): bool {.inline.} =
     ## Returns true if the path directs to an existing file-system-entity like a file, directory, device, symlink, ...
     ## Returns false otherwise.
-    result = false
-    result = result or self.isRegularFile()
-    result = result or self.isDirectory()
-    result = result or self.isSymlink()
-    result = result or self.isDeviceFile()
-    return result
+    ## See also: fileStatus()
+    ## See also: fileType()
+    ## See also: isExisting()
+    ## See also: isNotExisting()
+    return self.fileType().isExisting()
+
 
 
 proc isNotExisting*(self: Pathname): bool {.inline.} =
     ## Returns true if the path DOES NOT direct to an existing and accessible file-system-entity.
     ## Returns false otherwise
+    ## See also: fileStatus()
+    ## See also: fileType()
     ## See also: isExisting()
-    return not self.isExisting()
+    ## See also: isNotExisting()
+    return self.fileType().isNotExisting()
+
+
+
+proc isRegularFile*(self: Pathname): bool {.inline.} =
+    ## Returns true if the path directs to a file, or a symlink that points at a file,
+    ## Returns false otherwise.
+    ## See also: fileStatus()
+    ## See also: fileType()
+    return self.fileType().isRegularFile()
+
+
+
+proc isDirectory*(self: Pathname): bool {.inline.} =
+    ## Returns true if the path directs to a directory, or a symlink that points at a directory,
+    ## Returns false otherwise.
+    ## See also: fileStatus()
+    ## See also: fileType()
+    return self.fileType().isDirectory()
+
+
+
+proc isSymlink*(self: Pathname): bool {.inline.} =
+    ## Returns true if the path directs to a symlink.
+    ## Returns false otherwise.
+    ## See also: fileStatus()
+    ## See also: fileType()
+    return self.fileType().isSymlink()
+
+
+
+proc isDeviceFile*(self: Pathname): bool {.inline.} =
+    ## Returns true if the path directs to a device-file (either block or character).
+    ## Returns false otherwise.
+    ## See also: fileStatus()
+    ## See also: fileType()
+    return self.fileType().isDeviceFile()
+
+
+
+proc isCharacterDeviceFile*(self: Pathname): bool {.inline.} =
+    ## Returns true if the path directs to a block-device-file.
+    ## Returns false otherwise.
+    ## See also: fileStatus()
+    ## See also: fileType()
+    return self.fileType().isCharacterDeviceFile()
+
+
+
+proc isBlockDeviceFile*(self: Pathname): bool {.inline.} =
+    ## Returns true if the path directs to a block-device-file.
+    ## Returns false otherwise.
+    ## See also: fileStatus()
+    ## See also: fileType()
+    return self.fileType().isBlockDeviceFile()
 
 
 
