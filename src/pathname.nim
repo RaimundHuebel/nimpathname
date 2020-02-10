@@ -1,12 +1,12 @@
 ###
-# Learn Nim by Practice.
+# Pathname-Module inspired by pathname from Ruby-Stdlib.
 #
 # license: MIT
 # author:  Raimund Hübel <raimund.huebel@googlemail.com>
 #
 # ## compile and run + tooling:
 #
-#   ## Seperated compile and run steps ...
+#   ## Separated compile and run steps ...
 #   $ nim compile [--out:pathname.exe] pathname.nim
 #   $ ./pathname[.exe]
 #
@@ -35,21 +35,30 @@
 
 
 import os
-import strutils
+import options
 
 when defined(Posix):
     import posix
+    import strutils
+
+when defined(Windows):
+    import sequtils
 
 
-## Import: realpath (@see module posix)
-when defined(Posix):
+## Import/Export FileType-Implementation.
+import pathname/file_type
+export pathname.file_type
 
-    const PATH_MAX = 4096'u
-    proc posixRealpath(name: cstring, resolved: cstring): cstring {. importc: "realpath", header: "<stdlib.h>" .}
 
-else:
-    # TODO: Support other Plattforms ...
-    {.fatal: "The current plattform is not supported by utils.file_stat!".}
+### Import: realpath (@see module posix)
+#when defined(Posix):
+#
+#    const PATH_MAX = 4096'u
+#    proc posixRealpath(name: cstring, resolved: cstring): cstring {. importc: "realpath", header: "<stdlib.h>" .}
+#
+#else:
+#    # TODO: Support other Plattforms ...
+#    {.fatal: "The current plattform does not support posix - realpath!".}
 
 
 #proc canonicalizePathString(pathstr: string): string =
@@ -67,46 +76,15 @@ else:
 #    return result
 
 
-type FileType* {.pure.} = enum
-    UNKNOWN = 0,
-    REGULAR_FILE,
-    DIRECTORY,
-    SYMLINK,
-    CHARACTER_DEVICE,
-    BLOCK_DEVICE
 
-proc isUnknown*(self: FileType): bool =
-    return self == FileType.UNKNOWN
-
-proc isRegularFile*(self: FileType): bool =
-    return self == FileType.REGULAR_FILE
-
-proc isDirectory*(self: FileType): bool =
-    return self == FileType.DIRECTORY
-
-proc isSymLink*(self: FileType): bool =
-    return self == FileType.SYMLINK
-
-proc isDeviceFile*(self: FileType): bool =
-    return self == FileType.CHARACTER_DEVICE  or  self == FileType.BLOCK_DEVICE
-
-proc isCharacterDeviceFile*(self: FileType): bool =
-    return self == FileType.CHARACTER_DEVICE
-
-proc isBlockDeviceFile*(self: FileType): bool =
-    return self == FileType.BLOCK_DEVICE
-
-
-
-
-proc isAbsolutePathStringPosix(pathstr: string): bool =
+proc isAbsolutePathStringPosix*(pathstr: string): bool =
     ## Gibt an ob es sich um ein absoluten Pfad unter Posix-Systemen handelt.
     ## @see https://nim-lang.org/docs/os.html#isAbsolute%2Cstring
     if pathstr.len == 0: return false
     return pathstr[0] == '/'
 
 
-proc isAbsolutePathStringWindows(pathstr: string): bool =
+proc isAbsolutePathStringWindows*(pathstr: string): bool =
     ## Gibt an ob es sich um ein absoluten Pfad unter Windows/Dos-Systemen handelt.
     ## @see https://nim-lang.org/docs/os.html#isAbsolute%2Cstring
     if pathstr.len == 0: return false
@@ -117,7 +95,7 @@ proc isAbsolutePathStringWindows(pathstr: string): bool =
     )
 
 
-proc isAbsolutePathStringMacOs(pathstr: string): bool =
+proc isAbsolutePathStringMacOs*(pathstr: string): bool =
     ## Gibt an ob es sich um ein absoluten Pfad unter MacOs-Systemen handelt.
     ## @see https://nim-lang.org/docs/os.html#isAbsolute%2Cstring
     if pathstr.len == 0: return false
@@ -125,14 +103,14 @@ proc isAbsolutePathStringMacOs(pathstr: string): bool =
     return pathstr[0] != ':'
 
 
-proc isAbsolutePathStringRiscOs(pathstr: string): bool =
+proc isAbsolutePathStringRiscOs*(pathstr: string): bool =
     ## Gibt an ob es sich um ein absoluten Pfad unter RiscOs-Systemen handelt.
     ## @see https://nim-lang.org/docs/os.html#isAbsolute%2Cstring
     if pathstr.len == 0: return false
     return pathstr[0] == '$'
 
 
-proc isAbsolutePathString(pathstr: string): bool {.inline.} =
+proc isAbsolutePathString*(pathstr: string): bool {.inline.} =
     ## Gibt an ob es sich um ein absoluten Pfad im aktuellen Betriebssystem handelt.
     ## @see https://nim-lang.org/docs/os.html#isAbsolute%2Cstring
     when doslikeFileSystem:
@@ -238,6 +216,7 @@ type Pathname* = ref object
 
 
 
+#TODO: Diese Konstruktor-Variante wird für Verwirrung sorgen, fromCurrentDir ist da wesentlich sprechender.
 proc new*(class: typedesc[Pathname]): Pathname =
     ## Constructs a new Pathname with the Current Directory as Path.
     ## @returns An Pathname-Instance.
@@ -302,6 +281,40 @@ proc fromUserHomeDir*(class: typedesc[Pathname]): Pathname =
     return Pathname.new(os.getHomeDir())
 
 
+proc fromEnvVar*(class: typedesc[Pathname], envVar: string): Option[Pathname] =
+    ## Constructs a new Pathname with the value of the given EnvVar, may return none(Pathname).
+    ## The usage of this constructor may need an explicit import of options-Module.
+    ## @returns A some(Pathname) containing the Path of the given EnvVar if defined.
+    ## @returns none(Pathname) if the given EnvVar does not exist.
+    ## @usage Pathname.fromEnvVar("PROJECT_PATH")
+    let envPathStr = os.getEnv(envVar)
+    if unlikely( envPathStr.len == 0 and not os.existsEnv(envPathStr) ):
+        return none(Pathname)
+    return some(Pathname.new(envPathStr))
+
+
+proc fromEnvVarOrDefault*(class: typedesc[Pathname], envVar: string, defaultPath: string): Pathname =
+    ## Constructs a new Pathname with the value of the given EnvVar, may return defaultPath.
+    ## @returns A Pathname containing the Path of the given EnvVar if defined or defaultPath if not.
+    ## @usage Pathname.fromEnvVar("RUN_DIRECTORY", "/tmp/run")
+    let envPathStr = os.getEnv(envVar)
+    if unlikely( envPathStr.len == 0 and not os.existsEnv(envPathStr) ):
+        return Pathname.new(defaultPath)
+    return Pathname.new(envPathStr)
+
+
+proc fromEnvVarOrNil*(class: typedesc[Pathname], envVar: string): Pathname =
+    ## Constructs a new Pathname with the value of the given EnvVar, may return nil.
+    ## @returns A Pathname containing the Path of the given EnvVar if defined.
+    ## @returns nil if the given EnvVar does not exist.
+    ## @usage Pathname.fromEnvVarOrNil("PROJECT_PATH")
+    let envPathStr = os.getEnv(envVar)
+    if unlikely( envPathStr.len == 0 and not os.existsEnv(envPathStr) ):
+        return nil
+    return Pathname.new(envPathStr)
+
+
+
 
 proc toPathStr*(self :Pathname): string {.inline.} =
     ## Liefert das Verzeichnis des Pathnames als String.
@@ -329,6 +342,10 @@ proc parent*(self :Pathname): Pathname =
     #return Pathname.new(os.normalizedPath(os.parentDir(self.path)))
     #return Pathname.new(os.normalizedPath(self.path & "/.."))
     return Pathname.new(normalizePathString(self.path & "/.."))
+
+
+
+## TODO: join(), `/`, ... implementieren
 
 
 
@@ -463,41 +480,36 @@ proc extname*(self: Pathname): string =
 
 
 
+
 proc fileType*(self: Pathname): FileType =
-    when defined(posix):
-        var res: posix.Stat
-
-        if posix.lstat(self.path, res) <= 0:  return FileType.UNKNOWN
-
-        if posix.S_ISREG(res.st_mode):    return FileType.REGULAR_FILE
-        elif posix.S_ISDIR(res.st_mode):  return FileType.DIRECTORY
-        elif posix.S_ISBLK(res.st_mode):  return FileType.BLOCK_DEVICE
-        elif posix.S_ISCHR(res.st_mode):  return FileType.CHARACTER_DEVICE
-        else:                             return FileType.UNKNOWN
-
-    else:
-        return false
+    ## Returns the FileType of the current Pathname. And tells if the underlying File-System-Entry
+    ## is existing, and if it is either a Regular File, Directory, Symlink, or Device-File.
+    return FileType.fromPathStr(self.path)
 
 
 
+# TODO: Auf fileType() basieren lassen ...
 proc isRegularFile*(self: Pathname): bool =
     ## Returns true if the path directs to a file, or a symlink that points at a file,
     ## Returns false otherwise.
     return os.existsFile(self.path)
 
 
+# TODO: Auf fileType() basieren lassen ...
 proc isDirectory*(self: Pathname): bool =
     ## Returns true if the path directs to a directory, or a symlink that points at a directory,
     ## Returns false otherwise.
     return os.existsDir(self.path)
 
 
+# TODO: Auf fileType() basieren lassen ...
 proc isSymlink*(self: Pathname): bool =
     ## Returns true if the path directs to a symlink.
     ## Returns false otherwise.
     return os.symlinkExists(self.path)
 
 
+# TODO: Auf fileType() basieren lassen ...
 proc isDeviceFile*(self: Pathname): bool =
     ## Returns true if the path directs to a device-file (either block or character).
     ## Returns false otherwise.
@@ -512,6 +524,7 @@ proc isDeviceFile*(self: Pathname): bool =
         return false
 
 
+# TODO: Auf fileType() basieren lassen ...
 proc isCharacterDeviceFile*(self: Pathname): bool =
     ## Returns true if the path directs to a block-device-file.
     ## Returns false otherwise.
@@ -523,6 +536,7 @@ proc isCharacterDeviceFile*(self: Pathname): bool =
         return false
 
 
+# TODO: Auf fileType() basieren lassen ...
 proc isBlockDeviceFile*(self: Pathname): bool =
     ## Returns true if the path directs to a block-device-file.
     ## Returns false otherwise.
@@ -534,6 +548,7 @@ proc isBlockDeviceFile*(self: Pathname): bool =
         return false
 
 
+# TODO: Auf fileType() basieren lassen ...
 proc isExisting*(self: Pathname): bool =
     ## Returns true if the path directs to an existing file-system-entity like a file, directory, device, symlink, ...
     ## Returns false otherwise.
@@ -543,6 +558,13 @@ proc isExisting*(self: Pathname): bool =
     result = result or self.isSymlink()
     result = result or self.isDeviceFile()
     return result
+
+
+proc isNotExisting*(self: Pathname): bool {.inline.} =
+    ## Returns true if the path DOES NOT direct to an existing and accessible file-system-entity.
+    ## Returns false otherwise
+    ## See also: isExisting()
+    return not self.isExisting()
 
 
 
@@ -577,7 +599,7 @@ proc `$`*(self :Pathname): string {.inline.} =
 
 
 
-proc inspect*(self :Pathname) :string =
+proc inspect*(self: Pathname) :string =
     ## Converts a Pathname to a String for Diagnostic-Purposes (for Developer).
     return "Pathname(\"" & self.path & "\")"
 
@@ -585,7 +607,9 @@ proc inspect*(self :Pathname) :string =
 
 
 
-proc newPathnames*(paths :varargs[string]) :seq[Pathname] =
+proc newPathnames*(paths: varargs[string]) :seq[Pathname] =
+    ## Constructs a List of Pathnames with all Pathname in the Parameter-List.
+    ## @returns A list of Pathnames
     var pathnames: seq[Pathname] = newSeq[Pathname](paths.len)
     for i in 0..<paths.len:
         pathnames[i] = Pathname.new(paths[i])
@@ -597,8 +621,8 @@ proc pathnamesFromRoot*() :seq[Pathname] =
     ## Constructs a List of Pathnames containing all Filesystem-Roots per Entry
     ## @returns A list of Pathnames
     when defined(Windows):
-        # WIndows-Version ist noch in Arbeit (siehe unten)
-        return newPathnames( os.parentDirs("test/a/b", inclusive=false) )
+        # Windows-Version ist noch in Arbeit (siehe unten)
+        return newPathnames( toSeq(parentDirs("test/a/b", inclusive=false)) )
     else:
         return newPathnames("/")
 
@@ -628,58 +652,58 @@ proc inspect*(pathnames :seq[Pathname]) :string =
 
 
 
-## Noch mitten in der Entwicklung ...
-when defined(Windows):
-    proc winGetWindowsDirectory(lpBuffer: cstring, uSize :cuint): cuint {. importc: "GetWindowsDirectory", header: "<winbase.h>" .}
-    proc fromWindowsInstallDir*(class: typedesc[Pathname]) :Pathname =
-        ## Constructs a new Pathname pointing to the Windows-Installation Directory.
-        const PATH_MAX = 4096'u
-        const maxSize = PATH_MAX
-        var pathStr :string = newString(maxSize)
-        let realSize :cuint = winGetWindowsDirectory(pathStr, maxSize.cuint)
-        if realSize <= 0:
-            raiseOSError(osLastError())
-        pathStr[maxSize.int-1] = 0.char
-        pathStr[realSize.int-1] = 0.char
-        pathStr.setLen(realSize)
-        return result
-
-
-## Noch mitten in der Entwicklung ...
-when defined(Windows):
-    proc winGetSystemWindowsDirectory(lpBuffer: cstring, uSize :cuint): cuint {. importc: "GetSystemWindowsDirectory", header: "<winbase.h>" .}
-    proc fromWindowsSystemDir*(class: typedesc[Pathname]) :Pathname =
-        ## Constructs a new Pathname pointing to the Windows-System Directory.
-        const PATH_MAX = 4096'u
-        const maxSize = PATH_MAX
-        var pathStr :string = newString(maxSize)
-        let realSize :cuint = winGetSystemWindowsDirectory(pathStr, maxSize.cuint)
-        if realSize <= 0:
-            raiseOSError(osLastError())
-        pathStr[maxSize.int-1] = 0.char
-        pathStr[realSize.int-1] = 0.char
-        pathStr.setLen(realSize)
-        return result
-
-
-## Noch mitten in der Entwicklung ...
-when defined(Windows):
-    # @see https://msdn.microsoft.com/en-us/library/windows/desktop/aa364975(v=vs.85).aspx
-    proc winGetLogicalDriveStrings(nBufferLength :uint32, lpBuffer: cstring): uint32 {. importc: "GetLogicalDriveStrings", header: "<winbase.h.h>" .}
-    proc pathnamesFromWindowsDrives*() :string =
-        ## Constructs a new Pathname pointing to the Windows-System Directory.
-        const PATH_MAX = 4096'u
-        const maxSize = PATH_MAX
-        var pathStr :string = newString(maxSize)
-        let realSize = winGetLogicalDriveStrings(maxSize.uint32, pathStr)
-        if realSize <= 0:
-            raiseOSError(osLastError())
-        if realSize > maxSize:
-            raiseOSError(osLastError())  #TODO
-        pathStr[maxSize.int-1] = 0.char
-        pathStr[realSize.int-1] = 0.char
-        pathStr.setLen(realSize)
-        return result
+### Noch mitten in der Entwicklung ...
+#when defined(Windows):
+#    proc winGetWindowsDirectory(lpBuffer: cstring, uSize :cuint): cuint {. importc: "GetWindowsDirectory", header: "<winbase.h>" .}
+#    proc fromWindowsInstallDir*(class: typedesc[Pathname]) :Pathname =
+#        ## Constructs a new Pathname pointing to the Windows-Installation Directory.
+#        const PATH_MAX = 4096'u
+#        const maxSize = PATH_MAX
+#        var pathStr :string = newString(maxSize)
+#        let realSize :cuint = winGetWindowsDirectory(pathStr, maxSize.cuint)
+#        if realSize <= 0:
+#            raiseOSError(osLastError())
+#        pathStr[maxSize.int-1] = 0.char
+#        pathStr[realSize.int-1] = 0.char
+#        pathStr.setLen(realSize)
+#        return result
+#
+#
+### Noch mitten in der Entwicklung ...
+#when defined(Windows):
+#    proc winGetSystemWindowsDirectory(lpBuffer: cstring, uSize :cuint): cuint {. importc: "GetSystemWindowsDirectory", header: "<winbase.h>" .}
+#    proc fromWindowsSystemDir*(class: typedesc[Pathname]) :Pathname =
+#        ## Constructs a new Pathname pointing to the Windows-System Directory.
+#        const PATH_MAX = 4096'u
+#        const maxSize = PATH_MAX
+#        var pathStr :string = newString(maxSize)
+#        let realSize :cuint = winGetSystemWindowsDirectory(pathStr, maxSize.cuint)
+#        if realSize <= 0:
+#            raiseOSError(osLastError())
+#        pathStr[maxSize.int-1] = 0.char
+#        pathStr[realSize.int-1] = 0.char
+#        pathStr.setLen(realSize)
+#        return result
+#
+#
+### Noch mitten in der Entwicklung ...
+#when defined(Windows):
+#    # @see https://msdn.microsoft.com/en-us/library/windows/desktop/aa364975(v=vs.85).aspx
+#    proc winGetLogicalDriveStrings(nBufferLength :uint32, lpBuffer: cstring): uint32 {. importc: "GetLogicalDriveStrings", header: "<winbase.h.h>" .}
+#    proc pathnamesFromWindowsDrives*() :string =
+#        ## Constructs a new Pathname pointing to the Windows-System Directory.
+#        const PATH_MAX = 4096'u
+#        const maxSize = PATH_MAX
+#        var pathStr :string = newString(maxSize)
+#        let realSize = winGetLogicalDriveStrings(maxSize.uint32, pathStr)
+#        if realSize <= 0:
+#            raiseOSError(osLastError())
+#        if realSize > maxSize:
+#            raiseOSError(osLastError())  #TODO
+#        pathStr[maxSize.int-1] = 0.char
+#        pathStr[realSize.int-1] = 0.char
+#        pathStr.setLen(realSize)
+#        return result
 
 
 
@@ -701,10 +725,10 @@ when isMainModule:
 
     echo "Current Dir-Content  : ", Pathname.fromCurrentDir().listDir()
 
-    when defined(Windows):
-        echo "Windows-Install Directory: ", Pathname.fromWindowsInstallDir()
-        echo "Windows-System Directory : ", Pathname.fromWindowsSystemDir()
-        echo "Windows-Drives           : ", pathnamesFromWindowsDrives()
+    #when defined(Windows):
+    #    echo "Windows-Install Directory: ", Pathname.fromWindowsInstallDir()
+    #    echo "Windows-System Directory : ", Pathname.fromWindowsSystemDir()
+    #    echo "Windows-Drives           : ", pathnamesFromWindowsDrives()
 
 #    proc main() =
 #        echo normalizePathString("./../..")   #Fail -> ../..

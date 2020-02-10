@@ -1,2 +1,3 @@
 # .gitignore-file for NimFaker
 /tests/test_all
+*.exe
