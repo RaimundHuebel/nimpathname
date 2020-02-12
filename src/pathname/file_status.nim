@@ -94,10 +94,12 @@ proc getFileSizeInBytes*(self: FileStatus): int64 =
     return self.fileSizeInBytes
 
 
+
 proc getIoBlockSizeInBytes*(self: FileStatus): int32 =
     ## @returns the Size of an IO-Block of the File-System-Entry in Bytes.
     ## @returns -1 if the BlockSize could not be determined.
     return self.ioBlockSizeInBytes
+
 
 
 proc getUserId*(self: FileStatus): string =

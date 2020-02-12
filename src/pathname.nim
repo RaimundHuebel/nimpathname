@@ -44,15 +44,14 @@ when defined(Posix):
 when defined(Windows):
     import sequtils
 
-
 ## Import/Export FileType-Implementation.
-import pathname/file_type
-export pathname.file_type
+import pathname/file_type as file_type
+export file_type
 
 
 ## Import/Export FileInfo-Implementation.
-import pathname/file_status
-export pathname.file_status
+import pathname/file_status as file_status
+export file_status
 
 
 ### Import: realpath (@see module posix)
@@ -213,6 +212,40 @@ proc normalizePathString*(pathstr: string): string =
 
 
 
+proc joinPathComponents(basePath: string, pathComponent1: string, additionalPathComponents: varargs[string]): string =
+    ## Constructs a new PathStr, from a base-path and additional path-components.
+    ## @param path The Directory which shall be listed.
+    ## @param pathComponent1 The first mandatory Path-Component
+    ## @param additionalPathComponents Further additional Path-Components
+    ## @returns A string containing the joined Path.
+    ## @usage joinPathComponents("/a/sample/path", "run")
+    ## @usage joinPathComponents("/a/sample/path", "run", "exports")
+
+    # Building Path-Components-Array
+    var resultPathComponents = newSeq[string](additionalPathComponents.len + 2)
+    resultPathComponents[0] = basePath
+    resultPathComponents[1] = pathComponent1
+    for idx in (0..<additionalPathComponents.len):
+        resultPathComponents[idx+2] = additionalPathComponents[idx]
+    # Remove Trailing /
+    for idx in (0..<resultPathComponents.len-1):
+        var pc: string = resultPathComponents[idx]
+        while pc.endsWith(os.DirSep):
+            pc = pc[0..^2]
+        resultPathComponents[idx] = pc
+    # Remove Leading /
+    for idx in (1..<resultPathComponents.len):
+        var pc: string = resultPathComponents[idx]
+        while pc.startsWith(os.DirSep):
+            pc = pc[1..^1]
+        resultPathComponents[idx] = pc
+    result = resultPathComponents.join($os.DirSep)
+    #result = normalizePathString(result) # NO
+    return result
+
+
+
+
 
 type Pathname* = ref object
     ## Class for presenting Paths to files and directories,
@@ -221,34 +254,50 @@ type Pathname* = ref object
 
 
 
-#TODO: Diese Konstruktor-Variante wird für Verwirrung sorgen, fromCurrentDir ist da wesentlich sprechender.
-proc new*(class: typedesc[Pathname]): Pathname =
-    ## Constructs a new Pathname with the Current Directory as Path.
-    ## @returns An Pathname-Instance.
-    ## @usage Pathname.new()
-    return Pathname(path: os.getCurrentDir())
+#DEPRECATED proc new*(class: typedesc[Pathname]): Pathname =
+#DEPRECATED     ## Constructs a new Pathname with the Current Directory as Path.
+#DEPRECATED     ## @returns An Pathname-Instance.
+#DEPRECATED     ## @usage Pathname.new()
+#DEPRECATED     return Pathname(path: os.getCurrentDir())
 
 
 proc new*(class: typedesc[Pathname], path: string): Pathname =
-    ## Constructs a new Pathname.
+    ## Constructs a new Pathname, with the Pathname direct.
     ## @param path The Directory which shall be listed.
     ## @returns An Pathname-Instance.
     ## @usage Pathname.new("/a/sample/path")
     return Pathname(path: path)
 
 
-proc fromCurrentDir*(class: typedesc[Pathname]): Pathname =
-    ## Constructs a new Pathname with the Current Directory as Path.
+
+proc new*(class: typedesc[Pathname], basePath: string, pathComponent1: string, additionalPathComponents: varargs[string]): Pathname =
+    ## Constructs a new Pathname, from a base-path and additional path-components.
+    ## This should be the prefered way to construct plattform independent Pathnames.
+    ## @param path The Directory which shall be listed.
+    ## @param pathComponent1 The first mandatory Path-Component
+    ## @param additionalPathComponents Further additional Path-Components
+    ## @returns A string containing the joined Path.
+    ## @returns An Pathname-Instance containing the joined Path.
+    ## @usage Pathname.new("/a/sample/path", "run")
+    ## @usage Pathname.new("/a/sample/path", "run", "exports")
+    return Pathname.new(joinPathComponents(basePath, pathComponent1, additionalPathComponents))
+
+
+proc fromCurrentWorkDir*(class: typedesc[Pathname]): Pathname =
+    ## Constructs a new Pathname with the Current Work Directory as Path.
     ## @returns A Pathname-Instance.
-    ## @usage Pathname.fromCurrentDir()
+    ## @usage Pathname.fromCurrentWorkDir()
     return Pathname.new(os.getCurrentDir())
 
 
-proc fromAppDir*(class: typedesc[Pathname]): Pathname =
-    ## Constructs a new Pathname with the App Directory as Path.
+proc fromCurrentWorkDir*(class: typedesc[Pathname], pathComponent1: string, additionalPathComponents: varargs[string]): Pathname =
+    ## Constructs a new Pathname with the Current Work Directory as Path.
+    ## @param pathComponent1 The first mandatory Path-Component
+    ## @param additionalPathComponents Further additional Path-Components
     ## @returns A Pathname-Instance.
-    ## @usage Pathname.fromAppDir()
-    return Pathname.new(os.getAppDir())
+    ## @usage Pathname.fromCurrentWorkDir("run")
+    ## @usage Pathname.fromCurrentWorkDir("run", "backups")
+    return Pathname.new(joinPathComponents(os.getCurrentDir(), pathComponent1, additionalPathComponents))
 
 
 proc fromAppFile*(class: typedesc[Pathname]): Pathname =
@@ -258,11 +307,38 @@ proc fromAppFile*(class: typedesc[Pathname]): Pathname =
     return Pathname.new(os.getAppFilename())
 
 
+proc fromAppDir*(class: typedesc[Pathname]): Pathname =
+    ## Constructs a new Pathname with the App Directory as Path.
+    ## @returns A Pathname-Instance.
+    ## @usage Pathname.fromAppDir()
+    return Pathname.new(os.getAppDir())
+
+
+proc fromAppDir*(class: typedesc[Pathname], pathComponent1: string, additionalPathComponents: varargs[string]): Pathname =
+    ## Constructs a new Pathname with the App Directory as Path.
+    ## @param pathComponent1 The first mandatory Path-Component
+    ## @param additionalPathComponents Further additional Path-Components
+    ## @returns A Pathname-Instance.
+    ## @usage Pathname.fromAppDir("run")
+    ## @usage Pathname.fromAppDir("run", "backups")
+    return Pathname.new(joinPathComponents(os.getAppDir(), pathComponent1, additionalPathComponents))
+
+
 proc fromTempDir*(class: typedesc[Pathname]): Pathname =
     ## Constructs a new Pathname with the Temp Directory as Path.
     ## @returns A Pathname-Instance.
     ## @usage Pathname.fromTempDir()
     return Pathname.new(os.getTempDir())
+
+
+proc fromTempDir*(class: typedesc[Pathname], pathComponent1: string, additionalPathComponents: varargs[string]): Pathname =
+    ## Constructs a new Pathname with the Temp Directory as Path.
+    ## @param pathComponent1 The first mandatory Path-Component
+    ## @param additionalPathComponents Further additional Path-Components
+    ## @returns A Pathname-Instance.
+    ## @usage Pathname.fromTempDir("run")
+    ## @usage Pathname.fromTempDir("run", "backups")
+    return Pathname.new(joinPathComponents(os.getTempDir(), pathComponent1, additionalPathComponents))
 
 
 proc fromRootDir*(class: typedesc[Pathname]): Pathname =
@@ -272,11 +348,31 @@ proc fromRootDir*(class: typedesc[Pathname]): Pathname =
     return Pathname.new("/")
 
 
+proc fromRootDir*(class: typedesc[Pathname], pathComponent1: string, additionalPathComponents: varargs[string]): Pathname =
+    ## Constructs a new Pathname with the Temp Directory as Path.
+    ## @param pathComponent1 The first mandatory Path-Component
+    ## @param additionalPathComponents Further additional Path-Components
+    ## @returns A Pathname-Instance.
+    ## @usage Pathname.fromRootDir("run")
+    ## @usage Pathname.fromRootDir("run", "backups")
+    return Pathname.new(joinPathComponents("/", pathComponent1, additionalPathComponents))
+
+
 proc fromUserConfigDir*(class: typedesc[Pathname]): Pathname =
     ## Constructs a new Pathname with the Config Directory as Path.
     ## @returns A Pathname-Instance.
     ## @usage Pathname.fromUserConfigDir()
     return Pathname.new(os.getConfigDir())
+
+
+proc fromUserConfigDir*(class: typedesc[Pathname], pathComponent1: string, additionalPathComponents: varargs[string]): Pathname =
+    ## Constructs a new Pathname with the Config Directory as Path.
+    ## @param pathComponent1 The first mandatory Path-Component
+    ## @param additionalPathComponents Further additional Path-Components
+    ## @returns A Pathname-Instance.
+    ## @usage Pathname.fromUserConfigDir("run")
+    ## @usage Pathname.fromUserConfigDir("run", "backups")
+    return Pathname.new(joinPathComponents(os.getConfigDir(), pathComponent1, additionalPathComponents))
 
 
 proc fromUserHomeDir*(class: typedesc[Pathname]): Pathname =
@@ -286,9 +382,20 @@ proc fromUserHomeDir*(class: typedesc[Pathname]): Pathname =
     return Pathname.new(os.getHomeDir())
 
 
+proc fromUserHomeDir*(class: typedesc[Pathname], pathComponent1: string, additionalPathComponents: varargs[string]): Pathname =
+    ## Constructs a new Pathname with the Config Directory as Path.
+    ## @param pathComponent1 The first mandatory Path-Component
+    ## @param additionalPathComponents Further additional Path-Components
+    ## @returns A Pathname-Instance.
+    ## @usage Pathname.fromUserHomeDir("run")
+    ## @usage Pathname.fromUserHomeDir("run", "backups")
+    return Pathname.new(joinPathComponents(os.getHomeDir(), pathComponent1, additionalPathComponents))
+
+
 proc fromEnvVar*(class: typedesc[Pathname], envVar: string): Option[Pathname] =
     ## Constructs a new Pathname with the value of the given EnvVar, may return none(Pathname).
     ## The usage of this constructor may need an explicit import of options-Module.
+    ## @param envVar The name of the environment variable.
     ## @returns A some(Pathname) containing the Path of the given EnvVar if defined.
     ## @returns none(Pathname) if the given EnvVar does not exist.
     ## @usage Pathname.fromEnvVar("PROJECT_PATH")
@@ -300,6 +407,7 @@ proc fromEnvVar*(class: typedesc[Pathname], envVar: string): Option[Pathname] =
 
 proc fromEnvVarOrDefault*(class: typedesc[Pathname], envVar: string, defaultPath: string): Pathname =
     ## Constructs a new Pathname with the value of the given EnvVar, may return defaultPath.
+    ## @param envVar The name of the environment variable.
     ## @returns A Pathname containing the Path of the given EnvVar if defined or defaultPath if not.
     ## @usage Pathname.fromEnvVar("RUN_DIRECTORY", "/tmp/run")
     let envPathStr = os.getEnv(envVar)
@@ -310,6 +418,7 @@ proc fromEnvVarOrDefault*(class: typedesc[Pathname], envVar: string, defaultPath
 
 proc fromEnvVarOrNil*(class: typedesc[Pathname], envVar: string): Pathname =
     ## Constructs a new Pathname with the value of the given EnvVar, may return nil.
+    ## @param envVar The name of the environment variable.
     ## @returns A Pathname containing the Path of the given EnvVar if defined.
     ## @returns nil if the given EnvVar does not exist.
     ## @usage Pathname.fromEnvVarOrNil("PROJECT_PATH")
@@ -350,7 +459,25 @@ proc parent*(self :Pathname): Pathname =
 
 
 
-## TODO: join(), `/`, ... implementieren
+proc join*(self: Pathname, pathComponent1: string, additionalPathComponents: varargs[string]): Pathname =
+    ## Returns a new Pathname joined with the additional path components.
+    ## @param pathComponent1 The first mandatory Path-Component
+    ## @param additionalPathComponents Further additional Path-Components
+    ## @alter
+    #return aPathname.join("run")
+    #return aPathname.join("run", "backups")
+    return Pathname.new(joinPathComponents(self.path, pathComponent1, additionalPathComponents))
+
+
+
+proc joinNormalized*(self: Pathname, pathComponent1: string, additionalPathComponents: varargs[string]): Pathname =
+    ## Returns a new normalized Pathname joined with the additional path components.
+    ## @param pathComponent1 The first mandatory Path-Component
+    ## @param additionalPathComponents Further additional Path-Components
+    ## @alternative .join(...).normalize()
+    #return aPathname.joinNormalized("run")
+    #return aPathname.joinNormalized("run", "backups")
+    return Pathname.new(normalizePathString(joinPathComponents(self.path, pathComponent1, additionalPathComponents)))
 
 
 
@@ -361,7 +488,6 @@ proc normalize*(self: Pathname): Pathname =
     ## @alias #normalize()
     ## @see https://ruby-doc.org/stdlib/libdoc/pathname/rdoc/Pathname.html#method-i-cleanpath
     let normalizedPathStr = normalizePathString(self.path)
-
     # Optimierung für weniger Speicherverbrauch (gib self statt new pathname zurück, wenn identisch, für weniger RAM)
     if normalizedPathStr == self.path:
         return self
@@ -579,6 +705,21 @@ proc isBlockDeviceFile*(self: Pathname): bool {.inline.} =
 
 
 
+proc isHidden*(self: Pathname): bool {.inline.} =
+    ## Returns true if the path directs to an existing hidden file/directory/etc.
+    ## Returns false otherwise.
+    ## See also: os.isHidden()
+    return os.isHidden(self.path)  and  self.isExisting()
+
+
+
+proc isVisible*(self: Pathname): bool {.inline.} =
+    ## Returns true if the path directs to an existing visible file/directory/etc (eg. is NOT hidden).
+    ## Returns false otherwise.
+    ## See also: os.isHidden()
+    return not os.isHidden(self.path)  and  self.isExisting()
+
+
 
 proc listDir*(self: Pathname): seq[Pathname] =
     ## Lists the files of the addressed directory as Pathnames.
@@ -720,7 +861,7 @@ proc inspect*(pathnames :seq[Pathname]) :string =
 
 when isMainModule:
 
-    echo "Current Directory    : ", Pathname.fromCurrentDir()
+    echo "Current Directory    : ", Pathname.fromCurrentWorkDir()
     echo "Application File     : ", Pathname.fromAppFile()
     echo "Application Directory: ", Pathname.fromAppDir()
     echo "Temp Directory       : ", Pathname.fromTempDir()
@@ -730,11 +871,11 @@ when isMainModule:
     echo "Root Directory       : ", Pathname.fromRootDir()
     echo "Root Directories     : ", pathnamesFromRoot()
 
-    echo "Current Directory (inspect): ", Pathname.fromCurrentDir().inspect()
+    echo "Current Directory (inspect): ", Pathname.fromCurrentWorkDir().inspect()
     echo "Root Directories (inspect) : ", pathnamesFromRoot().inspect()
 
 
-    echo "Current Dir-Content  : ", Pathname.fromCurrentDir().listDir()
+    echo "Current Dir-Content  : ", Pathname.fromCurrentWorkDir().listDir()
 
     #when defined(Windows):
     #    echo "Windows-Install Directory: ", Pathname.fromWindowsInstallDir()

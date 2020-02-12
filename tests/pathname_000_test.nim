@@ -24,11 +24,6 @@ suite "Pathname Tests 000":
         check compiles(Pathname)
 
 
-    test "Pathname.new()":
-        let aPathname: Pathname = Pathname.new()
-        check os.getCurrentDir() == aPathname.toPathStr()
-
-
     test "Pathname.new(path)":
         let aPathname: Pathname = Pathname.new("hello")
         check "hello" == aPathname.toPathStr()
@@ -42,34 +37,53 @@ suite "Pathname Tests 000":
         check "cde/"  == Pathname.new("cde/" ).toPathStr()
 
 
-    test "Pathname.fromCurrentDir()":
-        let aPathname: Pathname = Pathname.fromCurrentDir()
-        check os.getCurrentDir() == aPathname.toPathStr()
+    test "Pathname.new(base, pc1)":
+        let aPathname: Pathname = Pathname.new("hello", "world")
+        check "hello/world" == aPathname.toPathStr()
+
+        check "a/b"   == Pathname.new("a", "b"    ).toPathStr()
+        check "a/b/"  == Pathname.new("a/", "/b/" ).toPathStr()
+        check "/a/b"  == Pathname.new("/a", "b"   ).toPathStr()
+        check "/a/b/" == Pathname.new("/a/", "/b/").toPathStr()
+
+        check "a/b/c"   == Pathname.new("a", "b", "c"      ).toPathStr()
+        check "a/b/c/"  == Pathname.new("a/", "/b/", "/c/" ).toPathStr()
+        check "/a/b/c"  == Pathname.new("/a", "b", "c"     ).toPathStr()
+        check "/a/b/c/" == Pathname.new("/a/", "/b/", "/c/").toPathStr()
 
 
-    test "Pathname.fromAppDir()":
-        let aPathname: Pathname = Pathname.fromAppDir()
-        check os.getAppDir() == aPathname.toPathStr()
+    test "Pathname.fromCurrentWorkDir(...)":
+        check os.getCurrentDir()          == Pathname.fromCurrentWorkDir().toPathStr()
+        check os.getCurrentDir() & "/a"   == Pathname.fromCurrentWorkDir("a").toPathStr()
+        check os.getCurrentDir() & "/a/b" == Pathname.fromCurrentWorkDir("a", "b").toPathStr()
+
+
+    test "Pathname.fromAppDir(...)":
+        check os.getAppDir()          == Pathname.fromAppDir().toPathStr()
+        check os.getAppDir() & "/a"   == Pathname.fromAppDir("a").toPathStr()
+        check os.getAppDir() & "/a/b" == Pathname.fromAppDir("a", "b").toPathStr()
 
 
     test "Pathname.fromAppFile()":
-        let aPathname: Pathname = Pathname.fromAppFile()
-        check os.getAppFilename() == aPathname.toPathStr()
+        check os.getAppFilename() == Pathname.fromAppFile().toPathStr()
 
 
     test "Pathname.fromRootDir()":
-        let aPathname: Pathname = Pathname.fromRootDir()
-        check "/" == aPathname.toPathStr()
+        check "/"    == Pathname.fromRootDir().toPathStr()
+        check "/a"   == Pathname.fromRootDir("a").toPathStr()
+        check "/a/b" == Pathname.fromRootDir("a", "b").toPathStr()
 
 
     test "Pathname.fromUserConfigDir()":
-        let aPathname: Pathname = Pathname.fromUserConfigDir()
-        check os.getConfigDir() == aPathname.toPathStr()
+        check os.getConfigDir()         == Pathname.fromUserConfigDir().toPathStr()
+        check os.getConfigDir() & "a"   == Pathname.fromUserConfigDir("a").toPathStr()
+        check os.getConfigDir() & "a/b" == Pathname.fromUserConfigDir("a", "b").toPathStr()
 
 
     test "Pathname.fromUserHomeDir()":
-        let aPathname: Pathname = Pathname.fromUserHomeDir()
-        check os.getHomeDir() == aPathname.toPathStr()
+        check os.getHomeDir()         == Pathname.fromUserHomeDir().toPathStr()
+        check os.getHomeDir() & "a"   == Pathname.fromUserHomeDir("a").toPathStr()
+        check os.getHomeDir() & "a/b" == Pathname.fromUserHomeDir("a", "b").toPathStr()
 
 
     test "Pathname.fromEnvVar()":
@@ -184,16 +198,16 @@ suite "Pathname Tests 000":
 
 
     test "#toPathStr()":
-        check os.getCurrentDir() == Pathname.new().toPathStr()
+        check os.getCurrentDir() == Pathname.fromCurrentWorkDir().toPathStr()
 
-        check ""      == Pathname.new(""   ).toPathStr()
-        check " "     == Pathname.new(" "  ).toPathStr()
-        check "   "   == Pathname.new("   ").toPathStr()
-        check "/"     == Pathname.new("/").toPathStr()
-        check "/abc"  == Pathname.new("/abc").toPathStr()
+        check ""      == Pathname.new(""     ).toPathStr()
+        check " "     == Pathname.new(" "    ).toPathStr()
+        check "   "   == Pathname.new("   "  ).toPathStr()
+        check "/"     == Pathname.new("/"    ).toPathStr()
+        check "/abc"  == Pathname.new("/abc" ).toPathStr()
         check "/abc/" == Pathname.new("/abc/").toPathStr()
-        check "abc"   == Pathname.new("abc").toPathStr()
-        check "cde/"  == Pathname.new("cde/").toPathStr()
+        check "abc"   == Pathname.new("abc"  ).toPathStr()
+        check "cde/"  == Pathname.new("cde/" ).toPathStr()
 
 
     test "#toPathStr() with absolute paths":
@@ -287,6 +301,46 @@ suite "Pathname Tests 000":
         check true  == Pathname.new("..").isRelative()
         check true  == Pathname.new("a/../b/.").isRelative()
         check true  == Pathname.new("a/./b/..").isRelative()
+
+
+    test "#parent()":
+        check "/"  == Pathname.new("/").parent().toPathStr()
+        check "/"  == Pathname.new("/a").parent().toPathStr()
+        check "/"  == Pathname.new("/a/").parent().toPathStr()
+        check "/a" == Pathname.new("/a/b").parent().toPathStr()
+        check "/a" == Pathname.new("/a/b/").parent().toPathStr()
+        check "/a/b" == Pathname.new("/a/b/c").parent().toPathStr()
+        check "/a/b" == Pathname.new("/a/b/c/").parent().toPathStr()
+
+        check "/" == Pathname.new("/a/../b").parent().toPathStr()
+        check "/" == Pathname.new("/a/../b/").parent().toPathStr()
+        check "/" == Pathname.new("/a/b/..").parent().toPathStr()
+        check "/" == Pathname.new("/a/b/../").parent().toPathStr()
+
+        check "/a" == Pathname.new("/a/b/../c").parent().toPathStr()
+        check "/a" == Pathname.new("/a/b/../c/").parent().toPathStr()
+        check "/a" == Pathname.new("/a/b/c/..").parent().toPathStr()
+        check "/a" == Pathname.new("/a/b/c/../").parent().toPathStr()
+
+
+    test "#join()":
+        check "/a"   == Pathname.new("/").join("a").toPathStr()
+        check "/a/b" == Pathname.new("/").join("a", "b").toPathStr()
+
+        check "/a/b/.."  == Pathname.new("/").join("a", "b", ".." ).toPathStr()
+        check "/a/b/../" == Pathname.new("/").join("a", "b", "../").toPathStr()
+        check "/a/../b"  == Pathname.new("/").join("a", "..", "b" ).toPathStr()
+        check "/a/../b/" == Pathname.new("/").join("a", "..", "b/").toPathStr()
+
+
+    test "#joinNormalized()":
+        check "/a"   == Pathname.new("/").joinNormalized("a").toPathStr()
+        check "/a/b" == Pathname.new("/").joinNormalized("a", "b").toPathStr()
+
+        check "/a" == Pathname.new("/").joinNormalized("a", "b", ".." ).toPathStr()
+        check "/a" == Pathname.new("/").joinNormalized("a", "b", "../").toPathStr()
+        check "/b" == Pathname.new("/").joinNormalized("a", "..", "b" ).toPathStr()
+        check "/b" == Pathname.new("/").joinNormalized("a", "..", "b/").toPathStr()
 
 
     test "#dirname()":
@@ -1273,3 +1327,26 @@ suite "Pathname Tests 000":
     test "#fileStatus() - getIoBlockSizeInBytes()":
         check 4096 == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().getIoBlockSizeInBytes()
         check 4096 == Pathname.new(fixturePath("README.md"        )).fileStatus().getIoBlockSizeInBytes()
+
+
+    test "#isHidden()":
+        check true == Pathname.new(fixturePath("sample_dir/.a_hidden_file")).isHidden()
+        check true == Pathname.new(fixturePath("sample_dir/.a_hidden_dir")).isHidden()
+        check true == Pathname.new(fixturePath("sample_dir/.a_hidden_dir/.keep")).isHidden()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_file")).isHidden()
+        check false == Pathname.new(fixturePath("sample_dir/a_dir")).isHidden()
+        check false == Pathname.new(fixturePath("sample_dir/NOT_EXISTING")).isHidden()
+
+        check false == Pathname.new(fixturePath("sample_dir/.NOT_EXISTING")).isHidden()
+
+
+    test "#isVisible()":
+        check true  == Pathname.new(fixturePath("sample_dir/a_file")).isVisible()
+        check true  == Pathname.new(fixturePath("sample_dir/a_dir")).isVisible()
+
+        check false == Pathname.new(fixturePath("sample_dir/.a_hidden_file")).isVisible()
+        check false == Pathname.new(fixturePath("sample_dir/.a_hidden_dir")).isVisible()
+        check false == Pathname.new(fixturePath("sample_dir/.a_hidden_dir/.keep")).isVisible()
+        check false == Pathname.new(fixturePath("sample_dir/NOT_EXISTING")).isVisible()
+        check false == Pathname.new(fixturePath("sample_dir/.NOT_EXISTING")).isVisible()
