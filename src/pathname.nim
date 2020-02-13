@@ -18,9 +18,12 @@
 #   $ strip --strip-all pathname  #Funktioniert wirklich
 #   $ upx --best pathname
 #
-# ## See Also:
-# - https://nim-lang.org/docs/docgen.html
-# - https://nim-lang.org/documentation.html
+#
+# ## See also:
+# * `https://ruby-doc.org/stdlib-2.7.0/libdoc/pathname/rdoc/Pathname.html`
+# * `https://ruby-doc.org/core-2.7.0/File.html`
+# * `https://ruby-doc.org/core-2.7.0/Dir.html`
+# * `https://ruby-doc.org/core-2.7.0/FileTest.html`
 ###
 
 
@@ -52,6 +55,9 @@ export file_type
 ## Import/Export FileInfo-Implementation.
 import pathname/file_status as file_status
 export file_status
+
+## Export os.FileInfo
+export os.FileInfo
 
 
 ### Import: realpath (@see module posix)
@@ -614,15 +620,29 @@ proc extname*(self: Pathname): string =
 proc fileType*(self: Pathname): FileType =
     ## Returns the FileType of the current Pathname. And tells if the underlying File-System-Entry
     ## is existing, and if it is either a Regular File, Directory, Symlink, or Device-File.
+    ## See also: fileInfo()
     ## See also: fileStatus()
     ## See also: fileType()
     return FileType.fromPathStr(self.path)
 
 
 
+proc fileInfo*(self: Pathname): os.FileInfo =
+    ## Returns an os.FileInfo of the current Pathname. Providing additional infos about the underlying File-System-Entry.
+    ## The returned FileInfo-Structure is the standard-version of the nim-runtime. If some more functionality is
+    ## needed see #fileStatus() which provides a more advanced interface to get information of the file.
+    ## See also: fileInfo()
+    ## See also: fileStatus()
+    ## See also: fileType()
+    ## See also: https://nim-lang.org/docs/os.html#FileInfo
+    return os.getFileInfo(self.path, followSymlink = false)
+
+
+
 proc fileStatus*(self: Pathname): FileStatus =
-    ## Returns the FileStatus of the current Pathname. Providing additional infos about the underlying
-    ## File-System-Entry.
+    ## Returns the FileStatus of the current Pathname. Providing additional infos about the underlying File-System-Entry.
+    ## The returned FileStatus is a custom implementation of the kind of os.FileInfo with extended functionality.
+    ## See also: fileInfo()
     ## See also: fileStatus()
     ## See also: fileType()
     return FileStatus.fromPathStr(self.path)
@@ -632,10 +652,12 @@ proc fileStatus*(self: Pathname): FileStatus =
 proc isExisting*(self: Pathname): bool {.inline.} =
     ## Returns true if the path directs to an existing file-system-entity like a file, directory, device, symlink, ...
     ## Returns false otherwise.
-    ## See also: fileStatus()
-    ## See also: fileType()
-    ## See also: isExisting()
-    ## See also: isNotExisting()
+    ## See also:
+    ## * `isExisting() proc <#isExisting,Pathname>`_
+    ## * `isNotExisting() proc <#isNotExisting,Pathname>`_
+    ## * `fileStatus() proc <#fileStatus,Pathname>`_
+    ## * `fileType() proc <#fileType,Pathname>`_
+    ## * `fileInfo() proc <#fileInfo,Pathname>`_
     return self.fileType().isExisting()
 
 
@@ -643,10 +665,12 @@ proc isExisting*(self: Pathname): bool {.inline.} =
 proc isNotExisting*(self: Pathname): bool {.inline.} =
     ## Returns true if the path DOES NOT direct to an existing and accessible file-system-entity.
     ## Returns false otherwise
-    ## See also: fileStatus()
-    ## See also: fileType()
-    ## See also: isExisting()
-    ## See also: isNotExisting()
+    ## See also:
+    ## * `isExisting() proc <#isExisting,Pathname>`_
+    ## * `isNotExisting() proc <#isNotExisting,Pathname>`_
+    ## * `fileStatus() proc <#fileStatus,Pathname>`_
+    ## * `fileType() proc <#fileType,Pathname>`_
+    ## * `fileInfo() proc <#fileInfo,Pathname>`_
     return self.fileType().isNotExisting()
 
 
@@ -654,8 +678,10 @@ proc isNotExisting*(self: Pathname): bool {.inline.} =
 proc isRegularFile*(self: Pathname): bool {.inline.} =
     ## Returns true if the path directs to a file, or a symlink that points at a file,
     ## Returns false otherwise.
-    ## See also: fileStatus()
-    ## See also: fileType()
+    ## See also:
+    ## * `fileStatus() proc <#fileStatus,Pathname>`_
+    ## * `fileType() proc <#fileType,Pathname>`_
+    ## * `fileInfo() proc <#fileInfo,Pathname>`_
     return self.fileType().isRegularFile()
 
 
@@ -663,8 +689,10 @@ proc isRegularFile*(self: Pathname): bool {.inline.} =
 proc isDirectory*(self: Pathname): bool {.inline.} =
     ## Returns true if the path directs to a directory, or a symlink that points at a directory,
     ## Returns false otherwise.
-    ## See also: fileStatus()
-    ## See also: fileType()
+    ## See also:
+    ## * `fileStatus() proc <#fileStatus,Pathname>`_
+    ## * `fileType() proc <#fileType,Pathname>`_
+    ## * `fileInfo() proc <#fileInfo,Pathname>`_
     return self.fileType().isDirectory()
 
 
@@ -672,8 +700,10 @@ proc isDirectory*(self: Pathname): bool {.inline.} =
 proc isSymlink*(self: Pathname): bool {.inline.} =
     ## Returns true if the path directs to a symlink.
     ## Returns false otherwise.
-    ## See also: fileStatus()
-    ## See also: fileType()
+    ## See also:
+    ## * `fileStatus() proc <#fileStatus,Pathname>`_
+    ## * `fileType() proc <#fileType,Pathname>`_
+    ## * `fileInfo() proc <#fileInfo,Pathname>`_
     return self.fileType().isSymlink()
 
 
@@ -681,8 +711,10 @@ proc isSymlink*(self: Pathname): bool {.inline.} =
 proc isDeviceFile*(self: Pathname): bool {.inline.} =
     ## Returns true if the path directs to a device-file (either block or character).
     ## Returns false otherwise.
-    ## See also: fileStatus()
-    ## See also: fileType()
+    ## See also:
+    ## * `fileStatus() proc <#fileStatus,Pathname>`_
+    ## * `fileType() proc <#fileType,Pathname>`_
+    ## * `fileInfo() proc <#fileInfo,Pathname>`_
     return self.fileType().isDeviceFile()
 
 
@@ -690,8 +722,10 @@ proc isDeviceFile*(self: Pathname): bool {.inline.} =
 proc isCharacterDeviceFile*(self: Pathname): bool {.inline.} =
     ## Returns true if the path directs to a block-device-file.
     ## Returns false otherwise.
-    ## See also: fileStatus()
-    ## See also: fileType()
+    ## See also:
+    ## * `fileStatus() proc <#fileStatus,Pathname>`_
+    ## * `fileType() proc <#fileType,Pathname>`_
+    ## * `fileInfo() proc <#fileInfo,Pathname>`_
     return self.fileType().isCharacterDeviceFile()
 
 
@@ -701,24 +735,82 @@ proc isBlockDeviceFile*(self: Pathname): bool {.inline.} =
     ## Returns false otherwise.
     ## See also: fileStatus()
     ## See also: fileType()
+    ## See also:
+    ## * `fileStatus() proc <#fileStatus,Pathname>`_
+    ## * `fileType() proc <#fileType,Pathname>`_
     return self.fileType().isBlockDeviceFile()
 
 
 
-proc isHidden*(self: Pathname): bool {.inline.} =
-    ## Returns true if the path directs to an existing hidden file/directory/etc.
+proc isSocketFile*(self: Pathname): bool {.inline.} =
+    ## Returns true if the path directs to a unix socket file.
     ## Returns false otherwise.
-    ## See also: os.isHidden()
-    return os.isHidden(self.path)  and  self.isExisting()
+    ## See also: fileStatus()
+    ## See also: fileType()
+    ## See also:
+    ## * `fileStatus() proc <#fileStatus,Pathname>`_
+    ## * `fileType() proc <#fileType,Pathname>`_
+    return self.fileType().isSocketFile()
+
+
+
+proc isPipeFile*(self: Pathname): bool {.inline.} =
+    ## Returns true if the path directs to a named pipe/fifo-file.
+    ## Returns false otherwise.
+    ## See also: fileStatus()
+    ## See also: fileType()
+    ## See also:
+    ## * `fileStatus() proc <#fileStatus,Pathname>`_
+    ## * `fileType() proc <#fileType,Pathname>`_
+    return self.fileType().isPipeFile()
 
 
 
 proc isVisible*(self: Pathname): bool {.inline.} =
     ## Returns true if the path directs to an existing visible file/directory/etc (eg. is NOT hidden).
     ## Returns false otherwise.
-    ## See also: os.isHidden()
-    return not os.isHidden(self.path)  and  self.isExisting()
+    ## See also:
+    ## * `fileStatus() proc <#fileStatus,Pathname>`_
+    return self.fileStatus().isVisible()
 
+
+
+proc isHidden*(self: Pathname): bool {.inline.} =
+    ## Returns true if the path directs to an existing hidden file/directory/etc.
+    ## Returns false otherwise.
+    ## See also:
+    ## * `fileStatus() proc <#fileStatus,Pathname>`_
+    return self.fileStatus().isHidden()
+
+
+
+proc isZeroSizeFile*(self: Pathname): bool {.inline.} =
+    ## @returns true if the path directs to an existing file with a file-size of zero.
+    ## @returns false otherwise
+    ## See also:
+    ## * `fileStatus() proc <#fileStatus,Pathname>`_
+    return self.fileStatus().isZeroSizeFile()
+
+
+
+proc hasSetUidBit*(self: Pathname): bool =
+    ## @returns true if File-System-Entry exists and has the Set-Uid-Bit set.
+    ## @returns false otherwise
+    return self.fileStatus().hasSetUidBit()
+
+
+
+proc hasSetGidBit*(self: Pathname): bool =
+    ## @returns true if File-System-Entry exists and has the Set-Gid-Bit set.
+    ## @returns false otherwise
+    return self.fileStatus().hasSetGidBit()
+
+
+
+proc hasStickyBit*(self: Pathname): bool =
+    ## @returns true if File-System-Entry exists and has the Sticky-Bit set.
+    ## @returns false otherwise
+    return self.fileStatus().hasStickyBit()
 
 
 proc listDir*(self: Pathname): seq[Pathname] =
@@ -754,8 +846,6 @@ proc `$`*(self :Pathname): string {.inline.} =
 proc inspect*(self: Pathname) :string =
     ## Converts a Pathname to a String for Diagnostic-Purposes (for Developer).
     return "Pathname(\"" & self.path & "\")"
-
-
 
 
 

@@ -12,6 +12,7 @@
 import pathname
 
 import os
+import posix
 import options
 import unittest
 import test_helper
@@ -889,6 +890,7 @@ suite "Pathname Tests 000":
         check false == Pathname.new("/NON_EXISTING_FILE//").isExisting()
 
 
+
     test "#isExisting() with directories":
         check true == Pathname.new(fixturePath("sample_dir"  )).isExisting()
         check true == Pathname.new(fixturePath("sample_dir/" )).isExisting()
@@ -979,6 +981,8 @@ suite "Pathname Tests 000":
         check true == Pathname.new("/NON_EXISTING_FILE/" ).isNotExisting()
         check true == Pathname.new("/NON_EXISTING_FILE//").isNotExisting()
 
+        check false == Pathname.new("/tmp/.X11-unix/X0").isNotExisting()
+
 
 
     test "#isRegularFile()":
@@ -1021,6 +1025,7 @@ suite "Pathname Tests 000":
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isRegularFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isRegularFile()
 
+        check false == Pathname.new("/tmp/.X11-unix/X0").isRegularFile()
 
 
     test "#isDirectory()":
@@ -1059,6 +1064,8 @@ suite "Pathname Tests 000":
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isDirectory()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isDirectory()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isDirectory()
+
+        check false == Pathname.new("/tmp/.X11-unix/X0").isDirectory()
 
 
 
@@ -1111,6 +1118,7 @@ suite "Pathname Tests 000":
         check false == Pathname.new(fixturePath("NON_EXISTING_DIR/" )).isSymlink()
         check false == Pathname.new(fixturePath("NON_EXISTING_DIR//")).isSymlink()
 
+        check false == Pathname.new("/tmp/.X11-unix/X0").isSymlink()
 
 
     test "#isDeviceFile()":
@@ -1127,31 +1135,26 @@ suite "Pathname Tests 000":
 
         check false == Pathname.new("/dev/NON_EXISTING"  ).isDeviceFile()
         check false == Pathname.new("/dev/NON_EXISTING/" ).isDeviceFile()
-        check false == Pathname.new("/dev/NON_EXISTING//").isDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device//")).isDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device"  )).isDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device/" )).isDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device//")).isDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device"  )).isDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device/" )).isDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device//")).isDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isDeviceFile()
+
+        check false == Pathname.new("/tmp/.X11-unix/X0").isDeviceFile()
 
 
 
@@ -1169,31 +1172,26 @@ suite "Pathname Tests 000":
 
         check false == Pathname.new("/dev/NON_EXISTING"  ).isCharacterDeviceFile()
         check false == Pathname.new("/dev/NON_EXISTING/" ).isCharacterDeviceFile()
-        check false == Pathname.new("/dev/NON_EXISTING//").isCharacterDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isCharacterDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isCharacterDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isCharacterDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isCharacterDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isCharacterDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isCharacterDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isCharacterDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isCharacterDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device//")).isCharacterDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device"  )).isCharacterDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device/" )).isCharacterDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device//")).isCharacterDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device"  )).isCharacterDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device/" )).isCharacterDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device//")).isCharacterDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isCharacterDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isCharacterDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isCharacterDeviceFile()
+
+        check false == Pathname.new("/tmp/.X11-unix/X0").isCharacterDeviceFile()
 
 
 
@@ -1211,31 +1209,190 @@ suite "Pathname Tests 000":
 
         check false == Pathname.new("/dev/NON_EXISTING"  ).isBlockDeviceFile()
         check false == Pathname.new("/dev/NON_EXISTING/" ).isBlockDeviceFile()
-        check false == Pathname.new("/dev/NON_EXISTING//").isBlockDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isBlockDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isBlockDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isBlockDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isBlockDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isBlockDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isBlockDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isBlockDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isBlockDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device//")).isBlockDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device"  )).isBlockDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device/" )).isBlockDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device//")).isBlockDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device"  )).isBlockDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device/" )).isBlockDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device//")).isBlockDeviceFile()
 
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isBlockDeviceFile()
         check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isBlockDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isBlockDeviceFile()
+
+        check false == Pathname.new("/tmp/.X11-unix/X0").isBlockDeviceFile()
+
+
+
+    test "#isSocketFile()":
+        check true == Pathname.new("/tmp/.X11-unix/X0").isSocketFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_file"  )).isSocketFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_file/" )).isSocketFile()
+
+        check false == Pathname.new(fixturePath("sample_dir"  )).isSocketFile()
+        check false == Pathname.new(fixturePath("sample_dir/" )).isSocketFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).isSocketFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_dir/" )).isSocketFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isSocketFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isSocketFile()
+
+        check false == Pathname.new(fixturePath("NON_EXISTING_FILE"  )).isSocketFile()
+        check false == Pathname.new(fixturePath("NON_EXISTING_FILE/" )).isSocketFile()
+
+        check false == Pathname.new("/dev/null").isSocketFile()
+        check false == Pathname.new("/dev/zero").isSocketFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isSocketFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isSocketFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isSocketFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isSocketFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isSocketFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isSocketFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isSocketFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isSocketFile()
+
+
+
+    test "#isPipeFile()":
+        discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
+        check true == Pathname.new(fixturePath("sample_dir/a_pipe")).isPipeFile()
+        discard posix.unlink( fixturePath("sample_dir/a_pipe") )
+
+        check false == Pathname.new(fixturePath("sample_dir/a_file" )).isPipeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_file/")).isPipeFile()
+
+        check false == Pathname.new(fixturePath("sample_dir"  )).isPipeFile()
+        check false == Pathname.new(fixturePath("sample_dir/" )).isPipeFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).isPipeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_dir/" )).isPipeFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isPipeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isPipeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_file.no2//")).isPipeFile()
+
+        check false == Pathname.new(fixturePath("NON_EXISTING_FILE"  )).isPipeFile()
+        check false == Pathname.new(fixturePath("NON_EXISTING_FILE/" )).isPipeFile()
+
+        check false == Pathname.new("/dev/null").isPipeFile()
+        check false == Pathname.new("/dev/zero").isPipeFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isPipeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isPipeFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isPipeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isPipeFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isPipeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isPipeFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isPipeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isPipeFile()
+
+        check false == Pathname.new("/tmp/.X11-unix/X0").isPipeFile()
+
+
+
+    test "#isHidden()":
+        check true == Pathname.new(fixturePath("sample_dir/.a_hidden_file")).isHidden()
+        check true == Pathname.new(fixturePath("sample_dir/.a_hidden_dir")).isHidden()
+        check true == Pathname.new(fixturePath("sample_dir/.a_hidden_dir/.keep")).isHidden()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_file")).isHidden()
+        check false == Pathname.new(fixturePath("sample_dir/a_dir")).isHidden()
+        check false == Pathname.new(fixturePath("sample_dir/NOT_EXISTING")).isHidden()
+
+        check false == Pathname.new(fixturePath("sample_dir/.NOT_EXISTING")).isHidden()
+
+
+
+    test "#isVisible()":
+        check true  == Pathname.new(fixturePath("sample_dir/a_file")).isVisible()
+        check true  == Pathname.new(fixturePath("sample_dir/a_dir")).isVisible()
+
+        check false == Pathname.new(fixturePath("sample_dir/.a_hidden_file")).isVisible()
+        check false == Pathname.new(fixturePath("sample_dir/.a_hidden_dir")).isVisible()
+        check false == Pathname.new(fixturePath("sample_dir/.a_hidden_dir/.keep")).isVisible()
+        check false == Pathname.new(fixturePath("sample_dir/NOT_EXISTING")).isVisible()
+        check false == Pathname.new(fixturePath("sample_dir/.NOT_EXISTING")).isVisible()
+
+
+
+    test "#isZeroSizeFile()":
+        check true  == Pathname.new(fixturePath("sample_dir/a_file" )).isZeroSizeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_file/")).isZeroSizeFile()
+
+        check false == Pathname.new(fixturePath("README.md")).isZeroSizeFile()
+
+        check false == Pathname.new(fixturePath("sample_dir"  )).isZeroSizeFile()
+        check false == Pathname.new(fixturePath("sample_dir/" )).isZeroSizeFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).isZeroSizeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_dir/" )).isZeroSizeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_dir//")).isZeroSizeFile()
+
+        check true  == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isZeroSizeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isZeroSizeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_file.no2//")).isZeroSizeFile()
+
+        check false == Pathname.new(fixturePath("NON_EXISTING_FILE"  )).isZeroSizeFile()
+        check false == Pathname.new(fixturePath("NON_EXISTING_FILE/" )).isZeroSizeFile()
+        check false == Pathname.new(fixturePath("NON_EXISTING_FILE//")).isZeroSizeFile()
+
+        check false == Pathname.new("/dev/null").isZeroSizeFile()
+        check false == Pathname.new("/dev/zero").isZeroSizeFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isZeroSizeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isZeroSizeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isZeroSizeFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isZeroSizeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isZeroSizeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isZeroSizeFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isZeroSizeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isZeroSizeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device//")).isZeroSizeFile()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isZeroSizeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isZeroSizeFile()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isZeroSizeFile()
+
+
+    test "#hasSetUidBit()":
+        check true == Pathname.new("/bin/su" ).hasSetUidBit()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_file" )).hasSetUidBit()
+        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).hasSetUidBit()
+
+
+    test "#hasSetGidBit()":
+        check true == Pathname.new("/usr/bin/wall" ).hasSetGidBit()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_file" )).hasSetGidBit()
+        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).hasSetGidBit()
+
+
+
+    test "#hasStickyBit()":
+        check true == Pathname.new("/tmp" ).hasStickyBit()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_file" )).hasStickyBit()
+        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).hasStickyBit()
 
 
 
@@ -1261,6 +1418,12 @@ suite "Pathname Tests 000":
 
         check FileType.NOT_EXISTING == Pathname.new(fixturePath("sample_dir/NON_EXISTING_FILE" )).fileType()
         check FileType.NOT_EXISTING == Pathname.new(fixturePath("sample_dir/NON_EXISTING_FILE/")).fileType()
+
+        check FileType.SOCKET_FILE == Pathname.new("/tmp/.X11-unix/X0").fileType()
+
+        discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
+        check FileType.PIPE_FILE == Pathname.new(fixturePath("sample_dir/a_pipe")).fileType()
+        discard posix.unlink( fixturePath("sample_dir/a_pipe") )
 
 
 
@@ -1289,6 +1452,27 @@ suite "Pathname Tests 000":
         check true == Pathname.new(fixturePath("sample_dir/NON_EXISTING_FILE" )).fileType().isNotExisting()
         check true == Pathname.new(fixturePath("sample_dir/NON_EXISTING_FILE/")).fileType().isNotExisting()
 
+        check true == Pathname.new("/tmp/.X11-unix/X0").fileType().isSocketFile()
+
+        discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
+        check true == Pathname.new(fixturePath("sample_dir/a_pipe")).fileType().isPipeFile()
+        discard posix.unlink( fixturePath("sample_dir/a_pipe") )
+
+
+
+    test "#fileInfo() - is<FileMode>()":
+        check pcFile  == Pathname.new(fixturePath("sample_dir/a_file")).fileInfo().kind
+
+        check pcDir  == Pathname.new(fixturePath("sample_dir/a_dir")).fileInfo().kind
+
+        check pcLinkToFile == Pathname.new(fixturePath("sample_dir/a_symlink_to_file")).fileInfo().kind
+
+        check pcLinkToDir == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir")).fileInfo().kind
+        check pcDir       == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/")).fileInfo().kind
+
+        check pcFile == Pathname.new("/dev/null" ).fileInfo().kind
+        check pcFile == Pathname.new("/dev/loop0").fileInfo().kind
+
 
 
     test "#fileStatus() - is<FileMode>()":
@@ -1297,8 +1481,14 @@ suite "Pathname Tests 000":
         check true == Pathname.new(fixturePath("sample_dir/a_dir")).fileStatus().isDirectory()
 
         check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_file")).fileStatus().isSymlink()
+        check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_file")).fileStatus().isExisting()
+        check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/")).fileStatus().isNotExisting()
 
-        check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir")).fileStatus().isSymlink()
+        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir" )).fileStatus().isSymlink()
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir" )).fileStatus().isDirectory()
+
+        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/")).fileStatus().isSymlink()
+        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/")).fileStatus().isDirectory()
 
         check true == Pathname.new("/dev/null" ).fileStatus().isDeviceFile()
         check true == Pathname.new("/dev/loop0").fileStatus().isDeviceFile()
@@ -1316,6 +1506,13 @@ suite "Pathname Tests 000":
         check true == Pathname.new(fixturePath("sample_dir/NON_EXISTING_FILE" )).fileStatus().isNotExisting()
         check true == Pathname.new(fixturePath("sample_dir/NON_EXISTING_FILE/")).fileStatus().isNotExisting()
 
+        check true == Pathname.new("/tmp/.X11-unix/X0").fileStatus().isSocketFile()
+
+        discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
+        check true == Pathname.new(fixturePath("sample_dir/a_pipe")).fileStatus().isPipeFile()
+        discard posix.unlink( fixturePath("sample_dir/a_pipe") )
+
+
 
     test "#fileStatus() - getFileSizeInBytes()":
         check 0 == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().getFileSizeInBytes()
@@ -1324,29 +1521,7 @@ suite "Pathname Tests 000":
         check 122 == Pathname.new(fixturePath("README.md")).fileStatus().getFileSizeInBytes()
 
 
+
     test "#fileStatus() - getIoBlockSizeInBytes()":
         check 4096 == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().getIoBlockSizeInBytes()
         check 4096 == Pathname.new(fixturePath("README.md"        )).fileStatus().getIoBlockSizeInBytes()
-
-
-    test "#isHidden()":
-        check true == Pathname.new(fixturePath("sample_dir/.a_hidden_file")).isHidden()
-        check true == Pathname.new(fixturePath("sample_dir/.a_hidden_dir")).isHidden()
-        check true == Pathname.new(fixturePath("sample_dir/.a_hidden_dir/.keep")).isHidden()
-
-        check false == Pathname.new(fixturePath("sample_dir/a_file")).isHidden()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir")).isHidden()
-        check false == Pathname.new(fixturePath("sample_dir/NOT_EXISTING")).isHidden()
-
-        check false == Pathname.new(fixturePath("sample_dir/.NOT_EXISTING")).isHidden()
-
-
-    test "#isVisible()":
-        check true  == Pathname.new(fixturePath("sample_dir/a_file")).isVisible()
-        check true  == Pathname.new(fixturePath("sample_dir/a_dir")).isVisible()
-
-        check false == Pathname.new(fixturePath("sample_dir/.a_hidden_file")).isVisible()
-        check false == Pathname.new(fixturePath("sample_dir/.a_hidden_dir")).isVisible()
-        check false == Pathname.new(fixturePath("sample_dir/.a_hidden_dir/.keep")).isVisible()
-        check false == Pathname.new(fixturePath("sample_dir/NOT_EXISTING")).isVisible()
-        check false == Pathname.new(fixturePath("sample_dir/.NOT_EXISTING")).isVisible()

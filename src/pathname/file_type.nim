@@ -2,6 +2,9 @@
 # Pathname-FileType Implementation to provide a way to better differ the Type/Mode of a File-System-Entry.
 #
 # author:  Raimund Hübel <raimund.huebel@googlemail.com>
+#
+# ## See also:
+# * `https://en.wikipedia.org/wiki/Unix_file_types`
 ###
 
 when defined(Posix):
@@ -16,7 +19,9 @@ type FileType* {.pure.} = enum
     DIRECTORY,
     SYMLINK,
     CHARACTER_DEVICE,
-    BLOCK_DEVICE
+    BLOCK_DEVICE,
+    SOCKET_FILE,
+    PIPE_FILE
 
 
 
@@ -33,6 +38,8 @@ proc fromPathStr*(class: typedesc[FileType], pathStr: string): FileType =
         elif posix.S_ISLNK(res.st_mode):  return FileType.SYMLINK
         elif posix.S_ISBLK(res.st_mode):  return FileType.BLOCK_DEVICE
         elif posix.S_ISCHR(res.st_mode):  return FileType.CHARACTER_DEVICE
+        elif posix.S_ISSOCK(res.st_mode): return FileType.SOCKET_FILE
+        elif posix.S_ISFIFO(res.st_mode): return FileType.PIPE_FILE
         else:                             return FileType.UNKNOWN
 
     else:
@@ -42,54 +49,78 @@ proc fromPathStr*(class: typedesc[FileType], pathStr: string): FileType =
 
 proc isExisting*(self: FileType): bool =
     ## @returns true if the File-System-Entry is existing and reachable.
+    ## @returns false otherwise
     return self != FileType.NOT_EXISTING
 
 
 
 proc isNotExisting*(self: FileType): bool =
     ## @returns true if the File-System-Entry is neither existing nor reachable.
+    ## @returns false otherwise
     return self == FileType.NOT_EXISTING
 
 
 
 proc isUnknown*(self: FileType): bool =
     ## @returns true if type the File-System-Entry is unknown.
+    ## @returns false otherwise
     return self == FileType.UNKNOWN
 
 
 
 proc isRegularFile*(self: FileType): bool =
     ## @returns true if File-System-Entry is a regular file.
+    ## @returns false otherwise
     return self == FileType.REGULAR_FILE
 
 
 
 proc isDirectory*(self: FileType): bool =
     ## @returns true if File-System-Entry is a directory.
+    ## @returns false otherwise
     return self == FileType.DIRECTORY
 
 
 
 proc isSymlink*(self: FileType): bool =
     ## @returns true if File-System-Entry is a symlink.
+    ## @returns false otherwise
     return self == FileType.SYMLINK
 
 
 
 proc isDeviceFile*(self: FileType): bool =
     ## @returns true if File-System-Entry is a device-file (either block- or character-device).
+    ## @returns false otherwise
     return self == FileType.CHARACTER_DEVICE  or  self == FileType.BLOCK_DEVICE
 
 
 
 proc isCharacterDeviceFile*(self: FileType): bool =
     ## @returns true if File-System-Entry is a character-device-file.
+    ## @returns false otherwise
     return self == FileType.CHARACTER_DEVICE
 
 
 
 proc isBlockDeviceFile*(self: FileType): bool =
     ## @returns true if File-System-Entry is a block-device-file.
+    ## @returns false otherwise
     return self == FileType.BLOCK_DEVICE
+
+
+
+proc isSocketFile*(self: FileType): bool =
+    ## @returns true if File-System-Entry is a unix socket file.
+    ## @returns false otherwise
+    return self == FileType.SOCKET_FILE
+
+
+
+proc isPipeFile*(self: FileType): bool =
+    ## @returns true if File-System-Entry is a named pipe file.
+    ## @returns false otherwise
+    return self == FileType.PIPE_FILE
+
 
 # & is automatically provided.
