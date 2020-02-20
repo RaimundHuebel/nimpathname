@@ -61,7 +61,7 @@ proc isNotExisting*(self: FileType): bool =
 
 
 
-proc isUnknown*(self: FileType): bool =
+proc isUnknownFileType*(self: FileType): bool =
     ## @returns true if type the File-System-Entry is unknown.
     ## @returns false otherwise
     return self == FileType.UNKNOWN

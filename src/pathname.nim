@@ -39,6 +39,7 @@
 
 import os
 import options
+import times
 
 when defined(Posix):
     import posix
@@ -476,6 +477,9 @@ proc join*(self: Pathname, pathComponent1: string, additionalPathComponents: var
 
 
 
+#TODO: safeJoin -> ein Path-Join der hochnavigation verbietet, gedacht für Pfadoperationen von unsicheren Quellen getriggert.
+
+
 proc joinNormalized*(self: Pathname, pathComponent1: string, additionalPathComponents: varargs[string]): Pathname =
     ## Returns a new normalized Pathname joined with the additional path components.
     ## @param pathComponent1 The first mandatory Path-Component
@@ -675,6 +679,13 @@ proc isNotExisting*(self: Pathname): bool {.inline.} =
 
 
 
+proc isUnknownFileType*(self: Pathname): bool {.noSideEffect.} =
+    ## @returns true if type the File-System-Entry is of unknown type.
+    ## @returns false otherwise
+    return self.fileType().isUnknownFileType()
+
+
+
 proc isRegularFile*(self: Pathname): bool {.inline.} =
     ## Returns true if the path directs to a file, or a symlink that points at a file,
     ## Returns false otherwise.
@@ -766,15 +777,6 @@ proc isPipeFile*(self: Pathname): bool {.inline.} =
 
 
 
-proc isVisible*(self: Pathname): bool {.inline.} =
-    ## Returns true if the path directs to an existing visible file/directory/etc (eg. is NOT hidden).
-    ## Returns false otherwise.
-    ## See also:
-    ## * `fileStatus() proc <#fileStatus,Pathname>`_
-    return self.fileStatus().isVisible()
-
-
-
 proc isHidden*(self: Pathname): bool {.inline.} =
     ## Returns true if the path directs to an existing hidden file/directory/etc.
     ## Returns false otherwise.
@@ -784,7 +786,16 @@ proc isHidden*(self: Pathname): bool {.inline.} =
 
 
 
-proc isZeroSizeFile*(self: Pathname): bool {.inline.} =
+proc isVisible*(self: Pathname): bool {.inline,noSideEffect.} =
+    ## Returns true if the path directs to an existing visible file/directory/etc (eg. is NOT hidden).
+    ## Returns false otherwise.
+    ## See also:
+    ## * `fileStatus() proc <#fileStatus,Pathname>`_
+    return self.fileStatus().isVisible()
+
+
+
+proc isZeroSizeFile*(self: Pathname): bool {.inline,noSideEffect.} =
     ## @returns true if the path directs to an existing file with a file-size of zero.
     ## @returns false otherwise
     ## See also:
@@ -793,26 +804,113 @@ proc isZeroSizeFile*(self: Pathname): bool {.inline.} =
 
 
 
-proc hasSetUidBit*(self: Pathname): bool =
+proc getFileSizeInBytes*(self: Pathname): int64 {.inline,noSideEffect.} =
+    ## @returns the FileSize of the File-System-Entry in Bytes.
+    ## @returns -1 if the FileSize could not be determined.
+    return self.fileStatus().getFileSizeInBytes()
+
+
+
+proc getIoBlockSizeInBytes*(self: Pathname): int32 {.inline,noSideEffect.} =
+    ## @returns the Size of an IO-Block of the File-System-Entry in Bytes.
+    ## @returns -1 if the BlockSize could not be determined.
+    return self.fileStatus().getIoBlockSizeInBytes()
+
+
+
+proc getUserId*(self: Pathname): int32 {.inline,noSideEffect.} =
+    ## @returns an int >= 0 containing the UserId which is assigned to the existing FileSystemEntry.
+    ## @returns -1 otherwise
+    return self.fileStatus().getUserId()
+
+
+
+proc getGroupId*(self: Pathname): int32 {.inline,noSideEffect.} =
+    ## @returns an int >= 0 containing the GroupId which is assigned to the existing FileSystemEntry.
+    ## @returns -1 otherwise
+    return self.fileStatus().getGroupId()
+
+
+
+proc getCountHardlinks*(self: Pathname): int32 {.inline,noSideEffect.} =
+    ## @returns the count of hardlinks of the File-System-Entry.
+    ## @returns -1 if the count could not be determined.
+    return self.fileStatus().getCountHardlinks()
+
+
+
+proc hasSetUidBit*(self: Pathname): bool {.inline,noSideEffect.} =
     ## @returns true if File-System-Entry exists and has the Set-Uid-Bit set.
     ## @returns false otherwise
     return self.fileStatus().hasSetUidBit()
 
 
 
-proc hasSetGidBit*(self: Pathname): bool =
+proc hasSetGidBit*(self: Pathname): bool {.inline,noSideEffect.} =
     ## @returns true if File-System-Entry exists and has the Set-Gid-Bit set.
     ## @returns false otherwise
     return self.fileStatus().hasSetGidBit()
 
 
 
-proc hasStickyBit*(self: Pathname): bool =
+proc hasStickyBit*(self: Pathname): bool {.inline,noSideEffect.} =
     ## @returns true if File-System-Entry exists and has the Sticky-Bit set.
     ## @returns false otherwise
     return self.fileStatus().hasStickyBit()
 
 
+
+proc getLastAccessTime*(self: Pathname): times.Time {.inline,noSideEffect.} =
+    ## @returns the Time when the stated Path was last accessed.
+    ## @returns 0.Time if the FileStat is in Error-State or the FileType does not support Prefered Block-Size.
+    return self.fileStatus().getLastAccessTime()
+
+
+
+proc getLastChangeTime*(self: Pathname): times.Time {.inline,noSideEffect.} =
+    ## @returns the Time when the content of the stated Path was last changed.
+    ## @returns 0.Time if the FileStat is in Error-State.
+    return self.fileStatus().getLastChangeTime()
+
+
+
+proc getLastStatusChangeTime*(self: Pathname): times.Time {.inline,noSideEffect.} =
+    ## @returns the Time when the status of stated Path was last changed.
+    ## @returns 0.Time if the FileStat is in Error-State.
+    return self.fileStatus().getLastStatusChangeTime()
+
+
+
+proc isUserOwned*(self: Pathname): bool {.inline,noSideEffect.} =
+    ## @returns true
+    ##     if the File-System-Entry exists and the effective userId of the
+    ##     current process is the owner of the file.
+    ## @returns false otherwise
+    return self.fileStatus().isUserOwned()
+
+
+
+proc isGroupOwned*(self: Pathname): bool {.inline,noSideEffect.} =
+    ## @returns true
+    ##     if the File-System-Entry exists and the effective groupId of the
+    ##     current process is the owner of the file.
+    ## @returns false otherwise
+    return self.fileStatus().isGroupOwned()
+
+
+
+proc isGroupMember*(self: Pathname): bool {.inline,noSideEffect.} =
+    ## @returns true if the named file exists and the effective user is member to the group of the the file.
+    ## @returns false otherwise
+    return self.fileStatus().isGroupMember()
+
+
+
+
+
+
+
+#TODO: testen
 proc listDir*(self: Pathname): seq[Pathname] =
     ## Lists the files of the addressed directory as Pathnames.
     var files: seq[Pathname] = @[]
@@ -822,6 +920,7 @@ proc listDir*(self: Pathname): seq[Pathname] =
 
 
 
+#TODO: testen
 proc listDirStrings*(self: Pathname): seq[string] =
     ## Lists the files of the addressed directory as plain Strings.
     var files: seq[string] = @[]
