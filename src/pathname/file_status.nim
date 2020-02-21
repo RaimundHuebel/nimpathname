@@ -17,13 +17,22 @@
 ###
 
 
-import pathname/file_type
-
+import pathname/file_type as file_type
 import times
 
+
+export file_type
+
+
 when defined(Posix):
+    import os
     import posix
     proc posix_group_member*(gid: posix.Gid): cint {.importc: "group_member", header: "<unistd.h>", noSideEffect.}
+
+
+when defined(Windows):
+    import pathname/path_string_helpers
+    import strutils
 
 
 
@@ -391,7 +400,6 @@ proc isGroupMember*(self: FileStatus): bool {.noSideEffect.} =
 
 
 
-#TODO: testen
 proc isReadable*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns true if File-System-Entry exists and is readable by any means for the current process.
     ## @returns false otherwise
@@ -413,7 +421,6 @@ proc isReadable*(self: FileStatus): bool {.noSideEffect.} =
 
 
 
-#TODO: testen
 proc isReadableByUser*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns true if File-System-Entry exists and is readable by direct user ownership of the current process.
     ## @returns false otherwise
@@ -428,7 +435,6 @@ proc isReadableByUser*(self: FileStatus): bool {.noSideEffect.} =
 
 
 
-#TODO: testen
 proc isReadableByGroup*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns true if File-System-Entry exists and is readable by group ownership of the current process.
     ## @returns false otherwise
@@ -443,7 +449,6 @@ proc isReadableByGroup*(self: FileStatus): bool {.noSideEffect.} =
 
 
 
-#TODO: testen
 proc isReadableByOther*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns true if File-System-Entry exists and is readable by any other means of the current process.
     ## @returns false otherwise
@@ -458,7 +463,6 @@ proc isReadableByOther*(self: FileStatus): bool {.noSideEffect.} =
 
 
 
-#TODO: testen
 proc isWritable*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns true if File-System-Entry exists and is writable by any means for the current process.
     ## @returns false otherwise
@@ -480,7 +484,6 @@ proc isWritable*(self: FileStatus): bool {.noSideEffect.} =
 
 
 
-#TODO: testen
 proc isWritableByUser*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns true if File-System-Entry exists and is writable by direct user ownership of the current process.
     ## @returns false otherwise
@@ -495,7 +498,6 @@ proc isWritableByUser*(self: FileStatus): bool {.noSideEffect.} =
 
 
 
-#TODO: testen
 proc isWritableByGroup*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns true if File-System-Entry exists and is writable by group ownership of the current process.
     ## @returns false otherwise
@@ -510,7 +512,6 @@ proc isWritableByGroup*(self: FileStatus): bool {.noSideEffect.} =
 
 
 
-#TODO: testen
 proc isWritableByOther*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns true if File-System-Entry exists and is writable by any other means of the current process.
     ## @returns false otherwise
@@ -525,7 +526,6 @@ proc isWritableByOther*(self: FileStatus): bool {.noSideEffect.} =
 
 
 
-#TODO: testen
 proc isExecutable*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns true if File-System-Entry exists and is executable by any means for the current process.
     ## @returns false otherwise
@@ -535,19 +535,28 @@ proc isExecutable*(self: FileStatus): bool {.noSideEffect.} =
     when defined(Posix):
         result = false
         # is executable by other?
-        result = result or ((self.posixFileStat.st_mode.cint and posix.S_IXOTH) != 0)
+        result = result  or  ((self.posixFileStat.st_mode.cint and posix.S_IXOTH) != 0)
         # is executable for current user?
-        result = result or ((self.posixFileStat.st_mode.cint and posix.S_IXUSR) != 0 and self.posixFileStat.st_uid == posix.geteuid())
+        result = result  or  ((self.posixFileStat.st_mode.cint and posix.S_IXUSR) != 0 and self.posixFileStat.st_uid == posix.geteuid())
         # is executable for any group?
-        result = result or ((self.posixFileStat.st_mode.cint and posix.S_IXGRP) != 0 and posix_group_member(self.posixFileStat.st_gid) != 0)
+        result = result  or  ((self.posixFileStat.st_mode.cint and posix.S_IXGRP) != 0 and posix_group_member(self.posixFileStat.st_gid) != 0)
         return result
+    elif defined(Windows):
+        let extname = path_string_helpers.extractExtension()
+        result = false
+        result = result  or  strutils.cmpIgnoreCase(extname, ".exe") == 0
+        result = result  or  strutils.cmpIgnoreCase(extname, ".bat") == 0
+        result = result  or  strutils.cmpIgnoreCase(extname, ".cmd") == 0
+        result = result  or  strutils.cmpIgnoreCase(extname, ".com") == 0
+        result = result  or  strutils.cmpIgnoreCase(extname, ".ps1") == 0
+        #...
+        return false
     else:
         echo "[WARN] FileStatus.isExecutable() is not implemented for current Architecture."
         return false
 
 
 
-#TODO: testen
 proc isExecutableByUser*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns true if File-System-Entry exists and is executable by direct user ownership of the current process.
     ## @returns false otherwise
@@ -562,7 +571,6 @@ proc isExecutableByUser*(self: FileStatus): bool {.noSideEffect.} =
 
 
 
-#TODO: testen
 proc isExecutableByGroup*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns true if File-System-Entry exists and is executable by group ownership of the current process.
     ## @returns false otherwise
@@ -577,7 +585,6 @@ proc isExecutableByGroup*(self: FileStatus): bool {.noSideEffect.} =
 
 
 
-#TODO: testen
 proc isExecutableByOther*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns true if File-System-Entry exists and is executable by any other means of the current process.
     ## @returns false otherwise
