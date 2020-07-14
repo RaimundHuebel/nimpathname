@@ -69,8 +69,9 @@ suite "utils.pathname - type Pathname - Check Entries for Posix":
 
 
     test "#dirname()":
-        for checkEntry in pathnameCheckEntries:
-            #echo "#dirname - check: '" & checkEntry.path & "'"
+        for idx, checkEntry in pathnameCheckEntries:
+            #if checkEntry.dirname != Pathname.new(checkEntry.path).dirname().toPathStr():
+            #    echo "#dirname - check(", idx, "): '", checkEntry.path, "'"
             check checkEntry.dirname == Pathname.new(checkEntry.path).dirname().toPathStr()
 
 

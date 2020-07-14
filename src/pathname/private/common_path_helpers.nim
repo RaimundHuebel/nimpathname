@@ -7,8 +7,6 @@
 
 
 import os
-import strutils
-#import algorithm
 
 
 
@@ -19,33 +17,37 @@ proc extractDirname*(pathStr: string): string =
     if endPos == 0:
         return "."
     # '/' die am Ende stehen ignorieren.
-    while endPos > 0 and pathStr[endPos-1] == '/':
+    while endPos > 0 and pathStr[endPos-1] == os.DirSep:
         endPos -= 1
+    # Bei Posix-Pfaden prüfen ob es sich um den Root-Pfand handelt, dann early return ...
+    when defined(Posix):
+        if endPos == 0  and  pathStr.len > 0  and  pathStr[0] == '/':
+            return "/"
+    # Bei Windows-Pfaden prüfen ob es sich um ein Laufwerksbuchstaben handelt, dann early return ...
+    when defined(Windows):
+        if endPos == 2  and  pathStr[0] in {'a'..'z', 'A'..'Z'}  and  pathStr[1] == ':':
+            return pathStr[0..endPos-1]
     # Basename ignorieren.
-    while endPos > 0 and pathStr[endPos-1] != '/':
+    while endPos > 0 and pathStr[endPos-1] != os.DirSep:
         endPos -= 1
     # '/' die vor Basenamen stehen ignorieren.
-    while endPos > 0 and pathStr[endPos-1] == '/':
+    while endPos > 0 and pathStr[endPos-1] == os.DirSep:
         endPos -= 1
     assert( endPos >= 0 )
     assert( endPos <= pathStr.len )
     var resultDirnameStr: string
     if endPos > 0:
-        resultDirnameStr = system.substr(pathStr, 0, endPos - 1)
-    elif endPos == 0:
+        resultDirnameStr = pathStr[0..endPos-1]
+    else: # if endPos == 0
         # Kein Dirname vorhanden ...
-        if pathStr.len > 0 and pathStr[0] == '/':
+        if pathStr.len > 0 and pathStr[0] == os.DirSep:
             # Bei absoluten Pfad die '/' am Anfang wieder herstellen.
-            #DEPRECATED resultDirnameStr = "/"
             endPos += 1
-            while endPos < pathStr.len and pathStr[endPos] == '/':
+            while endPos < pathStr.len and pathStr[endPos] == os.DirSep:
                 endPos += 1
-            resultDirnameStr = system.substr(pathStr, 0, endPos - 1)
+            resultDirnameStr = pathStr[0..endPos-1]
         else:
             resultDirnameStr = "."
-    else:
-        echo "extractDirname - wtf - endPos < 0"
-        resultDirnameStr = "."
     return resultDirnameStr
 
 

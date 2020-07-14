@@ -56,7 +56,7 @@ proc getRootDirPath*(): string =
     when defined(Posix):
         return "/"
     elif defined(Windows):
-        return "C:/"
+        return "C:"
     else:
         raise newException(IOError, "file_utils.getRootDirPath() is not supported for current architecture")
 
@@ -210,7 +210,7 @@ proc isAbsolutePathWindows*(pathStr: string): bool =
     result = false
     result = result  or ( pathStr.len >= 1  and  pathStr[0] in { '/', '\\' } )
     result = result  or ( pathStr.len == 2  and  pathStr[0] in {'a'..'z', 'A'..'Z'}  and  pathStr[1] == ':' )
-    result = result  or ( pathStr.len >= 3  and  pathStr[0] in {'a'..'z', 'A'..'Z'}  and  pathStr[1] == ':'  and  pathStr[2] == '/' )
+    result = result  or ( pathStr.len >= 3  and  pathStr[0] in {'a'..'z', 'A'..'Z'}  and  pathStr[1] == ':'  and  pathStr[2] == '\\' )
     return result
 
 
@@ -263,15 +263,18 @@ proc normalizePath*(pathStr: string): string =
     ## @see https://www.linuxjournal.com/content/normalizing-path-names-bash
     ## @see https://ruby-doc.org/stdlib/libdoc/pathname/rdoc/Pathname.html#method-i-cleanpath
     ## @see https://ruby-doc.org/stdlib/libdoc/pathname/rdoc/Pathname.html#method-i-realpath
-    if pathStr.len == 0:
-        return "."
+    if pathStr.len == 0: return "."
+    if pathStr == ".":   return "."
+    if pathStr == "..":  return ".."
 
     when defined(Posix):
+        if pathStr == "/":   return "/"
+
         let isAbsolutePath = isAbsolutePathPosix(pathStr)
 
         var pathComponents = strutils.split(pathStr, '/')
-        var pathLength :int = 0
-        var currPos    :int = 0
+        var pathLength: int = 0
+        var currPos   : int = 0
 
         while likely(currPos < pathComponents.len):
             assert( currPos < pathComponents.len )
@@ -323,16 +326,82 @@ proc normalizePath*(pathStr: string): string =
             # Wenn es ursprünglich ein absoluter Pfad war, dann "/" wieder hinzufügen ...
             result = "/" & pathComponents.join("/")
         elif pathComponents.len > 0:
-            # Wenn es ein relativer Pfad war, und dieser Elemente hat dann gebe diesen einfach zurück.
+            # Wenn es ein relativer Pfad war, gebe diesen einfach zurück.
             result = pathComponents.join("/")
         else:
-            # Wenn es ein relativer Pfad war, und dieser keine Elemente hat, dann gebe aktuellen Pfad zurück.
+            # Wenn es auf ein leeren Pfad endet, dann ist es der aktuelle Pfad.
             result = "."
 
         return result
 
+    elif defined(Windows):
+        let isAbsolutePath = isAbsolutePathWindows(pathStr)
+
+        var pathComponents = strutils.split(pathStr, '\\')
+        var pathLength: int = 0
+        var currPos   : int = 0
+
+        if isAbsolutePath:
+            pathLength = 1
+            currPos    = 1
+
+        while likely(currPos < pathComponents.len):
+            assert( currPos < pathComponents.len )
+            assert( pathLength <= currPos )
+            assert( pathLength >= 0 )
+            assert( currPos    >= 0 )
+
+            let currComponent: string = pathComponents[currPos]
+            if currComponent == "" or currComponent == ".":
+                # Aktuelles Pfad-Element kodiert: Aktueller Pfad
+                # => Ignoriere aktuelles Pfad-Element
+                # => akt. Pfad-Element überspringen == tue nix
+                # currPos += 1
+                discard
+
+            elif isAbsolutePath and currComponent == "..":
+                # Aktuelles Pfad-Element kodiert: Eltern-Pfad innerhalb eines absoluten Pfades ...
+                # => reduziere akzeptierte Pfadliste um letztes Element
+                    pathLength = max(1, pathLength - 1)
+
+            elif not isAbsolutePath and currComponent == "..":
+                # Aktuelles Pfad-Element kodiert: Eltern-Pfad innerhalb eines relativen Pfades ...
+                if pathLength == 0 or pathComponents[pathLength-1] == "..":
+                    # wenn akzeptierte Pfadliste leer ist oder mit ".." endet.
+                    # => füge ".." ans Ende der akzeptierten Pfadliste hinzu,
+                    pathComponents[pathLength] = ".."
+                    pathLength += 1
+                else:
+                    # ... entferne das letzte Pfadelement aus der aktiven Pfadliste,
+                    # wenn die akzeptierte Pfadliste weder leer ist oder mit ".." endet.
+                    pathLength = max(0, pathLength - 1)
+
+            else:
+                # Aktuelles Pfad-Element kodiert: Verzeichnis/Datei
+                # => aktuelles Pfad-Element in die Liste aufnehmen.
+                # => Wenn currPos == pathLength dann nur pathLength um 1 erhöhen
+                #    sonst aktuelles Element ans Ende der aktzeptierten Pfadliste hängen.
+                pathComponents[pathLength] = pathComponents[currPos] # Tut nichts wenn currPos == pathLength
+                pathLength += 1
+
+            # Nächstes Element bearbeiten
+            currPos += 1
+
+        # pathComponents auf Ergebnis-Pfad reduzieren ...
+        pathComponents.setLen(pathLength)
+
+        #var result: string
+        if pathComponents.len == 0:
+            # Wenn es auf ein leeren Pfad endet, dann ist es der aktuelle Pfad.
+            result = "."
+        else:
+            # Es ist irrelevant, ob absolut oder relativ, da bereits gehändelt. Daher gebe Pfad einfach zurück.
+            result = pathComponents.join("\\")
+
+        return result
+
     else:
-        # os.normalizePath(...) is available since Nim v0.19.0, may have incorrect results.
+        # os.normalizePath(...) is available since Nim v0.19.0, may have incorrect on some edge cases.
         return os.normalizedPath(pathStr)
 
 
@@ -345,8 +414,7 @@ proc parentPath*(pathStr: string): string =
     #return file_utils.normalizePath(self.path & "/..")
     #return os.normalizedPath(os.parentDir(self.path))
     #return os.normalizedPath(self.path & "/..")
-    return file_utils.normalizePath(pathStr & "/..")
-
+    return file_utils.normalizePath(pathStr & os.DirSep & "..")
 
 
 

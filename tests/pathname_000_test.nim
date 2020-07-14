@@ -32,90 +32,159 @@ suite "Pathname Tests 000":
         let aPathname: Pathname = Pathname.new("hello")
         check "hello" == aPathname.toPathStr()
 
-        check ""      == Pathname.new(""     ).toPathStr()
-        check " "     == Pathname.new(" "    ).toPathStr()
-        check "/"     == Pathname.new("/"    ).toPathStr()
-        check "/abc"  == Pathname.new("/abc" ).toPathStr()
-        check "/abc/" == Pathname.new("/abc/").toPathStr()
-        check "abc"   == Pathname.new("abc"  ).toPathStr()
-        check "cde/"  == Pathname.new("cde/" ).toPathStr()
+        # Common
+        check ""          == Pathname.new(""   ).toPathStr()
+        check " "         == Pathname.new(" "  ).toPathStr()
+        check "abc"       == Pathname.new("abc").toPathStr()
+
+        # Posix
+        check "abc"       == Pathname.new("abc"     ).toPathStr()
+        check "cde/"      == Pathname.new("cde/"    ).toPathStr()
+        check "cde/fgh"   == Pathname.new("cde/fgh" ).toPathStr()
+        check "cde/fgh/"  == Pathname.new("cde/fgh/").toPathStr()
+        check "/"         == Pathname.new("/"       ).toPathStr()
+        check "/abc"      == Pathname.new("/abc"    ).toPathStr()
+        check "/abc/"     == Pathname.new("/abc/"   ).toPathStr()
+
+        # Windows
+        check "abc"        == Pathname.new("abc"       ).toPathStr()
+        check "cde\\"      == Pathname.new("cde\\"     ).toPathStr()
+        check "cde\\fgh"   == Pathname.new("cde\\fgh"  ).toPathStr()
+        check "cde\\fgh\\" == Pathname.new("cde\\fgh\\").toPathStr()
+        check "C:"         == Pathname.new("C:"        ).toPathStr()
+        check "C:\\"       == Pathname.new("C:\\"      ).toPathStr()
+        check "C:\\abc"    == Pathname.new("C:\\abc"   ).toPathStr()
+        check "C:\\abc\\"  == Pathname.new("C:\\abc\\" ).toPathStr()
 
 
     test "Pathname.new(base, pc1)":
-        let aPathname: Pathname = Pathname.new("hello", "world")
-        check "hello/world" == aPathname.toPathStr()
+        # Alle Plattformen
+        when true:
+            check "a"               == Pathname.new("a").toPathStr()
+            check "a" / "b"         == Pathname.new("a", "b").toPathStr()
+            check "hello" / "world" == Pathname.new("hello", "world").toPathStr()
 
-        check "a/b"  == Pathname.new("a", "b"    ).toPathStr()
-        check "a/b"  == Pathname.new("a/", "/b/" ).toPathStr()
-        check "/a/b" == Pathname.new("/a", "b"   ).toPathStr()
-        check "/a/b" == Pathname.new("/a/", "/b/").toPathStr()
+        when defined(Posix):
+            check "a/b"  == Pathname.new("a", "b"    ).toPathStr()
+            check "a/b"  == Pathname.new("a/", "/b/" ).toPathStr()
+            check "/a/b" == Pathname.new("/a", "b"   ).toPathStr()
+            check "/a/b" == Pathname.new("/a/", "/b/").toPathStr()
 
-        check "a/b/c"  == Pathname.new("a", "b", "c"      ).toPathStr()
-        check "a/b/c"  == Pathname.new("a/", "/b/", "/c/" ).toPathStr()
-        check "/a/b/c" == Pathname.new("/a", "b", "c"     ).toPathStr()
-        check "/a/b/c" == Pathname.new("/a/", "/b/", "/c/").toPathStr()
+            check "a/b/c"  == Pathname.new("a", "b", "c"      ).toPathStr()
+            check "a/b/c"  == Pathname.new("a/", "/b/", "/c/" ).toPathStr()
+            check "/a/b/c" == Pathname.new("/a", "b", "c"     ).toPathStr()
+            check "/a/b/c" == Pathname.new("/a/", "/b/", "/c/").toPathStr()
+
+        when defined(Windows):
+            check "a\\b"     == Pathname.new("a", "b"        ).toPathStr()
+            check "a\\b"     == Pathname.new("a\\", "\\b\\"  ).toPathStr()
+            check "C:\\a\\b" == Pathname.new("C:\\a", "b"      ).toPathStr()
+            check "C:\\a\\b" == Pathname.new("C:\\a\\", "\\b\\").toPathStr()
+
+            check "a\\b\\c"     == Pathname.new("a", "b", "c"            ).toPathStr()
+            check "a\\b\\c"     == Pathname.new("a\\", "\\b\\", "\\c\\"  ).toPathStr()
+            check "C:\\a\\b\\c" == Pathname.new("C:\\a", "b", "c"          ).toPathStr()
+            check "C:\\a\\b\\c" == Pathname.new("C:\\a\\", "\\b\\", "\\c\\").toPathStr()
 
 
     test "Pathname.fromPathStr(path)":
         let aPathname: Pathname = Pathname.fromPathStr("hello")
         check "hello" == aPathname.toPathStr()
 
-        check ""      == Pathname.fromPathStr(""     ).toPathStr()
-        check " "     == Pathname.fromPathStr(" "    ).toPathStr()
-        check "/"     == Pathname.fromPathStr("/"    ).toPathStr()
-        check "/abc"  == Pathname.fromPathStr("/abc" ).toPathStr()
-        check "/abc/" == Pathname.fromPathStr("/abc/").toPathStr()
-        check "abc"   == Pathname.fromPathStr("abc"  ).toPathStr()
-        check "cde/"  == Pathname.fromPathStr("cde/" ).toPathStr()
+        # Common
+        check ""          == Pathname.fromPathStr(""   ).toPathStr()
+        check " "         == Pathname.fromPathStr(" "  ).toPathStr()
+        check "abc"       == Pathname.fromPathStr("abc").toPathStr()
+
+        # Posix
+        check "abc"       == Pathname.fromPathStr("abc"     ).toPathStr()
+        check "cde/"      == Pathname.fromPathStr("cde/"    ).toPathStr()
+        check "cde/fgh"   == Pathname.fromPathStr("cde/fgh" ).toPathStr()
+        check "cde/fgh/"  == Pathname.fromPathStr("cde/fgh/").toPathStr()
+        check "/"         == Pathname.fromPathStr("/"       ).toPathStr()
+        check "/abc"      == Pathname.fromPathStr("/abc"    ).toPathStr()
+        check "/abc/"     == Pathname.fromPathStr("/abc/"   ).toPathStr()
+
+        # Windows
+        check "abc"        == Pathname.fromPathStr("abc"       ).toPathStr()
+        check "cde\\"      == Pathname.fromPathStr("cde\\"     ).toPathStr()
+        check "cde\\fgh"   == Pathname.fromPathStr("cde\\fgh"  ).toPathStr()
+        check "cde\\fgh\\" == Pathname.fromPathStr("cde\\fgh\\").toPathStr()
+        check "C:"         == Pathname.fromPathStr("C:"        ).toPathStr()
+        check "C:\\"       == Pathname.fromPathStr("C:\\"      ).toPathStr()
+        check "C:\\abc"    == Pathname.fromPathStr("C:\\abc"   ).toPathStr()
+        check "C:\\abc\\"  == Pathname.fromPathStr("C:\\abc\\" ).toPathStr()
 
 
     test "Pathname.fromPathStr(base, pc1)":
-        let aPathname: Pathname = Pathname.fromPathStr("hello", "world")
-        check "hello/world" == aPathname.toPathStr()
+        # Alle Plattformen
+        when true:
+            check "a"               == Pathname.fromPathStr("a").toPathStr()
+            check "a" / "b"         == Pathname.fromPathStr("a", "b").toPathStr()
+            check "hello" / "world" == Pathname.fromPathStr("hello", "world").toPathStr()
 
-        check "a/b"  == Pathname.fromPathStr("a", "b"    ).toPathStr()
-        check "a/b"  == Pathname.fromPathStr("a/", "/b/" ).toPathStr()
-        check "/a/b" == Pathname.fromPathStr("/a", "b"   ).toPathStr()
-        check "/a/b" == Pathname.fromPathStr("/a/", "/b/").toPathStr()
+        when defined(Posix):
+            check "a/b"  == Pathname.fromPathStr("a", "b"    ).toPathStr()
+            check "a/b"  == Pathname.fromPathStr("a/", "/b/" ).toPathStr()
+            check "/a/b" == Pathname.fromPathStr("/a", "b"   ).toPathStr()
+            check "/a/b" == Pathname.fromPathStr("/a/", "/b/").toPathStr()
 
-        check "a/b/c"  == Pathname.fromPathStr("a", "b", "c"      ).toPathStr()
-        check "a/b/c"  == Pathname.fromPathStr("a/", "/b/", "/c/" ).toPathStr()
-        check "/a/b/c" == Pathname.fromPathStr("/a", "b", "c"     ).toPathStr()
-        check "/a/b/c" == Pathname.fromPathStr("/a/", "/b/", "/c/").toPathStr()
+            check "a/b/c"  == Pathname.fromPathStr("a", "b", "c"      ).toPathStr()
+            check "a/b/c"  == Pathname.fromPathStr("a/", "/b/", "/c/" ).toPathStr()
+            check "/a/b/c" == Pathname.fromPathStr("/a", "b", "c"     ).toPathStr()
+            check "/a/b/c" == Pathname.fromPathStr("/a/", "/b/", "/c/").toPathStr()
+
+        when defined(Windows):
+            check "a\\b"     == Pathname.fromPathStr("a", "b"        ).toPathStr()
+            check "a\\b"     == Pathname.fromPathStr("a\\", "\\b\\"  ).toPathStr()
+            check "C:\\a\\b" == Pathname.fromPathStr("C:\\a", "b"      ).toPathStr()
+            check "C:\\a\\b" == Pathname.fromPathStr("C:\\a\\", "\\b\\").toPathStr()
+
+            check "a\\b\\c"     == Pathname.fromPathStr("a", "b", "c"            ).toPathStr()
+            check "a\\b\\c"     == Pathname.fromPathStr("a\\", "\\b\\", "\\c\\"  ).toPathStr()
+            check "C:\\a\\b\\c" == Pathname.fromPathStr("C:\\a", "b", "c"          ).toPathStr()
+            check "C:\\a\\b\\c" == Pathname.fromPathStr("C:\\a\\", "\\b\\", "\\c\\").toPathStr()
+
 
 
     test "Pathname.fromCurrentWorkDir(...)":
-        check os.getCurrentDir()          == Pathname.fromCurrentWorkDir().toPathStr()
-        check os.getCurrentDir() & "/a"   == Pathname.fromCurrentWorkDir("a").toPathStr()
-        check os.getCurrentDir() & "/a/b" == Pathname.fromCurrentWorkDir("a", "b").toPathStr()
+        check os.getCurrentDir()             == Pathname.fromCurrentWorkDir().toPathStr()
+        check os.getCurrentDir() / "a"       == Pathname.fromCurrentWorkDir("a").toPathStr()
+        check os.getCurrentDir() / "a" / "b" == Pathname.fromCurrentWorkDir("a", "b").toPathStr()
 
 
     test "Pathname.fromAppDir(...)":
-        check os.getAppDir()          == Pathname.fromAppDir().toPathStr()
-        check os.getAppDir() & "/a"   == Pathname.fromAppDir("a").toPathStr()
-        check os.getAppDir() & "/a/b" == Pathname.fromAppDir("a", "b").toPathStr()
+        check os.getAppDir()             == Pathname.fromAppDir().toPathStr()
+        check os.getAppDir() / "a"       == Pathname.fromAppDir("a").toPathStr()
+        check os.getAppDir() / "a" / "b" == Pathname.fromAppDir("a", "b").toPathStr()
 
 
-    test "Pathname.fromAppFile()":
+    test "Pathname.fromAppFile(...)":
         check os.getAppFilename() == Pathname.fromAppFile().toPathStr()
 
 
-    test "Pathname.fromRootDir()":
-        check "/"    == Pathname.fromRootDir().toPathStr()
-        check "/a"   == Pathname.fromRootDir("a").toPathStr()
-        check "/a/b" == Pathname.fromRootDir("a", "b").toPathStr()
+    test "Pathname.fromRootDir(...)":
+        when defined(Posix):
+            check "/"    == Pathname.fromRootDir().toPathStr()
+            check "/a"   == Pathname.fromRootDir("a").toPathStr()
+            check "/a/b" == Pathname.fromRootDir("a", "b").toPathStr()
+
+        when defined(Windows):
+            check "C:"       == Pathname.fromRootDir().toPathStr()
+            check "C:\\a"    == Pathname.fromRootDir("a").toPathStr()
+            check "C:\\a\\b" == Pathname.fromRootDir("a", "b").toPathStr()
 
 
     test "Pathname.fromUserConfigDir()":
-        check os.getConfigDir()         == Pathname.fromUserConfigDir().toPathStr()
-        check os.getConfigDir() & "a"   == Pathname.fromUserConfigDir("a").toPathStr()
-        check os.getConfigDir() & "a/b" == Pathname.fromUserConfigDir("a", "b").toPathStr()
+        check os.getConfigDir()             == Pathname.fromUserConfigDir().toPathStr()
+        check os.getConfigDir() / "a"       == Pathname.fromUserConfigDir("a").toPathStr()
+        check os.getConfigDir() / "a" / "b" == Pathname.fromUserConfigDir("a", "b").toPathStr()
 
 
     test "Pathname.fromUserHomeDir()":
-        check os.getHomeDir()         == Pathname.fromUserHomeDir().toPathStr()
-        check os.getHomeDir() & "a"   == Pathname.fromUserHomeDir("a").toPathStr()
-        check os.getHomeDir() & "a/b" == Pathname.fromUserHomeDir("a", "b").toPathStr()
+        check os.getHomeDir()             == Pathname.fromUserHomeDir().toPathStr()
+        check os.getHomeDir() / "a"       == Pathname.fromUserHomeDir("a").toPathStr()
+        check os.getHomeDir() / "a" / "b" == Pathname.fromUserHomeDir("a", "b").toPathStr()
 
 
     test "Pathname.fromEnvVar()":
@@ -123,11 +192,16 @@ suite "Pathname Tests 000":
             os.delEnv("SAMPLE_PATH_ENV_VAR")
             let noPathname = Pathname.fromEnvVar("SAMPLE_PATH_ENV_VAR")
             check noPathname.isNone()
-        block:
+        block: # Posix
             os.putEnv("SAMPLE_PATH_ENV_VAR", "/tmp/abc/123")
             let somePathname = Pathname.fromEnvVar("SAMPLE_PATH_ENV_VAR")
             check somePathname.isSome()
             check "/tmp/abc/123" == somePathname.get().toPathStr()
+        block: # Windows
+            os.putEnv("SAMPLE_PATH_ENV_VAR", "C:\\tmp\\abc\\123")
+            let somePathname = Pathname.fromEnvVar("SAMPLE_PATH_ENV_VAR")
+            check somePathname.isSome()
+            check "C:\\tmp\\abc\\123" == somePathname.get().toPathStr()
         block:
             os.delEnv("SAMPLE_PATH_ENV_VAR")
             let noPathname = Pathname.fromEnvVar("SAMPLE_PATH_ENV_VAR")
@@ -135,18 +209,33 @@ suite "Pathname Tests 000":
 
 
     test "Pathname.fromEnvVarOrDefault()":
-        block:
-            os.delEnv("SAMPLE_PATH_ENV_VAR")
-            let aPathname: Pathname = Pathname.fromEnvVarOrDefault("SAMPLE_PATH_ENV_VAR", "/opt/fallback")
-            check "/opt/fallback" == aPathname.toPathStr()
-        block:
-            os.putEnv("SAMPLE_PATH_ENV_VAR", "/tmp/abc/123")
-            let aPathname: Pathname = Pathname.fromEnvVarOrDefault("SAMPLE_PATH_ENV_VAR", "/opt/fallback")
-            check "/tmp/abc/123" == aPathname.toPathStr()
-        block:
-            os.delEnv("SAMPLE_PATH_ENV_VAR")
-            let aPathname: Pathname = Pathname.fromEnvVarOrDefault("SAMPLE_PATH_ENV_VAR", "/opt/fallback")
-            check "/opt/fallback" == aPathname.toPathStr()
+        when true or defined(Posix):
+            block:
+                os.delEnv("SAMPLE_PATH_ENV_VAR")
+                let aPathname: Pathname = Pathname.fromEnvVarOrDefault("SAMPLE_PATH_ENV_VAR", "/opt/fallback")
+                check "/opt/fallback" == aPathname.toPathStr()
+            block:
+                os.putEnv("SAMPLE_PATH_ENV_VAR", "/tmp/abc/123")
+                let aPathname: Pathname = Pathname.fromEnvVarOrDefault("SAMPLE_PATH_ENV_VAR", "/opt/fallback")
+                check "/tmp/abc/123" == aPathname.toPathStr()
+            block:
+                os.delEnv("SAMPLE_PATH_ENV_VAR")
+                let aPathname: Pathname = Pathname.fromEnvVarOrDefault("SAMPLE_PATH_ENV_VAR", "/opt/fallback")
+                check "/opt/fallback" == aPathname.toPathStr()
+
+        when true or defined(Windows):
+            block:
+                os.delEnv("SAMPLE_PATH_ENV_VAR")
+                let aPathname: Pathname = Pathname.fromEnvVarOrDefault("SAMPLE_PATH_ENV_VAR", "C:\\tmp\\fallback")
+                check "C:\\tmp\\fallback" == aPathname.toPathStr()
+            block:
+                os.putEnv("SAMPLE_PATH_ENV_VAR", "/tmp/abc/123")
+                let aPathname: Pathname = Pathname.fromEnvVarOrDefault("SAMPLE_PATH_ENV_VAR", "C:\\tmp\\fallback")
+                check "/tmp/abc/123" == aPathname.toPathStr()
+            block:
+                os.delEnv("SAMPLE_PATH_ENV_VAR")
+                let aPathname: Pathname = Pathname.fromEnvVarOrDefault("SAMPLE_PATH_ENV_VAR", "C:\\tmp\\fallback")
+                check "C:\\tmp\\fallback" == aPathname.toPathStr()
 
 
     test "Pathname.fromEnvVarOrNil()":
@@ -166,11 +255,11 @@ suite "Pathname Tests 000":
 
 
     test "Pathname.fromNimbleDir()":
-        check os.getHomeDir() / ".nimble"           == Pathname.fromNimbleDir().toPathStr()
-        check os.getHomeDir() / ".nimble/bin"       == Pathname.fromNimbleDir("bin").toPathStr()
-        check os.getHomeDir() / ".nimble/bin/c2nim" == Pathname.fromNimbleDir("bin", "c2nim").toPathStr()
-        check os.getHomeDir() / ".nimble/pkgs"      == Pathname.fromNimbleDir("pkgs").toPathStr()
-        check os.getHomeDir() / ".nimble/pkgs/zmq"  == Pathname.fromNimbleDir("pkgs", "zmq").toPathStr()
+        check os.getHomeDir() / ".nimble"                   == Pathname.fromNimbleDir().toPathStr()
+        check os.getHomeDir() / ".nimble" / "bin"           == Pathname.fromNimbleDir("bin").toPathStr()
+        check os.getHomeDir() / ".nimble" / "bin" / "c2nim" == Pathname.fromNimbleDir("bin", "c2nim").toPathStr()
+        check os.getHomeDir() / ".nimble" / "pkgs"          == Pathname.fromNimbleDir("pkgs").toPathStr()
+        check os.getHomeDir() / ".nimble" / "pkgs" / "zmq"  == Pathname.fromNimbleDir("pkgs", "zmq").toPathStr()
 
 
     test "Internal Pathname-Path is immutable (v1: ctor)":
@@ -376,70 +465,170 @@ suite "Pathname Tests 000":
 
 
     test "#parent()":
-        check "/"  == Pathname.new("/").parent().toPathStr()
-        check "/"  == Pathname.new("/a").parent().toPathStr()
-        check "/"  == Pathname.new("/a/").parent().toPathStr()
-        check "/a" == Pathname.new("/a/b").parent().toPathStr()
-        check "/a" == Pathname.new("/a/b/").parent().toPathStr()
-        check "/a/b" == Pathname.new("/a/b/c").parent().toPathStr()
-        check "/a/b" == Pathname.new("/a/b/c/").parent().toPathStr()
+        when true: # Common
+            check "a" / "b"   == Pathname.new("a", "b", "c").parent().toPathStr()
+            check "a"         == Pathname.new("a", "b", "c").parent().parent().toPathStr()
+            check "."         == Pathname.new("a", "b", "c").parent().parent().parent().toPathStr()
+            check ".."        == Pathname.new("a", "b", "c").parent().parent().parent().parent().toPathStr()
+            check ".." / ".." == Pathname.new("a", "b", "c").parent().parent().parent().parent().parent().toPathStr()
 
-        check "/" == Pathname.new("/a/../b").parent().toPathStr()
-        check "/" == Pathname.new("/a/../b/").parent().toPathStr()
-        check "/" == Pathname.new("/a/b/..").parent().toPathStr()
-        check "/" == Pathname.new("/a/b/../").parent().toPathStr()
+        when true: # Common
+            check "."           == Pathname.new("a", "..", "c").parent().toPathStr()
+            check ".."          == Pathname.new("a", "..", "c").parent().parent().toPathStr()
+            check ".." / ".."   == Pathname.new("a", "..", "c").parent().parent().parent().toPathStr()
 
-        check "/a" == Pathname.new("/a/b/../c").parent().toPathStr()
-        check "/a" == Pathname.new("/a/b/../c/").parent().toPathStr()
-        check "/a" == Pathname.new("/a/b/c/..").parent().toPathStr()
-        check "/a" == Pathname.new("/a/b/c/../").parent().toPathStr()
+        when defined(Posix):
+            check "/"    == Pathname.new("/").toPathStr()
+            check "/"    == Pathname.new("/").parent().toPathStr()
+            check "/"    == Pathname.new("/a").parent().toPathStr()
+            check "/"    == Pathname.new("/a/").parent().toPathStr()
+            check "/a"   == Pathname.new("/a/b").parent().toPathStr()
+            check "/a"   == Pathname.new("/a/b/").parent().toPathStr()
+            check "/a/b" == Pathname.new("/a/b/c").parent().toPathStr()
+            check "/a/b" == Pathname.new("/a/b/c/").parent().toPathStr()
+
+            check "/" == Pathname.new("/a/../b" ).parent().toPathStr()
+            check "/" == Pathname.new("/a/../b/").parent().toPathStr()
+            check "/" == Pathname.new("/a/b/.." ).parent().toPathStr()
+            check "/" == Pathname.new("/a/b/../").parent().toPathStr()
+
+            check "/a" == Pathname.new("/a/b/../c" ).parent().toPathStr()
+            check "/a" == Pathname.new("/a/b/../c/").parent().toPathStr()
+            check "/a" == Pathname.new("/a/b/c/.." ).parent().toPathStr()
+            check "/a" == Pathname.new("/a/b/c/../").parent().toPathStr()
+
+        when defined(Windows):
+            check "C:"       == Pathname.new("C:").toPathStr()
+            check "C:"       == Pathname.new("C:").parent().toPathStr()
+            check "C:"       == Pathname.new("C:\\").parent().toPathStr()
+            check "C:"       == Pathname.new("C:\\a").parent().toPathStr()
+            check "C:"       == Pathname.new("C:\\a\\").parent().toPathStr()
+            check "C:\\a"    == Pathname.new("C:\\a\\b").parent().toPathStr()
+            check "C:\\a"    == Pathname.new("C:\\a\\b\\").parent().toPathStr()
+            check "C:\\a\\b" == Pathname.new("C:\\a\\b\\c").parent().toPathStr()
+            check "C:\\a\\b" == Pathname.new("C:\\a\\b\\c\\").parent().toPathStr()
+
+            check "C:" == Pathname.new("C:\\a\\..\\b" ).parent().toPathStr()
+            check "C:" == Pathname.new("C:\\a\\..\\b\\").parent().toPathStr()
+            check "C:" == Pathname.new("C:\\a\\b\\.." ).parent().toPathStr()
+            check "C:" == Pathname.new("C:\\a\\b\\..\\").parent().toPathStr()
+
+            check "C:\\a" == Pathname.new("C:\\a\\b\\..\\c" ).parent().toPathStr()
+            check "C:\\a" == Pathname.new("C:\\a\\b\\..\\c\\").parent().toPathStr()
+            check "C:\\a" == Pathname.new("C:\\a\\b\\c\\.." ).parent().toPathStr()
+            check "C:\\a" == Pathname.new("C:\\a\\b\\c\\..\\").parent().toPathStr()
 
 
     test "#join()":
-        check "/a"   == Pathname.new("/").join("a").toPathStr()
-        check "/a/b" == Pathname.new("/").join("a", "b").toPathStr()
+        when true: # Common
+            check "a" / "b"       == Pathname.new("a").join("b").toPathStr()
+            check "a" / "b" / "c" == Pathname.new("a").join("b", "c").toPathStr()
 
-        check "/a/b/.." == Pathname.new("/").join("a", "b", ".." ).toPathStr()
-        check "/a/b/.." == Pathname.new("/").join("a", "b", "../").toPathStr()
-        check "/a/../b" == Pathname.new("/").join("a", "..", "b" ).toPathStr()
-        check "/a/../b" == Pathname.new("/").join("a", "..", "b/").toPathStr()
+        when defined(Posix):
+            check "/a"   == Pathname.new("/").join("a").toPathStr()
+            check "/a/b" == Pathname.new("/").join("a", "b").toPathStr()
+
+            check "/a/b/.." == Pathname.new("/").join("a", "b", ".." ).toPathStr()
+            check "/a/b/.." == Pathname.new("/").join("a", "b", "../").toPathStr()
+            check "/a/../b" == Pathname.new("/").join("a", "..", "b" ).toPathStr()
+            check "/a/../b" == Pathname.new("/").join("a", "..", "b/").toPathStr()
+
+        when defined(Windows):
+            check "C:\\a"    == Pathname.new("C:").join("a").toPathStr()
+            check "C:\\a\\b" == Pathname.new("C:").join("a", "b").toPathStr()
+
+            check "C:\\a"    == Pathname.new("C:\\").join("a").toPathStr()
+            check "C:\\a\\b" == Pathname.new("C:\\").join("a", "b").toPathStr()
+
+            check "C:\\a\\b\\.." == Pathname.new("C:").join("a", "b", ".." ).toPathStr()
+            check "C:\\a\\b\\.." == Pathname.new("C:").join("a", "b", "..\\").toPathStr()
+            check "C:\\a\\..\\b" == Pathname.new("C:").join("a", "..", "b" ).toPathStr()
+            check "C:\\a\\..\\b" == Pathname.new("C:").join("a", "..", "b\\").toPathStr()
 
 
     test "#joinNormalized()":
-        check "/a"   == Pathname.new("/").joinNormalized("a").toPathStr()
-        check "/a/b" == Pathname.new("/").joinNormalized("a", "b").toPathStr()
+        when true: # Common
+            check "a" / "b"       == Pathname.new("a").join("b").toPathStr()
+            check "a" / "b" / "c" == Pathname.new("a").join("b", "c").toPathStr()
 
-        check "/a" == Pathname.new("/").joinNormalized("a", "b", ".." ).toPathStr()
-        check "/a" == Pathname.new("/").joinNormalized("a", "b", "../").toPathStr()
-        check "/b" == Pathname.new("/").joinNormalized("a", "..", "b" ).toPathStr()
-        check "/b" == Pathname.new("/").joinNormalized("a", "..", "b/").toPathStr()
+        when defined(Posix):
+            check "/a"   == Pathname.new("/").joinNormalized("a").toPathStr()
+            check "/a/b" == Pathname.new("/").joinNormalized("a", "b").toPathStr()
+
+            check "/a" == Pathname.new("/").joinNormalized("a", "b", ".." ).toPathStr()
+            check "/a" == Pathname.new("/").joinNormalized("a", "b", "../").toPathStr()
+            check "/b" == Pathname.new("/").joinNormalized("a", "..", "b" ).toPathStr()
+            check "/b" == Pathname.new("/").joinNormalized("a", "..", "b/").toPathStr()
+
+        when defined(Windows):
+            check "C:\\a"    == Pathname.new("C:").joinNormalized("a").toPathStr()
+            check "C:\\a\\b" == Pathname.new("C:").joinNormalized("a", "b").toPathStr()
+
+            check "C:\\a"    == Pathname.new("C:\\").joinNormalized("a").toPathStr()
+            check "C:\\a\\b" == Pathname.new("C:\\").joinNormalized("a", "b").toPathStr()
+
+            check "C:\\a" == Pathname.new("C:").joinNormalized("a", "b", ".." ).toPathStr()
+            check "C:\\a" == Pathname.new("C:").joinNormalized("a", "b", "..\\").toPathStr()
+            check "C:\\b" == Pathname.new("C:").joinNormalized("a", "..", "b" ).toPathStr()
+            check "C:\\b" == Pathname.new("C:").joinNormalized("a", "..", "b\\").toPathStr()
 
 
     test "#dirname()":
-        check "/" == Pathname.new("/"  ).dirname().toPathStr()
-        check "/" == Pathname.new("/a" ).dirname().toPathStr()
-        check "/" == Pathname.new("/a/").dirname().toPathStr()
+        when defined(Posix):
+            check "/" == Pathname.new("/"  ).dirname().toPathStr()
+            check "/" == Pathname.new("//" ).dirname().toPathStr()
+            check "/" == Pathname.new("///").dirname().toPathStr()
+            check "/" == Pathname.new("/a" ).dirname().toPathStr()
+            check "/" == Pathname.new("/a/").dirname().toPathStr()
 
-        check "."  == Pathname.new("a" ).dirname().toPathStr()
-        check "." == Pathname.new("a/").dirname().toPathStr()
+            check "."  == Pathname.new("a" ).dirname().toPathStr()
+            check "." == Pathname.new("a/").dirname().toPathStr()
 
-        check "." == Pathname.new("" ).dirname().toPathStr()
-        check "." == Pathname.new(" ").dirname().toPathStr()
+            check "." == Pathname.new("" ).dirname().toPathStr()
+            check "." == Pathname.new(" ").dirname().toPathStr()
 
-        check "/" == Pathname.new("/."   ).dirname().toPathStr()
-        check "/" == Pathname.new("/./"  ).dirname().toPathStr()
-        check "/." == Pathname.new("/./ " ).dirname().toPathStr()
-        check "/." == Pathname.new("/./ /").dirname().toPathStr()
+            check "/" == Pathname.new("/."   ).dirname().toPathStr()
+            check "/" == Pathname.new("/./"  ).dirname().toPathStr()
+            check "/." == Pathname.new("/./ " ).dirname().toPathStr()
+            check "/." == Pathname.new("/./ /").dirname().toPathStr()
 
-        check "." == Pathname.new("."   ).dirname().toPathStr()
-        check "." == Pathname.new("./"  ).dirname().toPathStr()
-        check "." == Pathname.new("./ " ).dirname().toPathStr()
-        check "." == Pathname.new("./ /").dirname().toPathStr()
+            check "." == Pathname.new("."   ).dirname().toPathStr()
+            check "." == Pathname.new("./"  ).dirname().toPathStr()
+            check "." == Pathname.new("./ " ).dirname().toPathStr()
+            check "." == Pathname.new("./ /").dirname().toPathStr()
 
-        check "."  == Pathname.new(".."   ).dirname().toPathStr()
-        check "."  == Pathname.new("../"  ).dirname().toPathStr()
-        check ".." == Pathname.new("../ " ).dirname().toPathStr()
-        check ".." == Pathname.new("../ /").dirname().toPathStr()
+            check "."  == Pathname.new(".."   ).dirname().toPathStr()
+            check "."  == Pathname.new("../"  ).dirname().toPathStr()
+            check ".." == Pathname.new("../ " ).dirname().toPathStr()
+            check ".." == Pathname.new("../ /").dirname().toPathStr()
+
+        when defined(Windows):
+            check "C:" == Pathname.new("C:"     ).dirname().toPathStr()
+            check "C:" == Pathname.new("C:\\"   ).dirname().toPathStr()
+            check "C:" == Pathname.new("C:\\\\" ).dirname().toPathStr()
+            check "C:" == Pathname.new("C:\\a"  ).dirname().toPathStr()
+            check "C:" == Pathname.new("C:\\a\\").dirname().toPathStr()
+
+            check "." == Pathname.new("a"  ).dirname().toPathStr()
+            check "." == Pathname.new("a\\").dirname().toPathStr()
+
+            check "." == Pathname.new("" ).dirname().toPathStr()
+            check "." == Pathname.new(" ").dirname().toPathStr()
+
+            check "C:"    == Pathname.new("C:\\."     ).dirname().toPathStr()
+            check "C:"    == Pathname.new("C:\\.\\"   ).dirname().toPathStr()
+            check "C:\\." == Pathname.new("C:\\.\\ "  ).dirname().toPathStr()
+            check "C:\\." == Pathname.new("C:\\.\\ \\").dirname().toPathStr()
+
+            check "." == Pathname.new("."     ).dirname().toPathStr()
+            check "." == Pathname.new(".\\"   ).dirname().toPathStr()
+            check "." == Pathname.new(".\\ "  ).dirname().toPathStr()
+            check "." == Pathname.new(".\\ \\").dirname().toPathStr()
+
+            check "."  == Pathname.new(".."     ).dirname().toPathStr()
+            check "."  == Pathname.new("..\\"   ).dirname().toPathStr()
+            check ".." == Pathname.new("..\\ "  ).dirname().toPathStr()
+            check ".." == Pathname.new("..\\ \\").dirname().toPathStr()
 
 
     test "#basename()":

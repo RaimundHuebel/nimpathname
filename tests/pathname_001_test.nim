@@ -674,13 +674,13 @@ suite "Pathname Tests 001":
 
 
     test "#createSymlinkFrom() should NOT allow multiple calls":
-        let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+        let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
         let pathnameSymlink = Pathname.new(fixturePath("TEST_CREATE_SYMLINK_FROM")).removeSymlink()
         check false == pathnameSymlink.isExisting()
         pathname.createSymlinkFrom(fixturePath("TEST_CREATE_SYMLINK_FROM"))
         check true == pathnameSymlink.isSymlink()
         try:
-            pathname.createSymlinkFrom("NOT_EXISTING")
+            pathname.createSymlinkFrom(fixturePath("TEST_CREATE_SYMLINK_FROM"))
             fail()
         except IOError:
             check true
