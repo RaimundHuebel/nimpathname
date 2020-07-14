@@ -31,16 +31,16 @@ when defined(Posix):
 
 
 when defined(Windows):
-    import pathname/path_string_helpers
+    import pathname/private/common_path_helpers
     import strutils
 
 
 
 type FileStatus* = ref object
     ## Type which stores Information about an File-System-Entity.
-    pathStr:           string
-    fileType:          FileType
-    isHidden:          bool
+    pathStr:  string
+    fileType: FileType
+    isHidden: bool
     when defined(Posix):
         posixFileStat: posix.Stat
     #elif defined(Windows):
@@ -50,7 +50,7 @@ type FileStatus* = ref object
 
 
 
-proc init*(fileStatus: var FileStatus) {.noSideEffect.} =
+proc init*(fileStatus: var FileStatus) =
     ## Initializes the FileStatus to an empty state.
     fileStatus.pathStr  = ""
     fileStatus.fileType = FileType.NOT_EXISTING
@@ -58,12 +58,11 @@ proc init*(fileStatus: var FileStatus) {.noSideEffect.} =
     when defined(Posix):
         zeroMem(addr fileStatus.posixFileStat, sizeof(posix.Stat))
     else:
-        echo "[WARN] FileStatus.init() is not implemented for current Architecture."
-        return false
+        debugEcho "[WARN] FileStatus.init() is not implemented for current Architecture."
 
 
 
-proc fromPathStr*(class: typedesc[FileStatus], pathStr: string): FileStatus {.noSideEffect.} =
+proc fromPathStr*(class: typedesc[FileStatus], pathStr: string): FileStatus =
     ## @return The FileStatus of File-System-Entry of given pathStr.
     result = FileStatus()
     result.init()
@@ -115,34 +114,34 @@ proc getFileSizeInBytes*(self: FileStatus): int64 {.noSideEffect.} =
     when defined(Posix):
         return self.posixFileStat.st_size.int64
     else:
-        echo "[WARN] FileStatus.getFileSizeInBytes() is not implemented for current Architecture."
-        return false
+        debugEcho "[WARN] FileStatus.getFileSizeInBytes() is not implemented for current Architecture."
+        return 0
 
 
 
-proc getIoBlockSizeInBytes*(self: FileStatus): int32 {.noSideEffect.} =
+proc getIoBlockSizeInBytes*(self: FileStatus): int64 {.noSideEffect.} =
     ## @returns the Size of an IO-Block of the File-System-Entry in Bytes.
     ## @returns -1 if the BlockSize could not be determined.
     if self.fileType == FileType.NOT_EXISTING:
         return -1
     when defined(Posix):
-        return self.posixFileStat.st_blksize.int32
+        return self.posixFileStat.st_blksize.int64
     else:
-        echo "[WARN] FileStatus.getIoBlockSizeInBytes() is not implemented for current Architecture."
-        return false
+        debugEcho "[WARN] FileStatus.getIoBlockSizeInBytes() is not implemented for current Architecture."
+        return 0
 
 
 
-proc getIoBlockCount*(self: FileStatus): int32 {.noSideEffect.} =
+proc getIoBlockCount*(self: FileStatus): int64 {.noSideEffect.} =
     ## @returns the count of assigned IO-Blocks of the File-System-Entry.
     ## @returns -1 if the IoBlockCount could not be determined.
     if self.fileType == FileType.NOT_EXISTING:
         return -1
     when defined(Posix):
-        return self.posixFileStat.st_blocks.int32
+        return self.posixFileStat.st_blocks.int64
     else:
-        echo "[WARN] FileStatus.getIoBlockCount() is not implemented for current Architecture."
-        return false
+        debugEcho "[WARN] FileStatus.getIoBlockCount() is not implemented for current Architecture."
+        return 0
 
 
 
@@ -154,8 +153,8 @@ proc getUserId*(self: FileStatus): int32 {.noSideEffect.} =
     when defined(Posix):
         return self.posixFileStat.st_uid.int32
     else:
-        echo "[WARN] FileStatus.getUserId() is not implemented for current Architecture."
-        return false
+        debugEcho "[WARN] FileStatus.getUserId() is not implemented for current Architecture."
+        return 0
 
 
 
@@ -167,8 +166,8 @@ proc getGroupId*(self: FileStatus): int32 {.noSideEffect.} =
     when defined(Posix):
         return self.posixFileStat.st_gid.int32
     else:
-        echo "[WARN] FileStatus.getGroupId() is not implemented for current Architecture."
-        return false
+        debugEcho "[WARN] FileStatus.getGroupId() is not implemented for current Architecture."
+        return 0
 
 
 
@@ -180,8 +179,8 @@ proc getCountHardlinks*(self: FileStatus): int32 {.noSideEffect.} =
     when defined(Posix):
         return self.posixFileStat.st_nlink.int32
     else:
-        echo "[WARN] FileStatus.getCountHardlinks() is not implemented for current Architecture."
-        return false
+        debugEcho "[WARN] FileStatus.getCountHardlinks() is not implemented for current Architecture."
+        return 0
 
 
 
@@ -292,7 +291,7 @@ proc isZeroSizeFile*(self: FileStatus): bool {.noSideEffect.} =
     when defined(Posix):
         return self.posixFileStat.st_size == 0
     else:
-        echo "[WARN] FileStatus.isZeroSizeFile() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isZeroSizeFile() is not implemented for current Architecture."
         return false
 
 
@@ -300,21 +299,33 @@ proc isZeroSizeFile*(self: FileStatus): bool {.noSideEffect.} =
 proc hasSetUidBit*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns true if File-System-Entry exists and has the Set-Uid-Bit set.
     ## @returns false otherwise
-    return self.fileType != FileType.NOT_EXISTING  and  (self.posixFileStat.st_mode.cint and posix.S_ISUID) != 0
+    when defined(Posix):
+        return self.fileType != FileType.NOT_EXISTING  and  (self.posixFileStat.st_mode.cint and posix.S_ISUID) != 0
+    else:
+        debugEcho "[WARN] FileStatus.hasSetUidBit() is not implemented for current Architecture."
+        return false
 
 
 
 proc hasSetGidBit*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns true if File-System-Entry exists and has the Set-Gid-Bit set.
     ## @returns false otherwise
-    return self.fileType != FileType.NOT_EXISTING  and  (self.posixFileStat.st_mode.cint and posix.S_ISGID) != 0
+    when defined(Posix):
+        return self.fileType != FileType.NOT_EXISTING  and  (self.posixFileStat.st_mode.cint and posix.S_ISGID) != 0
+    else:
+        debugEcho "[WARN] FileStatus.hasSetGidBit() is not implemented for current Architecture."
+        return false
 
 
 
 proc hasStickyBit*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns true if File-System-Entry exists and has the Sticky-Bit set.
     ## @returns false otherwise
-    return self.fileType != FileType.NOT_EXISTING  and  (self.posixFileStat.st_mode.cint and posix.S_ISVTX) != 0
+    when defined(Posix):
+        return self.fileType != FileType.NOT_EXISTING  and  (self.posixFileStat.st_mode.cint and posix.S_ISVTX) != 0
+    else:
+        debugEcho "[WARN] FileStatus.hasStickyBit() is not implemented for current Architecture."
+        return false
 
 
 
@@ -326,8 +337,8 @@ proc getLastAccessTime*(self: FileStatus): times.Time {.noSideEffect.} =
     when defined(Posix):
         return times.initTime(self.posixFileStat.st_atim.tv_sec.int64, self.posixFileStat.st_atim.tv_nsec.int)
     else:
-        echo "[WARN] FileStatus.getLastAccessTime() is not implemented for current Architecture."
-        return false
+        debugEcho "[WARN] FileStatus.getLastAccessTime() is not implemented for current Architecture."
+        return times.initTime(0, 0)
 
 
 
@@ -339,8 +350,8 @@ proc getLastChangeTime*(self: FileStatus): times.Time {.noSideEffect.} =
     when defined(Posix):
         return times.initTime(self.posixFileStat.st_mtim.tv_sec.int64, self.posixFileStat.st_mtim.tv_nsec.int)
     else:
-        echo "[WARN] FileStatus.getLastChangeTime() is not implemented for current Architecture."
-        return false
+        debugEcho "[WARN] FileStatus.getLastChangeTime() is not implemented for current Architecture."
+        return times.initTime(0, 0)
 
 
 
@@ -352,12 +363,12 @@ proc getLastStatusChangeTime*(self: FileStatus): times.Time {.noSideEffect.} =
     when defined(Posix):
         return times.initTime(self.posixFileStat.st_ctim.tv_sec.int64, self.posixFileStat.st_ctim.tv_nsec.int)
     else:
-        echo "[WARN] FileStatus.getLastStatusChangeTime() is not implemented for current Architecture."
-        return false
+        debugEcho "[WARN] FileStatus.getLastStatusChangeTime() is not implemented for current Architecture."
+        return times.initTime(0, 0)
 
 
 
-proc isUserOwned*(self: FileStatus): bool {.noSideEffect.} =
+proc isUserOwned*(self: FileStatus): bool {.sideEffect.} =
     ## @returns true
     ##     if the File-System-Entry exists and the effective userId of the
     ##     current process is the owner of the file.
@@ -367,12 +378,12 @@ proc isUserOwned*(self: FileStatus): bool {.noSideEffect.} =
     when defined(Posix):
         return self.posixFileStat.st_uid == posix.geteuid()
     else:
-        echo "[WARN] FileStatus.isUserOwned() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isUserOwned() is not implemented for current Architecture."
         return false
 
 
 
-proc isGroupOwned*(self: FileStatus): bool {.noSideEffect.} =
+proc isGroupOwned*(self: FileStatus): bool {.sideEffect.} =
     ## @returns true
     ##     if the File-System-Entry exists and the effective groupId of the
     ##     current process is the owner of the file.
@@ -382,12 +393,12 @@ proc isGroupOwned*(self: FileStatus): bool {.noSideEffect.} =
     when defined(Posix):
         return self.posixFileStat.st_gid == posix.getegid()
     else:
-        echo "[WARN] FileStatus.isGroupOwned() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isGroupOwned() is not implemented for current Architecture."
         return false
 
 
 
-proc isGroupMember*(self: FileStatus): bool {.noSideEffect.} =
+proc isGroupMember*(self: FileStatus): bool {.sideEffect.} =
     ## @returns true if the named file exists and the effective user is member to the group of the the file.
     ## @returns false otherwise
     if self.fileType == FileType.NOT_EXISTING:
@@ -395,12 +406,12 @@ proc isGroupMember*(self: FileStatus): bool {.noSideEffect.} =
     when defined(Posix):
         return posix_group_member(self.posixFileStat.st_gid) != 0
     else:
-        echo "[WARN] FileStatus.isGroupMember() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isGroupMember() is not implemented for current Architecture."
         return false
 
 
 
-proc isReadable*(self: FileStatus): bool {.noSideEffect.} =
+proc isReadable*(self: FileStatus): bool {.sideEffect.} =
     ## @returns true if File-System-Entry exists and is readable by any means for the current process.
     ## @returns false otherwise
     ## @see https://ruby-doc.org/core-2.5.3/FileTest.html#method-i-readable-3F
@@ -416,12 +427,12 @@ proc isReadable*(self: FileStatus): bool {.noSideEffect.} =
         result = result or ((self.posixFileStat.st_mode.cint and posix.S_IRGRP) != 0 and posix_group_member(self.posixFileStat.st_gid) != 0)
         return result
     else:
-        echo "[WARN] FileStatus.isReadable() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isReadable() is not implemented for current Architecture."
         return false
 
 
 
-proc isReadableByUser*(self: FileStatus): bool {.noSideEffect.} =
+proc isReadableByUser*(self: FileStatus): bool {.sideEffect.} =
     ## @returns true if File-System-Entry exists and is readable by direct user ownership of the current process.
     ## @returns false otherwise
     ## @see https://ruby-doc.org/core-2.5.3/FileTest.html#method-i-readable-3F
@@ -430,12 +441,12 @@ proc isReadableByUser*(self: FileStatus): bool {.noSideEffect.} =
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IRUSR) != 0 and self.posixFileStat.st_uid == posix.geteuid())
     else:
-        echo "[WARN] FileStatus.isReadableByUser() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isReadableByUser() is not implemented for current Architecture."
         return false
 
 
 
-proc isReadableByGroup*(self: FileStatus): bool {.noSideEffect.} =
+proc isReadableByGroup*(self: FileStatus): bool {.sideEffect.} =
     ## @returns true if File-System-Entry exists and is readable by group ownership of the current process.
     ## @returns false otherwise
     ## @see https://ruby-doc.org/core-2.5.3/FileTest.html#method-i-readable-3F
@@ -444,12 +455,12 @@ proc isReadableByGroup*(self: FileStatus): bool {.noSideEffect.} =
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IRGRP) != 0 and posix_group_member(self.posixFileStat.st_gid) != 0)
     else:
-        echo "[WARN] FileStatus.isReadableByGroup() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isReadableByGroup() is not implemented for current Architecture."
         return false
 
 
 
-proc isReadableByOther*(self: FileStatus): bool {.noSideEffect.} =
+proc isReadableByOther*(self: FileStatus): bool {.sideEffect.} =
     ## @returns true if File-System-Entry exists and is readable by any other means of the current process.
     ## @returns false otherwise
     ## @see https://ruby-doc.org/core-2.5.3/FileTest.html#method-i-readable-3F
@@ -458,12 +469,12 @@ proc isReadableByOther*(self: FileStatus): bool {.noSideEffect.} =
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IROTH) != 0)
     else:
-        echo "[WARN] FileStatus.isReadableByOther() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isReadableByOther() is not implemented for current Architecture."
         return false
 
 
 
-proc isWritable*(self: FileStatus): bool {.noSideEffect.} =
+proc isWritable*(self: FileStatus): bool {.sideEffect.} =
     ## @returns true if File-System-Entry exists and is writable by any means for the current process.
     ## @returns false otherwise
     ## @see https://ruby-doc.org/core-2.5.3/FileTest.html#method-i-writable-3F
@@ -479,12 +490,12 @@ proc isWritable*(self: FileStatus): bool {.noSideEffect.} =
         result = result or ((self.posixFileStat.st_mode.cint and posix.S_IWGRP) != 0 and posix_group_member(self.posixFileStat.st_gid) != 0)
         return result
     else:
-        echo "[WARN] FileStatus.isWritable() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isWritable() is not implemented for current Architecture."
         return false
 
 
 
-proc isWritableByUser*(self: FileStatus): bool {.noSideEffect.} =
+proc isWritableByUser*(self: FileStatus): bool {.sideEffect.} =
     ## @returns true if File-System-Entry exists and is writable by direct user ownership of the current process.
     ## @returns false otherwise
     ## @see https://ruby-doc.org/core-2.5.3/FileTest.html#method-i-writable-3F
@@ -493,12 +504,12 @@ proc isWritableByUser*(self: FileStatus): bool {.noSideEffect.} =
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IWUSR) != 0 and self.posixFileStat.st_uid == posix.geteuid())
     else:
-        echo "[WARN] FileStatus.isWritableByUser() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isWritableByUser() is not implemented for current Architecture."
         return false
 
 
 
-proc isWritableByGroup*(self: FileStatus): bool {.noSideEffect.} =
+proc isWritableByGroup*(self: FileStatus): bool {.sideEffect.} =
     ## @returns true if File-System-Entry exists and is writable by group ownership of the current process.
     ## @returns false otherwise
     ## @see https://ruby-doc.org/core-2.5.3/FileTest.html#method-i-writable-3F
@@ -507,12 +518,12 @@ proc isWritableByGroup*(self: FileStatus): bool {.noSideEffect.} =
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IWGRP) != 0 and posix_group_member(self.posixFileStat.st_gid) != 0)
     else:
-        echo "[WARN] FileStatus.isWritableByGroup() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isWritableByGroup() is not implemented for current Architecture."
         return false
 
 
 
-proc isWritableByOther*(self: FileStatus): bool {.noSideEffect.} =
+proc isWritableByOther*(self: FileStatus): bool {.sideEffect.} =
     ## @returns true if File-System-Entry exists and is writable by any other means of the current process.
     ## @returns false otherwise
     ## @see https://ruby-doc.org/core-2.5.3/FileTest.html#method-i-writable-3F
@@ -521,12 +532,12 @@ proc isWritableByOther*(self: FileStatus): bool {.noSideEffect.} =
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IWOTH) != 0)
     else:
-        echo "[WARN] FileStatus.isWritableByOther() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isWritableByOther() is not implemented for current Architecture."
         return false
 
 
 
-proc isExecutable*(self: FileStatus): bool {.noSideEffect.} =
+proc isExecutable*(self: FileStatus): bool {.sideEffect.} =
     ## @returns true if File-System-Entry exists and is executable by any means for the current process.
     ## @returns false otherwise
     ## @see https://ruby-doc.org/core-2.5.3/FileTest.html#method-i-executable-3F
@@ -542,7 +553,7 @@ proc isExecutable*(self: FileStatus): bool {.noSideEffect.} =
         result = result  or  ((self.posixFileStat.st_mode.cint and posix.S_IXGRP) != 0 and posix_group_member(self.posixFileStat.st_gid) != 0)
         return result
     elif defined(Windows):
-        let extname = path_string_helpers.extractExtension()
+        let extname = common_path_helpers.extractExtension(self.pathStr)
         result = false
         result = result  or  strutils.cmpIgnoreCase(extname, ".exe") == 0
         result = result  or  strutils.cmpIgnoreCase(extname, ".bat") == 0
@@ -550,14 +561,14 @@ proc isExecutable*(self: FileStatus): bool {.noSideEffect.} =
         result = result  or  strutils.cmpIgnoreCase(extname, ".com") == 0
         result = result  or  strutils.cmpIgnoreCase(extname, ".ps1") == 0
         #...
-        return false
+        return result
     else:
-        echo "[WARN] FileStatus.isExecutable() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isExecutable() is not implemented for current Architecture."
         return false
 
 
 
-proc isExecutableByUser*(self: FileStatus): bool {.noSideEffect.} =
+proc isExecutableByUser*(self: FileStatus): bool {.sideEffect.} =
     ## @returns true if File-System-Entry exists and is executable by direct user ownership of the current process.
     ## @returns false otherwise
     ## @see https://ruby-doc.org/core-2.5.3/FileTest.html#method-i-executable-3F
@@ -566,12 +577,12 @@ proc isExecutableByUser*(self: FileStatus): bool {.noSideEffect.} =
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IXUSR) != 0 and self.posixFileStat.st_uid == posix.geteuid())
     else:
-        echo "[WARN] FileStatus.isExecutableByUser() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isExecutableByUser() is not implemented for current Architecture."
         return false
 
 
 
-proc isExecutableByGroup*(self: FileStatus): bool {.noSideEffect.} =
+proc isExecutableByGroup*(self: FileStatus): bool {.sideEffect.} =
     ## @returns true if File-System-Entry exists and is executable by group ownership of the current process.
     ## @returns false otherwise
     ## @see https://ruby-doc.org/core-2.5.3/FileTest.html#method-i-executable-3F
@@ -580,12 +591,12 @@ proc isExecutableByGroup*(self: FileStatus): bool {.noSideEffect.} =
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IXGRP) != 0 and posix_group_member(self.posixFileStat.st_gid) != 0)
     else:
-        echo "[WARN] FileStatus.isExecutableByGroup() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isExecutableByGroup() is not implemented for current Architecture."
         return false
 
 
 
-proc isExecutableByOther*(self: FileStatus): bool {.noSideEffect.} =
+proc isExecutableByOther*(self: FileStatus): bool {.sideEffect.} =
     ## @returns true if File-System-Entry exists and is executable by any other means of the current process.
     ## @returns false otherwise
     ## @see https://ruby-doc.org/core-2.5.3/FileTest.html#method-i-executable-3F
@@ -594,7 +605,7 @@ proc isExecutableByOther*(self: FileStatus): bool {.noSideEffect.} =
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IXOTH) != 0)
     else:
-        echo "[WARN] FileStatus.isExecutableByOther() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isExecutableByOther() is not implemented for current Architecture."
         return false
 
 

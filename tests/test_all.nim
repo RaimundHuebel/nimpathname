@@ -11,3 +11,4 @@
 import ./file_status_test
 import ./pathname_000_test
 import ./pathname_001_test
+import ./pathname_002_test

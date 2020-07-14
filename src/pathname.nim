@@ -18,6 +18,8 @@
 #   $ strip --strip-all pathname  #Funktioniert wirklich
 #   $ upx --best pathname
 #
+#   ## Run Tests on Change ...
+#   $ find src/ tests/ -name '*.nim' | entr bash -c "nim compile --run tests/pathname_000_test"
 #
 # ## See also:
 # * `https://ruby-doc.org/stdlib-2.7.0/libdoc/pathname/rdoc/Pathname.html`
@@ -25,6 +27,10 @@
 # * `https://ruby-doc.org/core-2.7.0/Dir.html`
 # * `https://ruby-doc.org/core-2.7.0/FileTest.html`
 ###
+
+
+{. experimental: "codeReordering" .}
+
 
 
 ## Module for Handling with Directories and Pathnames.
@@ -40,7 +46,8 @@
 import os
 import options
 import times
-import pathname/path_string_helpers
+import sequtils
+import pathname/file_utils
 
 
 when defined(Posix):
@@ -130,14 +137,38 @@ proc new*(class: typedesc[Pathname], basePath: string, pathComponent1: string, a
     ## @returns An Pathname-Instance containing the joined Path.
     ## @usage Pathname.new("/a/sample/path", "run")
     ## @usage Pathname.new("/a/sample/path", "run", "exports")
-    return Pathname.new(joinPathComponents(basePath, pathComponent1, additionalPathComponents))
+    return Pathname.new(file_utils.joinPath(basePath, pathComponent1, additionalPathComponents))
+
+
+
+proc fromPathStr*(class: typedesc[Pathname], path: string): Pathname {.inline,noSideEffect.} =
+    ## Constructs a new Pathname, with the Pathname direct.
+    ## @param path The Directory which shall be listed.
+    ## @returns An Pathname-Instance.
+    ## @usage Pathname.fromPathStr("/a/sample/path")
+    return Pathname.new(path)
+
+
+
+proc fromPathStr*(class: typedesc[Pathname], basePath: string, pathComponent1: string, additionalPathComponents: varargs[string]): Pathname {.inline,noSideEffect.} =
+    ## Constructs a new Pathname, from a base-path and additional path-components.
+    ## This should be the prefered way to construct plattform independent Pathnames.
+    ## @param path The Directory which shall be listed.
+    ## @param pathComponent1 The first mandatory Path-Component
+    ## @param additionalPathComponents Further additional Path-Components
+    ## @returns A string containing the joined Path.
+    ## @returns An Pathname-Instance containing the joined Path.
+    ## @usage Pathname.fromPathStr("/a/sample/path", "run")
+    ## @usage Pathname.fromPathStr("/a/sample/path", "run", "exports")
+    return Pathname.new(basePath, pathComponent1, additionalPathComponents)
+
 
 
 proc fromCurrentWorkDir*(class: typedesc[Pathname]): Pathname =
     ## Constructs a new Pathname with the Current Work Directory as Path.
     ## @returns A Pathname-Instance.
     ## @usage Pathname.fromCurrentWorkDir()
-    return Pathname.new(os.getCurrentDir())
+    return Pathname.new(file_utils.getCurrentWorkDirPath())
 
 
 proc fromCurrentWorkDir*(class: typedesc[Pathname], pathComponent1: string, additionalPathComponents: varargs[string]): Pathname =
@@ -147,21 +178,21 @@ proc fromCurrentWorkDir*(class: typedesc[Pathname], pathComponent1: string, addi
     ## @returns A Pathname-Instance.
     ## @usage Pathname.fromCurrentWorkDir("run")
     ## @usage Pathname.fromCurrentWorkDir("run", "backups")
-    return Pathname.new(joinPathComponents(os.getCurrentDir(), pathComponent1, additionalPathComponents))
+    return Pathname.new(file_utils.joinPath(file_utils.getCurrentWorkDirPath(), pathComponent1, additionalPathComponents))
 
 
 proc fromAppFile*(class: typedesc[Pathname]): Pathname =
     ## Constructs a new Pathname with the App File as Path.
     ## @returns A Pathname-Instance.
     ## @usage Pathname.fromAppFile()
-    return Pathname.new(os.getAppFilename())
+    return Pathname.new(file_utils.getAppFilePath())
 
 
 proc fromAppDir*(class: typedesc[Pathname]): Pathname =
     ## Constructs a new Pathname with the App Directory as Path.
     ## @returns A Pathname-Instance.
     ## @usage Pathname.fromAppDir()
-    return Pathname.new(os.getAppDir())
+    return Pathname.new(file_utils.getAppDirPath())
 
 
 proc fromAppDir*(class: typedesc[Pathname], pathComponent1: string, additionalPathComponents: varargs[string]): Pathname =
@@ -171,14 +202,14 @@ proc fromAppDir*(class: typedesc[Pathname], pathComponent1: string, additionalPa
     ## @returns A Pathname-Instance.
     ## @usage Pathname.fromAppDir("run")
     ## @usage Pathname.fromAppDir("run", "backups")
-    return Pathname.new(joinPathComponents(os.getAppDir(), pathComponent1, additionalPathComponents))
+    return Pathname.new(file_utils.joinPath(file_utils.getAppDirPath(), pathComponent1, additionalPathComponents))
 
 
 proc fromTempDir*(class: typedesc[Pathname]): Pathname =
     ## Constructs a new Pathname with the Temp Directory as Path.
     ## @returns A Pathname-Instance.
     ## @usage Pathname.fromTempDir()
-    return Pathname.new(os.getTempDir())
+    return Pathname.new(file_utils.getTempDirPath())
 
 
 proc fromTempDir*(class: typedesc[Pathname], pathComponent1: string, additionalPathComponents: varargs[string]): Pathname =
@@ -188,14 +219,14 @@ proc fromTempDir*(class: typedesc[Pathname], pathComponent1: string, additionalP
     ## @returns A Pathname-Instance.
     ## @usage Pathname.fromTempDir("run")
     ## @usage Pathname.fromTempDir("run", "backups")
-    return Pathname.new(joinPathComponents(os.getTempDir(), pathComponent1, additionalPathComponents))
+    return Pathname.new(file_utils.joinPath(file_utils.getTempDirPath(), pathComponent1, additionalPathComponents))
 
 
 proc fromRootDir*(class: typedesc[Pathname]): Pathname =
     ## Constructs a new Pathname with the Temp Directory as Path.
     ## @returns A Pathname-Instance.
     ## @usage Pathname.fromRootDir()
-    return Pathname.new("/")
+    return Pathname.new(file_utils.getRootDirPath())
 
 
 proc fromRootDir*(class: typedesc[Pathname], pathComponent1: string, additionalPathComponents: varargs[string]): Pathname =
@@ -205,14 +236,14 @@ proc fromRootDir*(class: typedesc[Pathname], pathComponent1: string, additionalP
     ## @returns A Pathname-Instance.
     ## @usage Pathname.fromRootDir("run")
     ## @usage Pathname.fromRootDir("run", "backups")
-    return Pathname.new(joinPathComponents("/", pathComponent1, additionalPathComponents))
+    return Pathname.new(file_utils.joinPath(file_utils.getRootDirPath(), pathComponent1, additionalPathComponents))
 
 
 proc fromUserConfigDir*(class: typedesc[Pathname]): Pathname =
     ## Constructs a new Pathname with the Config Directory as Path.
     ## @returns A Pathname-Instance.
     ## @usage Pathname.fromUserConfigDir()
-    return Pathname.new(os.getConfigDir())
+    return Pathname.new(file_utils.getUserConfigDirPath())
 
 
 proc fromUserConfigDir*(class: typedesc[Pathname], pathComponent1: string, additionalPathComponents: varargs[string]): Pathname =
@@ -222,7 +253,7 @@ proc fromUserConfigDir*(class: typedesc[Pathname], pathComponent1: string, addit
     ## @returns A Pathname-Instance.
     ## @usage Pathname.fromUserConfigDir("run")
     ## @usage Pathname.fromUserConfigDir("run", "backups")
-    return Pathname.new(joinPathComponents(os.getConfigDir(), pathComponent1, additionalPathComponents))
+    return Pathname.new(file_utils.joinPath(file_utils.getUserConfigDirPath(), pathComponent1, additionalPathComponents))
 
 
 proc fromUserHomeDir*(class: typedesc[Pathname]): Pathname =
@@ -239,7 +270,7 @@ proc fromUserHomeDir*(class: typedesc[Pathname], pathComponent1: string, additio
     ## @returns A Pathname-Instance.
     ## @usage Pathname.fromUserHomeDir("run")
     ## @usage Pathname.fromUserHomeDir("run", "backups")
-    return Pathname.new(joinPathComponents(os.getHomeDir(), pathComponent1, additionalPathComponents))
+    return Pathname.new(file_utils.joinPath(os.getHomeDir(), pathComponent1, additionalPathComponents))
 
 
 proc fromEnvVar*(class: typedesc[Pathname], envVar: string): Option[Pathname] =
@@ -249,10 +280,10 @@ proc fromEnvVar*(class: typedesc[Pathname], envVar: string): Option[Pathname] =
     ## @returns A some(Pathname) containing the Path of the given EnvVar if defined.
     ## @returns none(Pathname) if the given EnvVar does not exist.
     ## @usage Pathname.fromEnvVar("PROJECT_PATH")
-    let envPathStr = os.getEnv(envVar)
-    if unlikely( envPathStr.len == 0 and not os.existsEnv(envPathStr) ):
+    let envPath = file_utils.getEnvVarPath(envVar)
+    if unlikely(envPath.isNone()):
         return none(Pathname)
-    return some(Pathname.new(envPathStr))
+    return some(Pathname.new(envPath.get()))
 
 
 proc fromEnvVarOrDefault*(class: typedesc[Pathname], envVar: string, defaultPath: string): Pathname =
@@ -260,10 +291,8 @@ proc fromEnvVarOrDefault*(class: typedesc[Pathname], envVar: string, defaultPath
     ## @param envVar The name of the environment variable.
     ## @returns A Pathname containing the Path of the given EnvVar if defined or defaultPath if not.
     ## @usage Pathname.fromEnvVar("RUN_DIRECTORY", "/tmp/run")
-    let envPathStr = os.getEnv(envVar)
-    if unlikely( envPathStr.len == 0 and not os.existsEnv(envPathStr) ):
-        return Pathname.new(defaultPath)
-    return Pathname.new(envPathStr)
+    ##
+    return Pathname.new(file_utils.getEnvVarOrDefaultPath(envVar, defaultPath))
 
 
 proc fromEnvVarOrNil*(class: typedesc[Pathname], envVar: string): Pathname =
@@ -272,51 +301,70 @@ proc fromEnvVarOrNil*(class: typedesc[Pathname], envVar: string): Pathname =
     ## @returns A Pathname containing the Path of the given EnvVar if defined.
     ## @returns nil if the given EnvVar does not exist.
     ## @usage Pathname.fromEnvVarOrNil("PROJECT_PATH")
-    let envPathStr = os.getEnv(envVar)
-    if unlikely( envPathStr.len == 0 and not os.existsEnv(envPathStr) ):
+    let envPath = file_utils.getEnvVarPath(envVar)
+    if unlikely(envPath.isNone()):
         return nil
-    return Pathname.new(envPathStr)
+    return Pathname.new(envPath.get())
 
+
+proc fromNimbleDir*(class: typedesc[Pathname], additionalPathComponents: varargs[string]): Pathname =
+    ## Constructs a new Pathname with the default Nimble-Directory as Path.
+    ## @returns A Pathname-Instance.
+    ## @usage Pathname.fromNimbleDir()
+    ## @usage Pathname.fromNimbleDir("bin")
+    ## @usage Pathname.fromNimbleDir("pkgs")
+    return Pathname.new(file_utils.getNimbleDirPath(additionalPathComponents))
 
 
 
 proc toPathStr*(self :Pathname): string {.inline.} =
-    ## Liefert das Verzeichnis des Pathnames als String.
+    ## Converts a Pathname to a String for User-Presentation-Purposes (for End-User).
     return self.path
+
+
+proc toString*(self: Pathname): string  {.inline.} =
+    ## Converts a Pathname to a String for User-Presentation-Purposes (for End-User).
+    return self.path
+
+
+proc `$`*(self :Pathname): string {.inline.} =
+    ## Converts a Pathname to a String for User-Presentation-Purposes (for End-User).
+    return self.path
+
+
+
+proc inspect*(self: Pathname) :string =
+    ## Converts a Pathname to a String for Diagnostic-Purposes (for Developer).
+    return "Pathname(\"" & self.path & "\")"
+
+
 
 
 
 proc isAbsolute*(self: Pathname): bool =
     ## Tells if the Pathname contains an absolute path.
-    return isAbsolutePathString(self.path)
+    return file_utils.isAbsolutePath(self.path)
 
 
 
 proc isRelative*(self: Pathname): bool =
     ## Tells if the Pathname contains an relative path.
-    return not isAbsolutePathString(self.path)
+    return not file_utils.isAbsolutePath(self.path)
 
 
 
 proc parent*(self :Pathname): Pathname =
     ## Returns the Parent-Directory of the Pathname.
-    #return Pathname.new(os.parentDir(self.path))
-    #return Pathname.new(self.path & "/..")
-    #return Pathname.new(normalizePathString(self.path & "/.."))
-    #return Pathname.new(os.normalizedPath(os.parentDir(self.path)))
-    #return Pathname.new(os.normalizedPath(self.path & "/.."))
-    return Pathname.new(normalizePathString(self.path & "/.."))
+    return Pathname.new(file_utils.parentPath(self.path))
 
 
 
-proc join*(self: Pathname, pathComponent1: string, additionalPathComponents: varargs[string]): Pathname =
+proc join*(self: Pathname, pathComponents: varargs[string]): Pathname =
     ## Returns a new Pathname joined with the additional path components.
-    ## @param pathComponent1 The first mandatory Path-Component
-    ## @param additionalPathComponents Further additional Path-Components
-    ## @alter
+    ## @param pathComponents Additional Path-Components which shall be added to the given path.
     #return aPathname.join("run")
     #return aPathname.join("run", "backups")
-    return Pathname.new(joinPathComponents(self.path, pathComponent1, additionalPathComponents))
+    return Pathname.new(file_utils.joinPath(self.path, pathComponents))
 
 
 
@@ -330,7 +378,7 @@ proc joinNormalized*(self: Pathname, pathComponent1: string, additionalPathCompo
     ## @alternative .join(...).normalize()
     #return aPathname.joinNormalized("run")
     #return aPathname.joinNormalized("run", "backups")
-    return Pathname.new(normalizePathString(joinPathComponents(self.path, pathComponent1, additionalPathComponents)))
+    return Pathname.new(file_utils.normalizePath(file_utils.joinPath(self.path, pathComponent1, additionalPathComponents)))
 
 
 
@@ -340,7 +388,7 @@ proc normalize*(self: Pathname): Pathname =
     ## @alias #cleanpath()
     ## @alias #normalize()
     ## @see https://ruby-doc.org/stdlib/libdoc/pathname/rdoc/Pathname.html#method-i-cleanpath
-    let normalizedPathStr = normalizePathString(self.path)
+    let normalizedPathStr = file_utils.normalizePath(self.path)
     # Optimierung für weniger Speicherverbrauch (gib self statt new pathname zurück, wenn identisch, für weniger RAM)
     if normalizedPathStr == self.path:
         return self
@@ -354,25 +402,25 @@ proc cleanpath*(self: Pathname): Pathname {.inline.} =
     ## @alias #cleanpath()
     ## @alias #normalize()
     ## @see https://ruby-doc.org/stdlib/libdoc/pathname/rdoc/Pathname.html#method-i-cleanpath
-    self.normalize()
+    return self.normalize()
 
 
 
-proc dirname*(self: Pathname): Pathname {.inline.} =
+proc dirname*(self: Pathname): Pathname =
     ## @returns the Directory-Part of the given Pathname as Pathname.
-    return Pathname.new(path_string_helpers.extractDirname(self.path))
+    return Pathname.new(file_utils.extractDirname(self.path))
 
 
 
-proc basename*(self: Pathname): Pathname {.inline.} =
+proc basename*(self: Pathname): Pathname =
     ## @returns the Filepart-Part of the given Pathname as Pathname.
-    return Pathname.new(path_string_helpers.extractBasename(self.path))
+    return Pathname.new(file_utils.extractBasename(self.path))
 
 
 
-proc extname*(self: Pathname): string {.inline.} =
+proc extname*(self: Pathname): string =
     ## @returns the File-Extension-Part of the given Pathname as string.
-    return path_string_helpers.extractExtension(self.path)
+    return file_utils.extractExtension(self.path)
 
 
 
@@ -382,11 +430,11 @@ proc fileType*(self: Pathname): FileType =
     ## See also: fileInfo()
     ## See also: fileStatus()
     ## See also: fileType()
-    return FileType.fromPathStr(self.path)
+    return file_utils.getFileType(self.path)
 
 
 
-proc fileInfo*(self: Pathname): os.FileInfo {.inline.} =
+proc fileInfo*(self: Pathname): os.FileInfo =
     ## Returns an os.FileInfo of the current Pathname. Providing additional infos about the underlying File-System-Entry.
     ## The returned FileInfo-Structure is the standard-version of the nim-runtime. If some more functionality is
     ## needed see #fileStatus() which provides a more advanced interface to get information of the file.
@@ -394,21 +442,21 @@ proc fileInfo*(self: Pathname): os.FileInfo {.inline.} =
     ## See also: fileStatus()
     ## See also: fileType()
     ## See also: https://nim-lang.org/docs/os.html#FileInfo
-    return os.getFileInfo(self.path, followSymlink = false)
+    return file_utils.getFileInfo(self.path)
 
 
 
-proc fileStatus*(self: Pathname): FileStatus {.inline,noSideEffect.} =
+proc fileStatus*(self: Pathname): FileStatus =
     ## Returns the FileStatus of the current Pathname. Providing additional infos about the underlying File-System-Entry.
     ## The returned FileStatus is a custom implementation of the kind of os.FileInfo with extended functionality.
     ## See also: fileInfo()
     ## See also: fileStatus()
     ## See also: fileType()
-    return FileStatus.fromPathStr(self.path)
+    return file_utils.getFileStatus(self.path)
 
 
 
-proc isExisting*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isExisting*(self: Pathname): bool =
     ## Returns true if the path directs to an existing file-system-entity like a file, directory, device, symlink, ...
     ## Returns false otherwise.
     ## See also:
@@ -417,11 +465,11 @@ proc isExisting*(self: Pathname): bool {.inline,noSideEffect.} =
     ## * `fileStatus() proc <#fileStatus,Pathname>`_
     ## * `fileType() proc <#fileType,Pathname>`_
     ## * `fileInfo() proc <#fileInfo,Pathname>`_
-    return self.fileType().isExisting()
+    return file_utils.isExisting(self.path)
 
 
 
-proc isNotExisting*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isNotExisting*(self: Pathname): bool =
     ## Returns true if the path DOES NOT direct to an existing and accessible file-system-entity.
     ## Returns false otherwise
     ## See also:
@@ -430,73 +478,73 @@ proc isNotExisting*(self: Pathname): bool {.inline,noSideEffect.} =
     ## * `fileStatus() proc <#fileStatus,Pathname>`_
     ## * `fileType() proc <#fileType,Pathname>`_
     ## * `fileInfo() proc <#fileInfo,Pathname>`_
-    return self.fileType().isNotExisting()
+    return file_utils.isNotExisting(self.path)
 
 
 
-proc isUnknownFileType*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isUnknownFileType*(self: Pathname): bool =
     ## @returns true if type the File-System-Entry is of unknown type.
     ## @returns false otherwise
-    return self.fileType().isUnknownFileType()
+    return file_utils.isUnknownFileType(self.path)
 
 
 
-proc isRegularFile*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isRegularFile*(self: Pathname): bool =
     ## Returns true if the path directs to a file, or a symlink that points at a file,
     ## Returns false otherwise.
     ## See also:
     ## * `fileStatus() proc <#fileStatus,Pathname>`_
     ## * `fileType() proc <#fileType,Pathname>`_
     ## * `fileInfo() proc <#fileInfo,Pathname>`_
-    return self.fileType().isRegularFile()
+    return file_utils.isRegularFile(self.path)
 
 
 
-proc isDirectory*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isDirectory*(self: Pathname): bool =
     ## Returns true if the path directs to a directory, or a symlink that points at a directory,
     ## Returns false otherwise.
     ## See also:
     ## * `fileStatus() proc <#fileStatus,Pathname>`_
     ## * `fileType() proc <#fileType,Pathname>`_
     ## * `fileInfo() proc <#fileInfo,Pathname>`_
-    return self.fileType().isDirectory()
+    return file_utils.isDirectory(self.path)
 
 
 
-proc isSymlink*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isSymlink*(self: Pathname): bool =
     ## Returns true if the path directs to a symlink.
     ## Returns false otherwise.
     ## See also:
     ## * `fileStatus() proc <#fileStatus,Pathname>`_
     ## * `fileType() proc <#fileType,Pathname>`_
     ## * `fileInfo() proc <#fileInfo,Pathname>`_
-    return self.fileType().isSymlink()
+    return file_utils.isSymlink(self.path)
 
 
 
-proc isDeviceFile*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isDeviceFile*(self: Pathname): bool =
     ## Returns true if the path directs to a device-file (either block or character).
     ## Returns false otherwise.
     ## See also:
     ## * `fileStatus() proc <#fileStatus,Pathname>`_
     ## * `fileType() proc <#fileType,Pathname>`_
     ## * `fileInfo() proc <#fileInfo,Pathname>`_
-    return self.fileType().isDeviceFile()
+    return file_utils.isDeviceFile(self.path)
 
 
 
-proc isCharacterDeviceFile*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isCharacterDeviceFile*(self: Pathname): bool =
     ## Returns true if the path directs to a block-device-file.
     ## Returns false otherwise.
     ## See also:
     ## * `fileStatus() proc <#fileStatus,Pathname>`_
     ## * `fileType() proc <#fileType,Pathname>`_
     ## * `fileInfo() proc <#fileInfo,Pathname>`_
-    return self.fileType().isCharacterDeviceFile()
+    return file_utils.isCharacterDeviceFile(self.path)
 
 
 
-proc isBlockDeviceFile*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isBlockDeviceFile*(self: Pathname): bool =
     ## Returns true if the path directs to a block-device-file.
     ## Returns false otherwise.
     ## See also: fileStatus()
@@ -504,11 +552,11 @@ proc isBlockDeviceFile*(self: Pathname): bool {.inline,noSideEffect.} =
     ## See also:
     ## * `fileStatus() proc <#fileStatus,Pathname>`_
     ## * `fileType() proc <#fileType,Pathname>`_
-    return self.fileType().isBlockDeviceFile()
+    return file_utils.isBlockDeviceFile(self.path)
 
 
 
-proc isSocketFile*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isSocketFile*(self: Pathname): bool =
     ## Returns true if the path directs to a unix socket file.
     ## Returns false otherwise.
     ## See also: fileStatus()
@@ -516,11 +564,11 @@ proc isSocketFile*(self: Pathname): bool {.inline,noSideEffect.} =
     ## See also:
     ## * `fileStatus() proc <#fileStatus,Pathname>`_
     ## * `fileType() proc <#fileType,Pathname>`_
-    return self.fileType().isSocketFile()
+    return file_utils.isSocketFile(self.path)
 
 
 
-proc isPipeFile*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isPipeFile*(self: Pathname): bool =
     ## Returns true if the path directs to a named pipe/fifo-file.
     ## Returns false otherwise.
     ## See also: fileStatus()
@@ -528,220 +576,656 @@ proc isPipeFile*(self: Pathname): bool {.inline,noSideEffect.} =
     ## See also:
     ## * `fileStatus() proc <#fileStatus,Pathname>`_
     ## * `fileType() proc <#fileType,Pathname>`_
-    return self.fileType().isPipeFile()
+    return file_utils.isPipeFile(self.path)
 
 
 
-proc isHidden*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isHidden*(self: Pathname): bool =
     ## Returns true if the path directs to an existing hidden file/directory/etc.
     ## Returns false otherwise.
     ## See also:
     ## * `fileStatus() proc <#fileStatus,Pathname>`_
-    return self.fileStatus().isHidden()
+    return file_utils.isHidden(self.path)
 
 
 
-proc isVisible*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isVisible*(self: Pathname): bool =
     ## Returns true if the path directs to an existing visible file/directory/etc (eg. is NOT hidden).
     ## Returns false otherwise.
     ## See also:
     ## * `fileStatus() proc <#fileStatus,Pathname>`_
-    return self.fileStatus().isVisible()
+    return file_utils.isVisible(self.path)
 
 
 
-proc isZeroSizeFile*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isZeroSizeFile*(self: Pathname): bool =
     ## @returns true if the path directs to an existing file with a file-size of zero.
     ## @returns false otherwise
     ## See also:
     ## * `fileStatus() proc <#fileStatus,Pathname>`_
-    return self.fileStatus().isZeroSizeFile()
+    return file_utils.isZeroSizeFile(self.path)
 
 
 
-proc getFileSizeInBytes*(self: Pathname): int64 {.inline,noSideEffect.} =
+proc getFileSizeInBytes*(self: Pathname): int64 =
     ## @returns the FileSize of the File-System-Entry in Bytes.
     ## @returns -1 if the FileSize could not be determined.
-    return self.fileStatus().getFileSizeInBytes()
+    return file_utils.getFileSizeInBytes(self.path)
 
 
 
-proc getIoBlockSizeInBytes*(self: Pathname): int32 {.inline,noSideEffect.} =
+proc getIoBlockSizeInBytes*(self: Pathname): int64 =
     ## @returns the Size of an IO-Block of the File-System-Entry in Bytes.
     ## @returns -1 if the BlockSize could not be determined.
-    return self.fileStatus().getIoBlockSizeInBytes()
+    return file_utils.getIoBlockSizeInBytes(self.path)
 
 
 
-proc getUserId*(self: Pathname): int32 {.inline,noSideEffect.} =
+proc getUserId*(self: Pathname): int32 =
     ## @returns an int >= 0 containing the UserId which is assigned to the existing FileSystemEntry.
     ## @returns -1 otherwise
-    return self.fileStatus().getUserId()
+    return file_utils.getUserId(self.path)
 
 
 
-proc getGroupId*(self: Pathname): int32 {.inline,noSideEffect.} =
+proc getGroupId*(self: Pathname): int32 =
     ## @returns an int >= 0 containing the GroupId which is assigned to the existing FileSystemEntry.
     ## @returns -1 otherwise
-    return self.fileStatus().getGroupId()
+    return file_utils.getGroupId(self.path)
 
 
 
-proc getCountHardlinks*(self: Pathname): int32 {.inline,noSideEffect.} =
+proc getCountHardlinks*(self: Pathname): int32 =
     ## @returns the count of hardlinks of the File-System-Entry.
     ## @returns -1 if the count could not be determined.
-    return self.fileStatus().getCountHardlinks()
+    return file_utils.getCountHardlinks(self.path)
 
 
 
-proc hasSetUidBit*(self: Pathname): bool {.inline,noSideEffect.} =
+proc hasSetUidBit*(self: Pathname): bool =
     ## @returns true if File-System-Entry exists and has the Set-Uid-Bit set.
     ## @returns false otherwise
-    return self.fileStatus().hasSetUidBit()
+    return file_utils.hasSetUidBit(self.path)
 
 
 
-proc hasSetGidBit*(self: Pathname): bool {.inline,noSideEffect.} =
+proc hasSetGidBit*(self: Pathname): bool =
     ## @returns true if File-System-Entry exists and has the Set-Gid-Bit set.
     ## @returns false otherwise
-    return self.fileStatus().hasSetGidBit()
+    return file_utils.hasSetGidBit(self.path)
 
 
 
-proc hasStickyBit*(self: Pathname): bool {.inline,noSideEffect.} =
+proc hasStickyBit*(self: Pathname): bool =
     ## @returns true if File-System-Entry exists and has the Sticky-Bit set.
     ## @returns false otherwise
-    return self.fileStatus().hasStickyBit()
+    return file_utils.hasStickyBit(self.path)
 
 
 
-proc getLastAccessTime*(self: Pathname): times.Time {.inline,noSideEffect.} =
+proc getLastAccessTime*(self: Pathname): times.Time =
     ## @returns the Time when the stated Path was last accessed.
     ## @returns 0.Time if the FileStat is in Error-State or the FileType does not support Prefered Block-Size.
-    return self.fileStatus().getLastAccessTime()
+    return file_utils.getLastAccessTime(self.path)
 
 
 
-proc getLastChangeTime*(self: Pathname): times.Time {.inline,noSideEffect.} =
+proc getLastChangeTime*(self: Pathname): times.Time =
     ## @returns the Time when the content of the stated Path was last changed.
     ## @returns 0.Time if the FileStat is in Error-State.
-    return self.fileStatus().getLastChangeTime()
+    return file_utils.getLastChangeTime(self.path)
 
 
 
-proc getLastStatusChangeTime*(self: Pathname): times.Time {.inline,noSideEffect.} =
+proc getLastStatusChangeTime*(self: Pathname): times.Time =
     ## @returns the Time when the status of stated Path was last changed.
     ## @returns 0.Time if the FileStat is in Error-State.
-    return self.fileStatus().getLastStatusChangeTime()
+    return file_utils.getLastStatusChangeTime(self.path)
 
 
 
-proc isUserOwned*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isUserOwned*(self: Pathname): bool =
     ## @returns true
     ##     if the File-System-Entry exists and the effective userId of the
     ##     current process is the owner of the file.
     ## @returns false otherwise
-    return self.fileStatus().isUserOwned()
+    return file_utils.isUserOwned(self.path)
 
 
 
-proc isGroupOwned*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isGroupOwned*(self: Pathname): bool =
     ## @returns true
     ##     if the File-System-Entry exists and the effective groupId of the
     ##     current process is the owner of the file.
     ## @returns false otherwise
-    return self.fileStatus().isGroupOwned()
+    return file_utils.isGroupOwned(self.path)
 
 
 
-proc isGroupMember*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isGroupMember*(self: Pathname): bool =
     ## @returns true if the named file exists and the effective user is member to the group of the the file.
     ## @returns false otherwise
-    return self.fileStatus().isGroupMember()
+    return file_utils.isGroupMember(self.path)
 
 
 
-proc isReadable*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isReadable*(self: Pathname): bool =
     ## @returns true if File-System-Entry exists and is readable by any means for the current process.
     ## @returns false otherwise
-    return self.fileStatus().isReadable()
+    return file_utils.isReadable(self.path)
 
 
 
-proc isReadableByUser*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isReadableByUser*(self: Pathname): bool =
     ## @returns true if File-System-Entry exists and is readable by direct user ownership of the current process.
     ## @returns false otherwise
-    return self.fileStatus().isReadableByUser()
+    return file_utils.isReadableByUser(self.path)
 
 
 
-proc isReadableByGroup*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isReadableByGroup*(self: Pathname): bool =
     ## @returns true if File-System-Entry exists and is readable by group ownership of the current process.
     ## @returns false otherwise
-    return self.fileStatus().isReadableByGroup()
+    return file_utils.isReadableByGroup(self.path)
 
 
 
-proc isReadableByOther*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isReadableByOther*(self: Pathname): bool =
     ## @returns true if File-System-Entry exists and is readable by any other means of the current process.
     ## @returns false otherwise
-    return self.fileStatus().isReadableByOther()
+    return file_utils.isReadableByOther(self.path)
 
 
 
-proc isWritable*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isWritable*(self: Pathname): bool =
     ## @returns true if File-System-Entry exists and is writable by any means for the current process.
     ## @returns false otherwise
-    return self.fileStatus().isWritable()
+    return file_utils.isWritable(self.path)
 
 
 
-proc isWritableByUser*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isWritableByUser*(self: Pathname): bool =
     ## @returns true if File-System-Entry exists and is writable by direct user ownership of the current process.
     ## @returns false otherwise
-    return self.fileStatus().isWritableByUser()
+    return file_utils.isWritableByUser(self.path)
 
 
 
-proc isWritableByGroup*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isWritableByGroup*(self: Pathname): bool =
     ## @returns true if File-System-Entry exists and is writable by group ownership of the current process.
     ## @returns false otherwise
-    return self.fileStatus().isWritableByGroup()
+    return file_utils.isWritableByGroup(self.path)
 
 
 
-proc isWritableByOther*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isWritableByOther*(self: Pathname): bool =
     ## @returns true if File-System-Entry exists and is writable by any other means of the current process.
     ## @returns false otherwise
-    return self.fileStatus().isWritableByOther()
+    return file_utils.isWritableByOther(self.path)
 
 
 
-proc isExecutable*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isExecutable*(self: Pathname): bool =
     ## @returns true if File-System-Entry exists and is executable by any means for the current process.
     ## @returns false otherwise
-    return self.fileStatus().isExecutable()
+    return file_utils.isExecutable(self.path)
 
 
 
-proc isExecutableByUser*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isExecutableByUser*(self: Pathname): bool =
     ## @returns true if File-System-Entry exists and is executable by direct user ownership of the current process.
     ## @returns false otherwise
-    return self.fileStatus().isExecutableByUser()
+    return file_utils.isExecutableByUser(self.path)
 
 
 
-proc isExecutableByGroup*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isExecutableByGroup*(self: Pathname): bool =
     ## @returns true if File-System-Entry exists and is executable by group ownership of the current process.
     ## @returns false otherwise
-    return self.fileStatus().isExecutableByGroup()
+    return file_utils.isExecutableByGroup(self.path)
 
 
 
-proc isExecutableByOther*(self: Pathname): bool {.inline,noSideEffect.} =
+proc isExecutableByOther*(self: Pathname): bool =
     ## @returns true if File-System-Entry exists and is executable by any other means of the current process.
     ## @returns false otherwise
-    return self.fileStatus().isExecutableByOther()
+    return file_utils.isExecutableByOther(self.path)
+
+
+
+
+proc readAll*(self: Pathname): TaintedString {.inline,raises: [IOError].} =
+    ## @returns Returns ALL data from the current File (Regular, Character Devices, Pipes).
+    ## @raises An IOError if the file could not be read.
+    return file_utils.readAll(self.path)
+
+
+
+proc read*(self: Pathname): TaintedString {.inline,raises: [IOError].} =
+    ## @returns Returns ALL data from the current File (Regular, Character Devices, Pipes).
+    ## @raises An IOError if the file could not be read.
+    return file_utils.read(self.path)
+
+
+
+proc read*(self: Pathname, length: Natural, offset: int64 = -1): TaintedString {.inline,raises: [IOError].} =
+    ## @returns Returns length bytes of data from the current File (Regular, Character Devices, Pipes).
+    ## @raises An IOError if the file could not be read.
+    return file_utils.read(self.path, length, offset)
+
+
+
+#TODO: testen
+proc open*(self: Pathname, mode: FileMode = FileMode.fmRead; bufSize: int = -1): File {.inline,raises: [IOError].} =
+    ## Opens the given File-System-Entry with given mode (default: Readonly) .
+    ## @raises An IOError if something went wrong.
+    return file_utils.open(self.path, mode, bufSize)
+
+
+#TODO: testen
+proc touch*(self: Pathname): Pathname {.discardable,inline,raises: [IOError].} =
+    ## Updates modification time (mtime) and access time (atime) of file(s) in list.
+    ## If no File/Directory exists, they will get created.
+    ## @raises An IOError if something went wrong.
+    ## The difference to #createFile is, that #touch does not throw an error if the target is not a regular file.
+    file_utils.touch(self.path)
+    return self
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - tap()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+proc tap*(self: Pathname, tapFn: proc (pathname: Pathname)): Pathname {.discardable,inline.} =
+    ## Calls the given lambda-proc with self, enabling the user to construct directory-construction in an descriptive manner.
+    tapFn(self)
+    return self
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - createFile()/removeFile()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+
+proc createFile*(self: Pathname, optionalPathComponents: varargs[string]): Pathname {.inline,discardable,raises: [IOError],inline.} =
+    ## Creates an empty regular File.
+    ## If the fs-entry already exists and it is a regular file nothing happens.
+    ## If the fs-entry already exists but is not a regular file an IOError is raised.
+    ## @raises An IOError if the fs-entry already exists but is not a regular file.
+    ## The difference to #touch is, that #touch does not throw an error if the target is not a regular file.
+    ## Alias:
+    ## * `createFile() proc <#createFile,Pathname>`_
+    ## * `createRegularFile() proc <#createRegularFile,Pathname>`_
+    return self.createRegularFile(optionalPathComponents)
+
+
+
+proc removeFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Removes a file but no directories like regular-, fifo-, link-, device-files.
+    ## This proc differs from removeRegularFile(), that it removes every file based type (regular, link, pipe, devices).
+    ## @raises An IOError if the referenced FS-Entry is existing but is not a regular file, link, pipe, or device.
+    ## @raises An IOError if the referenced FS-Entry could not be removed (due permissions).
+    # @see https://stackoverflow.com/questions/15335223/what-happens-when-unlink-a-directory/15335559#15335559
+    # @see man 2 unlink
+    file_utils.removeFile(self.path)
+    return self
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - createRegularFile()/removeRegularFile()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+
+proc createRegularFile*(self: Pathname, optionalPathComponents: varargs[string]): Pathname {.discardable,raises: [IOError].} =
+    ## Creates an empty regular File.
+    ## If the fs-entry already exists and it is a regular file nothing happens.
+    ## If the fs-entry already exists but is not a regular file an IOError is raised.
+    ## @raises An IOError if the fs-entry already exists but is not a regular file.
+    ## The difference to #touch is, that #touch does not throw an error if the target is not a regular file.
+    var targetPathname = self
+    if optionalPathComponents.len > 0:
+        targetPathname = self.join(optionalPathComponents)
+    file_utils.createRegularFile(targetPathname.path)
+    return targetPathname
+
+
+
+proc removeRegularFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Removes a regular file and only that.
+    ## @raises An IOError if the referenced FS-Entry is existing but is not a regular file, or could not be deleted.
+    # @see https://stackoverflow.com/questions/15335223/what-happens-when-unlink-a-directory/15335559#15335559
+    # @see man 2 unlink
+    file_utils.removeRegularFile(self.path)
+    return self
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - createDirectory()/removeDirectory()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+
+proc createDirectory*(self: Pathname, mode: uint32 = 0o777): Pathname {.inline,discardable,raises: [IOError],inline.} =
+    ## Creates an empty Directory.
+    ## If the fs-entry already exists and it is a directory nothing happens.
+    ## If the fs-entry already exists but is not a directory an IOError is raised.
+    ## @param mode The unix-Mode (OPTIONAL, default: ugo=rwx respecting the umask)
+    ## @raises An IOError if the fs-entry already exists but is not a directory or the directory could not be created.
+    ## Alias:
+    ## * `createDirectory() proc <#createDirectory,Pathname>`_
+    ## * `createEmptyDirectory() proc <#createEmptyDirectory,Pathname>`_
+    file_utils.createEmptyDirectory(self.path, mode)
+    return self
+
+
+
+proc removeDirectory*(self: Pathname, isRecursive: bool = false): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Removes an directory.
+    ## @raises An IOError if the referenced FS-Entry exists but is not an empty directory (when isRecursive == false, like the default)
+    ## @raises An IOError if the referenced FS-Entry is a directory or could not be deleted (not empty, no permission).
+    ## @param isRecursive Tells if the Directory shall be recursive removed (OPTIONAL, default: false)
+    ## See also:
+    ## * `removeDirectory() proc <#removeDirectory,Pathname>`_
+    ## * `removeEmptyDirectory() proc <#removeEmptyDirectory,Pathname>`_
+    ## * `removeDirectoryTree() proc <#removeDirectoryTree,Pathname>`_
+    # @see https://stackoverflow.com/questions/15335223/what-happens-when-unlink-a-directory/15335559#15335559
+    # @see man 2 rmdir
+    file_utils.removeDirectory(self.path, isRecursive)
+    return self
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - createEmptyDirectory()/removeEmptyDirectory()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+
+proc createEmptyDirectory*(self: Pathname, mode: uint32 = 0o777): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Creates an empty Directory.
+    ## If the fs-entry already exists and it is a directory nothing happens.
+    ## If the fs-entry already exists but is not a directory an IOError is raised.
+    ## @raises An IOError if the fs-entry already exists but is not a directory or the directory could not be created.
+    ## Alias:
+    ## * `createDirectory() proc <#createDirectory,Pathname>`_
+    ## * `createEmptyDirectory() proc <#createEmptyDirectory,Pathname>`_
+    # @see man 2 mkdir
+    file_utils.createEmptyDirectory(self.path, mode)
+    return self
+
+
+
+proc removeEmptyDirectory*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Removes an empty directory and only that.
+    ## @raises An IOError if the referenced FS-Entry is existing but is not an empty directory, or could not be deleted.
+    ## See also:
+    ## * `removeDirectory() proc <#removeDirectory,Pathname>`_
+    ## * `removeEmptyDirectory() proc <#removeEmptyDirectory,Pathname>`_
+    ## * `removeDirectoryTree() proc <#removeDirectoryTree,Pathname>`_
+    # @see https://stackoverflow.com/questions/15335223/what-happens-when-unlink-a-directory/15335559#15335559
+    # @see man 2 rmdir
+    file_utils.removeEmptyDirectory(self.path)
+    return self
+
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - removeDirectoryTree()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+
+proc removeDirectoryTree*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Removes a directory with all its contents (eg. recursively).
+    ## Please be cautious if using this proc.
+    ## @see `os.removeDir() proc <#os.removeDir,string>`_
+    file_utils.removeDirectoryTree(self.path)
+    return self
+
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - createPipeFile()/removePipeFile()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+
+proc createPipeFile*(self: Pathname, mode: uint32 = 0o660): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Creates a named Pipe (aka Fifo).
+    ## If the fs-entry already exists and it is a named pipe nothing happens.
+    ## If the fs-entry already exists but is not a named pipe an IOError is raised.
+    ## @param mode The unix-Mode (OPTIONAL, default: ug=rw,o= respecting the active umask)
+    ## @raises An IOError if the fs-entry already exists but is not a named pipe.
+    ## @raises An IOError if the fs-entry could not be created.
+    ## Alias:
+    ## * `createPipeFile() proc <#createPipeFile,Pathname>`_
+    ## * `createFifo() proc <#createFifo,Pathname>`_
+    # @see man 3 mkfifo
+    file_utils.createPipeFile(self.path, mode)
+    return self
+
+
+
+proc removePipeFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Removes a named pipe file and only that.
+    ## @raises An IOError if the referenced FS-Entry is existing but is not a pipe file, or could not be deleted.
+    ## Alias:
+    ## * `removePipeFile() proc <#removePipeFile,Pathname>`_
+    ## * `removeFifo() proc <#removeFifo,Pathname>`_
+    # @see https://stackoverflow.com/questions/15335223/what-happens-when-unlink-a-directory/15335559#15335559
+    # @see man 2 unlink
+    file_utils.removePipeFile(self.path)
+    return self
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - createFifo()/removeFifo() (alias from createPipeFile()/removePipeFile())
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+
+proc createFifo*(self: Pathname, mode: uint32 = 0o660): Pathname {.inline,discardable,raises: [IOError],inline.} =
+    ## Creates a named Pipe (aka Fifo).
+    ## If the fs-entry already exists and it is a named pipe nothing happens.
+    ## If the fs-entry already exists but is not a named pipe an IOError is raised.
+    ## @param mode The unix-Mode (OPTIONAL, default: ug=rw,o= respecting the active umask)
+    ## @raises An IOError if the fs-entry already exists but is not a named pipe.
+    ## @raises An IOError if the fs-entry could not be created.
+    ## Alias:
+    ## * `createPipeFile() proc <#createPipeFile,Pathname>`_
+    ## * `createFifo() proc <#createFifo,Pathname>`_
+    # @see man 3 mkfifo
+    return self.createPipeFile(mode)
+
+
+
+proc removeFifo*(self: Pathname): Pathname {.inline,discardable,raises: [IOError],inline.} =
+    ## Removes a named pipe file and only that.
+    ## @raises An IOError if the referenced FS-Entry is existing but is not a pipe file, or could not be deleted.
+    ## Alias:
+    ## * `removePipeFile() proc <#removePipeFile,Pathname>`_
+    ## * `removeFifo() proc <#removeFifo,Pathname>`_
+    return self.removePipeFile()
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - createCharacterDeviceFile()/removeCharacterDeviceFile()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+
+#TODO: Testen ...
+proc createCharacterDeviceFile*(self: Pathname, mode: uint32 = 0o600, major: uint8, minor: uint8): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Creates a character-device-file (only unix/linux).
+    ## If the fs-entry already exists and it is a character-device-file, nothing happens.
+    ## If the fs-entry already exists but is not a device file an IOError is raised.
+    ## @param mode The unix-Mode (OPTIONAL, default: u=rw,go= respecting the active umask)
+    ## @param major The Major-Number of the Device-File
+    ## @param minor The Minor-Number of the Device-File
+    ## @raises An IOError if the fs-entry already exists but is not a device-file.
+    ## @raises An IOError if the fs-entry could not be created.
+    ## See also:
+    ## * `createCharacterDeviceFile() proc <#createCharacterDeviceFile,Pathname>`_
+    ## * `createBlockDeviceFile() proc <#createBlockDeviceFile,Pathname>`_
+    # @see man 2 mknod
+    # @see man 3 makedev
+    file_utils.createCharacterDeviceFile(self.path, mode, major, minor)
+    return self
+
+
+
+
+#TODO: Testen ...
+proc removeCharacterDeviceFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Removes a character-device-file and only that.
+    ## @raises An IOError if the referenced FS-Entry is existing but is not a character-device-file, or could not be deleted.
+    ## See also:
+    ## * `removeCharacterDeviceFile() proc <#removeCharacterDeviceFile,Pathname>`_
+    ## * `removeBlockDeviceFile() proc <#removeBlockDeviceFile,Pathname>`_
+    ## * `removeDeviceFile() proc <#removeDeviceFile,Pathname>`_
+    # @see man 2 unlink
+    file_utils.removeCharacterDeviceFile(self.path)
+    return self
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - createBlockDeviceFile()/removeCharacterDeviceFile()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+
+#TODO: Testen ...
+proc createBlockDeviceFile*(self: Pathname, mode: uint32 = 0o600, major: uint8, minor: uint8): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Creates a block-device-file (only unix/linux).
+    ## If the fs-entry already exists and it is a block-device-file, nothing happens.
+    ## If the fs-entry already exists but is not a block-device file an IOError is raised.
+    ## @param mode The unix-Mode (OPTIONAL, default: u=rw,go= respecting the active umask)
+    ## @param major The Major-Number of the Device-File
+    ## @param minor The Minor-Number of the Device-File
+    ## @raises An IOError if the fs-entry already exists but is not a device-file.
+    ## @raises An IOError if the fs-entry could not be created.
+    ## See also:
+    ## * `createCharacterDeviceFile() proc <#createCharacterDeviceFile,Pathname>`_
+    ## * `createBlockDeviceFile() proc <#createBlockDeviceFile,Pathname>`_
+    # @see man 2 mknod
+    # @see man 3 makedev
+    file_utils.createBlockDeviceFile(self.path, mode, major, minor)
+    return self
+
+
+
+#TODO: Testen ...
+proc removeBlockDeviceFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Removes a character-device-file and only that.
+    ## @raises An IOError if the referenced FS-Entry is existing but is not a character-device-file, or could not be deleted.
+    ## See also:
+    ## * `removeCharacterDeviceFile() proc <#removeCharacterDeviceFile,Pathname>`_
+    ## * `removeBlockDeviceFile() proc <#removeBlockDeviceFile,Pathname>`_
+    ## * `removeDeviceFile() proc <#removeDeviceFile,Pathname>`_
+    # @see man 2 unlink
+    file_utils.removeBlockDeviceFile(self.path)
+    return self
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - removeDeviceFile()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+
+#TODO: Testen ...
+proc removeDeviceFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Removes a device-file (block- and character) and only that.
+    ## @raises An IOError if the referenced FS-Entry is existing but is not a device-file, or could not be deleted.
+    ## See also:
+    ## * `removeCharacterDeviceFile() proc <#removeCharacterDeviceFile,Pathname>`_
+    ## * `removeBlockDeviceFile() proc <#removeBlockDeviceFile,Pathname>`_
+    ## * `removeDeviceFile() proc <#removeDeviceFile,Pathname>`_
+    # @see man 2 unlink
+    file_utils.removeDeviceFile(self.path)
+    return self
+
+
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - createSymlinkFrom() / createSymlinkTo() / removeSymlink()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+
+proc createSymlinkFrom*(self: Pathname, dstPath: string): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Creates a Symlink at the Pathname-Location (== srcPath) pointing to the given dstPath.
+    ## @raises An IOError if the fs-entry already exists.
+    # @see man 2 symlink
+    file_utils.createSymlink(self.path, dstPath)
+    return self
+
+
+proc createSymlinkTo*(self: Pathname, srcPath: string): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Creates a Symlink at the Pathname-Location (== dstPath) pointing to the given srcPath.
+    ## @raises An IOError if the fs-entry already exists.
+    # @see man 2 symlink
+    file_utils.createSymlink(srcPath, self.path)
+    return self
+
+
+proc removeSymlink*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Removes a character-device-file and only that.
+    ## @raises An IOError if the referenced FS-Entry is existing but is not a character-device-file, or could not be deleted.
+    ## See also:
+    ## * `removeCharacterDeviceFile() proc <#removeCharacterDeviceFile,Pathname>`_
+    ## * `removeBlockDeviceFile() proc <#removeBlockDeviceFile,Pathname>`_
+    ## * `removeDeviceFile() proc <#removeDeviceFile,Pathname>`_
+    # @see man 2 unlink
+    file_utils.removeSymlink(self.path)
+    return self
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - remove()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+
+#TODO: Testen ...
+proc remove*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Removes the FS-Entry, regardles of the type of the FS-Entry or it is a directory with content.
+    ## Please be cautious if using this proc, and use one of the specific remove-Procs if possible.
+    file_utils.remove(self.path)
+    return self
+
+
+
+
+
+#LATER #TODO: testen
+#LATER proc isMountpoint*(self: Pathname) =
+#LATER     ## @returns true if File-System-Entry exists and points to a Mountpoint.
+
+
+
+#LATER #TODO: testen
+#LATER proc rename*(self: Pathname) =
+#LATER     ## Renames the given file.
+
+
+
+
 
 
 
@@ -756,40 +1240,18 @@ proc isExecutableByOther*(self: Pathname): bool {.inline,noSideEffect.} =
 
 
 #TODO: testen
-proc listDir*(self: Pathname): seq[Pathname] =
+proc listDir*(self: Pathname, isAbsolute: bool = false): seq[Pathname] =
     ## Lists the files of the addressed directory as Pathnames.
-    var files: seq[Pathname] = @[]
-    for file in walkDir(self.path):
-        files.add(Pathname.new(file.path))
-    return files
+    return file_utils.dirEntries(self.path, isAbsolute).map( proc (pathStr: string): Pathname = Pathname.new(pathStr) )
 
 
 
 #TODO: testen
-proc listDirStrings*(self: Pathname): seq[string] =
+proc listDirStrings*(self: Pathname, isAbsolute: bool = false): seq[string] =
     ## Lists the files of the addressed directory as plain Strings.
-    var files: seq[string] = @[]
-    for file in walkDir(self.path):
-        files.add(file.path)
-    return files
+    return file_utils.dirEntries(self.path, isAbsolute)
 
 
-
-proc toString*(self: Pathname): string  {.inline.} =
-    ## Converts a Pathname to a String for User-Presentation-Purposes (for End-User).
-    return self.path
-
-
-
-proc `$`*(self :Pathname): string {.inline.} =
-    ## Converts a Pathname to a String for User-Presentation-Purposes (for End-User).
-    return self.toString()
-
-
-
-proc inspect*(self: Pathname) :string =
-    ## Converts a Pathname to a String for Diagnostic-Purposes (for Developer).
-    return "Pathname(\"" & self.path & "\")"
 
 
 
@@ -917,22 +1379,22 @@ when isMainModule:
     #    echo "Windows-Drives           : ", pathnamesFromWindowsDrives()
 
 #    proc main() =
-#        echo normalizePathString("./../..")   #Fail -> ../..
-#        echo normalizePathString("./../../")  #Fail -> ../..
-#        echo normalizePathString("/../..")    #     -> /
-#        echo normalizePathString("/../../")   #     -> /
-#        echo normalizePathString("/home")
-#        echo normalizePathString(".")
-#        echo normalizePathString("./home")
-#        echo normalizePathString("/./home")
-#        echo normalizePathString("./././.")
-#        echo normalizePathString("/./././.")
-#        echo normalizePathString("./././home")
-#        echo normalizePathString("/./././home")
-#        echo normalizePathString("/./home")
-#        echo normalizePathString("////home/test/.././../hello/././world////./what/..")
-#        echo normalizePathString("////home/test/.././../hello/././world////./what/..///")
-#        echo normalizePathString("////home/test/.././../hello/././world////./what/..///.")
+#        echo file_utils.normalizePath("./../..")   #Fail -> ../..
+#        echo file_utils.normalizePath("./../../")  #Fail -> ../..
+#        echo file_utils.normalizePath("/../..")    #     -> /
+#        echo file_utils.normalizePath("/../../")   #     -> /
+#        echo file_utils.normalizePath("/home")
+#        echo file_utils.normalizePath(".")
+#        echo file_utils.normalizePath("./home")
+#        echo file_utils.normalizePath("/./home")
+#        echo file_utils.normalizePath("./././.")
+#        echo file_utils.normalizePath("/./././.")
+#        echo file_utils.normalizePath("./././home")
+#        echo file_utils.normalizePath("/./././home")
+#        echo file_utils.normalizePath("/./home")
+#        echo file_utils.normalizePath("////home/test/.././../hello/././world////./what/..")
+#        echo file_utils.normalizePath("////home/test/.././../hello/././world////./what/..///")
+#        echo file_utils.normalizePath("////home/test/.././../hello/././world////./what/..///.")
 #
 #
 #        let pathname = Pathname.fromTempDir()

@@ -13,10 +13,12 @@ import pathname
 
 import os
 import times
-import posix
 import options
 import unittest
 import test_helper
+
+when defined(Posix):
+    import posix
 
 
 suite "Pathname Tests 000":
@@ -43,15 +45,43 @@ suite "Pathname Tests 000":
         let aPathname: Pathname = Pathname.new("hello", "world")
         check "hello/world" == aPathname.toPathStr()
 
-        check "a/b"   == Pathname.new("a", "b"    ).toPathStr()
-        check "a/b/"  == Pathname.new("a/", "/b/" ).toPathStr()
-        check "/a/b"  == Pathname.new("/a", "b"   ).toPathStr()
-        check "/a/b/" == Pathname.new("/a/", "/b/").toPathStr()
+        check "a/b"  == Pathname.new("a", "b"    ).toPathStr()
+        check "a/b"  == Pathname.new("a/", "/b/" ).toPathStr()
+        check "/a/b" == Pathname.new("/a", "b"   ).toPathStr()
+        check "/a/b" == Pathname.new("/a/", "/b/").toPathStr()
 
-        check "a/b/c"   == Pathname.new("a", "b", "c"      ).toPathStr()
-        check "a/b/c/"  == Pathname.new("a/", "/b/", "/c/" ).toPathStr()
-        check "/a/b/c"  == Pathname.new("/a", "b", "c"     ).toPathStr()
-        check "/a/b/c/" == Pathname.new("/a/", "/b/", "/c/").toPathStr()
+        check "a/b/c"  == Pathname.new("a", "b", "c"      ).toPathStr()
+        check "a/b/c"  == Pathname.new("a/", "/b/", "/c/" ).toPathStr()
+        check "/a/b/c" == Pathname.new("/a", "b", "c"     ).toPathStr()
+        check "/a/b/c" == Pathname.new("/a/", "/b/", "/c/").toPathStr()
+
+
+    test "Pathname.fromPathStr(path)":
+        let aPathname: Pathname = Pathname.fromPathStr("hello")
+        check "hello" == aPathname.toPathStr()
+
+        check ""      == Pathname.fromPathStr(""     ).toPathStr()
+        check " "     == Pathname.fromPathStr(" "    ).toPathStr()
+        check "/"     == Pathname.fromPathStr("/"    ).toPathStr()
+        check "/abc"  == Pathname.fromPathStr("/abc" ).toPathStr()
+        check "/abc/" == Pathname.fromPathStr("/abc/").toPathStr()
+        check "abc"   == Pathname.fromPathStr("abc"  ).toPathStr()
+        check "cde/"  == Pathname.fromPathStr("cde/" ).toPathStr()
+
+
+    test "Pathname.fromPathStr(base, pc1)":
+        let aPathname: Pathname = Pathname.fromPathStr("hello", "world")
+        check "hello/world" == aPathname.toPathStr()
+
+        check "a/b"  == Pathname.fromPathStr("a", "b"    ).toPathStr()
+        check "a/b"  == Pathname.fromPathStr("a/", "/b/" ).toPathStr()
+        check "/a/b" == Pathname.fromPathStr("/a", "b"   ).toPathStr()
+        check "/a/b" == Pathname.fromPathStr("/a/", "/b/").toPathStr()
+
+        check "a/b/c"  == Pathname.fromPathStr("a", "b", "c"      ).toPathStr()
+        check "a/b/c"  == Pathname.fromPathStr("a/", "/b/", "/c/" ).toPathStr()
+        check "/a/b/c" == Pathname.fromPathStr("/a", "b", "c"     ).toPathStr()
+        check "/a/b/c" == Pathname.fromPathStr("/a/", "/b/", "/c/").toPathStr()
 
 
     test "Pathname.fromCurrentWorkDir(...)":
@@ -133,6 +163,14 @@ suite "Pathname Tests 000":
             os.delEnv("SAMPLE_PATH_ENV_VAR")
             let noPathname: Pathname = Pathname.fromEnvVarOrNil("SAMPLE_PATH_ENV_VAR")
             check nil == noPathname
+
+
+    test "Pathname.fromNimbleDir()":
+        check os.getHomeDir() / ".nimble"           == Pathname.fromNimbleDir().toPathStr()
+        check os.getHomeDir() / ".nimble/bin"       == Pathname.fromNimbleDir("bin").toPathStr()
+        check os.getHomeDir() / ".nimble/bin/c2nim" == Pathname.fromNimbleDir("bin", "c2nim").toPathStr()
+        check os.getHomeDir() / ".nimble/pkgs"      == Pathname.fromNimbleDir("pkgs").toPathStr()
+        check os.getHomeDir() / ".nimble/pkgs/zmq"  == Pathname.fromNimbleDir("pkgs", "zmq").toPathStr()
 
 
     test "Internal Pathname-Path is immutable (v1: ctor)":
@@ -273,6 +311,38 @@ suite "Pathname Tests 000":
         check "../../../.." == Pathname.new("../../../..").toPathStr()
 
 
+    test "#toString()":
+        check os.getCurrentDir() == Pathname.fromCurrentWorkDir().toString()
+
+        check ""      == Pathname.new(""     ).toString()
+        check "/"     == Pathname.new("/"    ).toString()
+        check "/abc"  == Pathname.new("/abc" ).toString()
+        check "/abc/" == Pathname.new("/abc/").toString()
+        check "abc"   == Pathname.new("abc"  ).toString()
+        check "cde/"  == Pathname.new("cde/" ).toString()
+
+
+    test "#$":
+        check os.getCurrentDir() == $Pathname.fromCurrentWorkDir()
+
+        check ""      == $Pathname.new(""     )
+        check "/"     == $Pathname.new("/"    )
+        check "/abc"  == $Pathname.new("/abc" )
+        check "/abc/" == $Pathname.new("/abc/")
+        check "abc"   == $Pathname.new("abc"  )
+        check "cde/"  == $Pathname.new("cde/" )
+
+
+    test "#inspect()":
+        check "Pathname(\"\")"      == Pathname.new(""     ).inspect()
+        check "Pathname(\"/\")"     == Pathname.new("/"    ).inspect()
+        check "Pathname(\"/abc\")"  == Pathname.new("/abc" ).inspect()
+        check "Pathname(\"/abc/\")" == Pathname.new("/abc/").inspect()
+        check "Pathname(\"abc\")"   == Pathname.new("abc"  ).inspect()
+        check "Pathname(\"cde/\")"  == Pathname.new("cde/" ).inspect()
+
+
+
     test "#isAbsolute()":
         check true  == Pathname.new("/"  ).isAbsolute()
         check true  == Pathname.new("/a" ).isAbsolute()
@@ -329,10 +399,10 @@ suite "Pathname Tests 000":
         check "/a"   == Pathname.new("/").join("a").toPathStr()
         check "/a/b" == Pathname.new("/").join("a", "b").toPathStr()
 
-        check "/a/b/.."  == Pathname.new("/").join("a", "b", ".." ).toPathStr()
-        check "/a/b/../" == Pathname.new("/").join("a", "b", "../").toPathStr()
-        check "/a/../b"  == Pathname.new("/").join("a", "..", "b" ).toPathStr()
-        check "/a/../b/" == Pathname.new("/").join("a", "..", "b/").toPathStr()
+        check "/a/b/.." == Pathname.new("/").join("a", "b", ".." ).toPathStr()
+        check "/a/b/.." == Pathname.new("/").join("a", "b", "../").toPathStr()
+        check "/a/../b" == Pathname.new("/").join("a", "..", "b" ).toPathStr()
+        check "/a/../b" == Pathname.new("/").join("a", "..", "b/").toPathStr()
 
 
     test "#joinNormalized()":
@@ -858,7 +928,6 @@ suite "Pathname Tests 000":
         check "/" == Pathname.new("///..///").cleanpath().toPathStr()
 
 
-
     test "#fileType() v1":
         check FileType.REGULAR_FILE == Pathname.new(fixturePath("sample_dir/a_file")).fileType()
 
@@ -884,9 +953,10 @@ suite "Pathname Tests 000":
 
         check FileType.SOCKET_FILE == Pathname.new("/tmp/.X11-unix/X0").fileType()
 
-        discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
-        check FileType.PIPE_FILE == Pathname.new(fixturePath("sample_dir/a_pipe")).fileType()
-        discard posix.unlink( fixturePath("sample_dir/a_pipe") )
+        when defined(Posix):
+            discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
+            check FileType.PIPE_FILE == Pathname.new(fixturePath("sample_dir/a_pipe")).fileType()
+            discard posix.unlink( fixturePath("sample_dir/a_pipe") )
 
 
 
@@ -917,9 +987,10 @@ suite "Pathname Tests 000":
 
         check true == Pathname.new("/tmp/.X11-unix/X0").fileType().isSocketFile()
 
-        discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
-        check true == Pathname.new(fixturePath("sample_dir/a_pipe")).fileType().isPipeFile()
-        discard posix.unlink( fixturePath("sample_dir/a_pipe") )
+        when defined(Posix):
+            discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
+            check true == Pathname.new(fixturePath("sample_dir/a_pipe")).fileType().isPipeFile()
+            discard posix.unlink( fixturePath("sample_dir/a_pipe") )
 
 
 
@@ -1379,9 +1450,10 @@ suite "Pathname Tests 000":
 
 
     test "#isPipeFile()":
-        discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
-        check true == Pathname.new(fixturePath("sample_dir/a_pipe")).isPipeFile()
-        discard posix.unlink( fixturePath("sample_dir/a_pipe") )
+        when defined(Posix):
+            discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
+            check true == Pathname.new(fixturePath("sample_dir/a_pipe")).isPipeFile()
+            discard posix.unlink( fixturePath("sample_dir/a_pipe") )
 
         check false == Pathname.new(fixturePath("sample_dir/a_file" )).isPipeFile()
         check false == Pathname.new(fixturePath("sample_dir/a_file/")).isPipeFile()
@@ -1666,28 +1738,28 @@ suite "Pathname Tests 000":
 
 
 
-    test "isExecutable()":
+    test "#isExecutable()":
         check true  == Pathname.new("/bin/cat"                      ).isExecutable()
         check false == Pathname.new(fixturePath("sample_dir/a_file")).isExecutable()
         check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isExecutable()
 
 
 
-    test "isExecutableByUser()":
+    test "#isExecutableByUser()":
         check false == Pathname.new("/bin/cat"                      ).isExecutableByUser()
         check false == Pathname.new(fixturePath("sample_dir/a_file")).isExecutableByUser()
         check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isExecutableByUser()
 
 
 
-    test "isExecutableByGroup()":
+    test "#isExecutableByGroup()":
         check false == Pathname.new("/bin/cat"                      ).isExecutableByGroup()
         check false == Pathname.new(fixturePath("sample_dir/a_file")).isExecutableByGroup()
         check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isExecutableByGroup()
 
 
 
-    test "isExecutableByOther()":
+    test "#isExecutableByOther()":
         check true  == Pathname.new("/bin/cat"                      ).isExecutableByOther()
         check false == Pathname.new(fixturePath("sample_dir/a_file")).isExecutableByOther()
         check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isExecutableByOther()
@@ -1740,9 +1812,10 @@ suite "Pathname Tests 000":
 
         check FileType.SOCKET_FILE == Pathname.new("/tmp/.X11-unix/X0").fileStatus().getFileType()
 
-        discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
-        check FileType.PIPE_FILE == Pathname.new(fixturePath("sample_dir/a_pipe")).fileStatus().getFileType()
-        discard posix.unlink( fixturePath("sample_dir/a_pipe") )
+        when defined(Posix):
+            discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
+            check FileType.PIPE_FILE == Pathname.new(fixturePath("sample_dir/a_pipe")).fileStatus().getFileType()
+            discard posix.unlink( fixturePath("sample_dir/a_pipe") )
 
 
 
@@ -1779,9 +1852,10 @@ suite "Pathname Tests 000":
 
         check true == Pathname.new("/tmp/.X11-unix/X0").fileStatus().isSocketFile()
 
-        discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
-        check true == Pathname.new(fixturePath("sample_dir/a_pipe")).fileStatus().isPipeFile()
-        discard posix.unlink( fixturePath("sample_dir/a_pipe") )
+        when defined(Posix):
+            discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
+            check true == Pathname.new(fixturePath("sample_dir/a_pipe")).fileStatus().isPipeFile()
+            discard posix.unlink( fixturePath("sample_dir/a_pipe") )
 
 
 
@@ -1817,3 +1891,36 @@ suite "Pathname Tests 000":
 
         check 0    == Pathname.new("/").fileStatus().getGroupId()
         check 1000 == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().getGroupId()
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - tap()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+    test "#tap() Usage-Sample":
+
+        let pathname = Pathname.new(fixturePath("TEST_TAP_DIR_USAGE_SAMPLE")).removeDirectoryTree()
+        check false == pathname.isExisting()
+        pathname.tap do (testDir: Pathname):
+            testDir.createDirectory()
+            #testDir.createDirectory("bin")
+            #testDir.createDirectory("src")
+            #testDir.createDirectory("tests")
+            testDir.createFile("FILE_A")
+            testDir.createRegularFile("FILE_B")
+        check true == pathname.isDirectory()
+        pathname.removeDirectoryTree()
+
+
+    test "#tap() should take a function providing self as param":
+        let pathname = Pathname.new(fixturePath("TEST_TAP_DIR"))
+        pathname.tap do (inner: Pathname):
+            check inner == pathname
+
+
+    test "#tap() should return self for Method-Chaining":
+        let pathname = Pathname.new(fixturePath("TEST_TAP_DIR"))
+        let pathname2 = pathname.tap do (inner: Pathname):
+            discard
+        check pathname2 == pathname
