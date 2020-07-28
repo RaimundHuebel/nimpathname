@@ -33,7 +33,12 @@ when defined(Posix):
 when defined(Windows):
     import pathname/private/common_path_helpers
     import strutils
-
+    import winlean
+    proc getFileAttributesExW*(
+        lpFileName:        WideCString,
+        fInfoLevelId:      cint,
+        lpFileInformation: var winlean.BY_HANDLE_FILE_INFORMATION
+    ): int32 {.stdcall, dynlib: "kernel32", importc: "GetFileAttributesExW", sideEffect.}
 
 
 type FileStatus* = ref object
@@ -43,8 +48,11 @@ type FileStatus* = ref object
     isHidden: bool
     when defined(Posix):
         posixFileStat: posix.Stat
-    #elif defined(Windows):
-    #    discard
+    elif defined(Windows):
+        isReadable:   bool
+        isWritable:   bool
+        isExecutable: bool
+        winFileAttribs: winlean.BY_HANDLE_FILE_INFORMATION
     #else:
     #    discard
 
@@ -57,6 +65,11 @@ proc init*(fileStatus: var FileStatus) =
     fileStatus.isHidden = false
     when defined(Posix):
         zeroMem(addr fileStatus.posixFileStat, sizeof(posix.Stat))
+    elif defined(Windows):
+        fileStatus.isReadable   = false
+        fileStatus.isWritable   = false
+        fileStatus.isExecutable = false
+        zeroMem(addr fileStatus.winFileAttribs, sizeof(winlean.BY_HANDLE_FILE_INFORMATION))
     else:
         debugEcho "[WARN] FileStatus.init() is not implemented for current Architecture."
 
@@ -87,99 +100,180 @@ proc fromPathStr*(class: typedesc[FileStatus], pathStr: string): FileStatus =
 
         return result
 
+    elif defined(Windows):
+        let widePathStr = newWideCString(pathStr)
+
+        if unlikely(file_status.getFileAttributesExW(widePathStr, 0, result.winFileAttribs) == 0):
+            result.fileType = FileType.NOT_EXISTING
+            return result
+
+        result.fileType = FileType.UNKNOWN
+        if   0 != (result.winFileAttribs.dwFileAttributes and winlean.FILE_ATTRIBUTE_DEVICE   ): result.fileType = FileType.UNKNOWN  # Device-Files not supported in Windows
+        elif 0 != (result.winFileAttribs.dwFileAttributes and winlean.FILE_ATTRIBUTE_DIRECTORY): result.fileType = FileType.DIRECTORY
+        elif 0 == (result.winFileAttribs.dwFileAttributes and winlean.FILE_ATTRIBUTE_DIRECTORY): result.fileType = FileType.REGULAR_FILE
+
+        # Nachkorrektur, damit verhalten, ähnlich zu Posix-Variante.
+        assert pathStr.len > 0
+        if result.fileType == FileType.REGULAR_FILE and pathStr[pathStr.len-1] == os.DirSep:
+            result.fileType = FileType.NOT_EXISTING
+
+        ## isHidden ...
+        result.isHidden = 0 != (result.winFileAttribs.dwFileAttributes and winlean.FILE_ATTRIBUTE_HIDDEN)
+
+        ## isReadable ...
+        # see https://nim-lang.org/docs/winlean.html#createFileW%2CWideCString%2CDWORD%2CDWORD%2Cpointer%2CDWORD%2CDWORD%2CHandle
+        # see https://stackoverflow.com/questions/60199313/how-to-check-whether-a-directory-is-readable-or-writable
+        result.isReadable = false
+        if (result.fileType != FileType.NOT_EXISTING):
+            let fileHandle = winlean.createFileW(
+                widePathStr,
+                winlean.GENERIC_READ,
+                0,
+                nil,
+                winlean.OPEN_EXISTING,
+                winlean.FILE_FLAG_BACKUP_SEMANTICS,
+                winlean.Handle(0)
+            )
+            if fileHandle != winlean.INVALID_HANDLE_VALUE:
+                discard winlean.closeHandle(fileHandle)
+                result.isReadable = true
+
+        ## isWritable ...
+        # see https://nim-lang.org/docs/winlean.html#createFileW%2CWideCString%2CDWORD%2CDWORD%2Cpointer%2CDWORD%2CDWORD%2CHandle
+        # see https://stackoverflow.com/questions/60199313/how-to-check-whether-a-directory-is-readable-or-writable
+        result.isWritable = false
+        if (result.fileType != FileType.NOT_EXISTING):
+            let fileHandle = winlean.createFileW(
+                widePathStr,
+                winlean.GENERIC_WRITE,
+                0,
+                nil,
+                winlean.OPEN_EXISTING,
+                winlean.FILE_FLAG_BACKUP_SEMANTICS,
+                winlean.Handle(0)
+            )
+            if fileHandle != winlean.INVALID_HANDLE_VALUE:
+                discard winlean.closeHandle(fileHandle)
+                result.isWritable = true
+
+        ## isExecutable ...
+        result.isExecutable = false
+        if result.fileType == FileType.REGULAR_FILE:
+            let extname = common_path_helpers.extractExtension(pathStr)
+            result.isExecutable = result.isExecutable  or  strutils.cmpIgnoreCase(extname, ".exe") == 0
+            result.isExecutable = result.isExecutable  or  strutils.cmpIgnoreCase(extname, ".bat") == 0
+            result.isExecutable = result.isExecutable  or  strutils.cmpIgnoreCase(extname, ".cmd") == 0
+            result.isExecutable = result.isExecutable  or  strutils.cmpIgnoreCase(extname, ".com") == 0
+            result.isExecutable = result.isExecutable  or  strutils.cmpIgnoreCase(extname, ".ps1") == 0
+            #...
+
+        return result
+
     else:
         return result
 
 
 
-proc getPathStr*(self: FileStatus): string {.noSideEffect.} =
+proc pathStr*(self: FileStatus): string {.noSideEffect.} =
     ## @returns the PathStr of the File-System-Entry if available.
     ## @returns "" otherwise
     return self.pathStr
 
 
 
-proc getFileType*(self: FileStatus): FileType  {.noSideEffect.} =
+proc fileType*(self: FileStatus): FileType  {.noSideEffect.} =
     ## @returns the FileType of the File-System-Entry if available.
     ## @returns FileType.NOT_EXISTING if either File-System-Entry does not exists or could not be accessed.
     return self.fileType
 
 
 
-proc getFileSizeInBytes*(self: FileStatus): int64 {.noSideEffect.} =
+proc fileSizeInBytes*(self: FileStatus): int64 {.noSideEffect.} =
     ## @returns the FileSize of the File-System-Entry in Bytes.
     ## @returns -1 if the FileSize could not be determined.
     if self.fileType == FileType.NOT_EXISTING:
         return -1
     when defined(Posix):
         return self.posixFileStat.st_size.int64
+    elif defined(Windows):
+        return (self.winFileAttribs.nFileSizeLow.uint64 shl 32 + self.winFileAttribs.nFileSizeHigh.uint64 shl 0).int64
     else:
-        debugEcho "[WARN] FileStatus.getFileSizeInBytes() is not implemented for current Architecture."
-        return 0
+        debugEcho "[WARN] FileStatus.fileSizeInBytes() is not implemented for current Architecture."
+        return -1
 
 
 
-proc getIoBlockSizeInBytes*(self: FileStatus): int64 {.noSideEffect.} =
+proc ioBlockSizeInBytes*(self: FileStatus): int64 {.noSideEffect.} =
     ## @returns the Size of an IO-Block of the File-System-Entry in Bytes.
     ## @returns -1 if the BlockSize could not be determined.
     if self.fileType == FileType.NOT_EXISTING:
         return -1
     when defined(Posix):
         return self.posixFileStat.st_blksize.int64
+    elif defined(Windows):
+        return -1
     else:
-        debugEcho "[WARN] FileStatus.getIoBlockSizeInBytes() is not implemented for current Architecture."
-        return 0
+        debugEcho "[WARN] FileStatus.ioBlockSizeInBytes() is not implemented for current Architecture."
+        return -1
 
 
 
-proc getIoBlockCount*(self: FileStatus): int64 {.noSideEffect.} =
+proc ioBlockCount*(self: FileStatus): int64 {.noSideEffect.} =
     ## @returns the count of assigned IO-Blocks of the File-System-Entry.
     ## @returns -1 if the IoBlockCount could not be determined.
     if self.fileType == FileType.NOT_EXISTING:
         return -1
     when defined(Posix):
         return self.posixFileStat.st_blocks.int64
+    elif defined(Windows):
+        return -1
     else:
-        debugEcho "[WARN] FileStatus.getIoBlockCount() is not implemented for current Architecture."
-        return 0
+        debugEcho "[WARN] FileStatus.ioBlockCount() is not implemented for current Architecture."
+        return -1
 
 
 
-proc getUserId*(self: FileStatus): int32 {.noSideEffect.} =
+proc userId*(self: FileStatus): int32 {.noSideEffect.} =
     ## @returns an int >= 0 containing the UserId which is assigned to the existing FileSystemEntry.
     ## @returns -1 otherwise
     if self.fileType == FileType.NOT_EXISTING:
         return -1
     when defined(Posix):
         return self.posixFileStat.st_uid.int32
+    elif defined(Windows):
+        return -1
     else:
-        debugEcho "[WARN] FileStatus.getUserId() is not implemented for current Architecture."
-        return 0
+        debugEcho "[WARN] FileStatus.userId() is not implemented for current Architecture."
+        return -1
 
 
 
-proc getGroupId*(self: FileStatus): int32 {.noSideEffect.} =
+proc groupId*(self: FileStatus): int32 {.noSideEffect.} =
     ## @returns an int >= 0 containing the GroupId which is assigned to the existing FileSystemEntry.
     ## @returns -1 otherwise
     if self.fileType == FileType.NOT_EXISTING:
         return -1
     when defined(Posix):
         return self.posixFileStat.st_gid.int32
+    elif defined(Windows):
+        return -1
     else:
-        debugEcho "[WARN] FileStatus.getGroupId() is not implemented for current Architecture."
-        return 0
+        debugEcho "[WARN] FileStatus.groupId() is not implemented for current Architecture."
+        return -1
 
 
 
-proc getCountHardlinks*(self: FileStatus): int32 {.noSideEffect.} =
+proc countHardlinks*(self: FileStatus): int32 {.noSideEffect.} =
     ## @returns the count of hardlinks of the File-System-Entry.
     ## @returns -1 if the count could not be determined.
     if self.fileType == FileType.NOT_EXISTING:
         return -1
     when defined(Posix):
         return self.posixFileStat.st_nlink.int32
+    elif defined(Windows):
+        return self.winFileAttribs.nNumberOfLinks.int32 + 1
     else:
-        debugEcho "[WARN] FileStatus.getCountHardlinks() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.countHardlinks() is not implemented for current Architecture."
         return 0
 
 
@@ -288,11 +382,7 @@ proc isZeroSizeFile*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns false otherwise
     if self.fileType != FileType.REGULAR_FILE:
         return false
-    when defined(Posix):
-        return self.posixFileStat.st_size == 0
-    else:
-        debugEcho "[WARN] FileStatus.isZeroSizeFile() is not implemented for current Architecture."
-        return false
+    return self.fileSizeInBytes() == 0
 
 
 
@@ -301,6 +391,8 @@ proc hasSetUidBit*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns false otherwise
     when defined(Posix):
         return self.fileType != FileType.NOT_EXISTING  and  (self.posixFileStat.st_mode.cint and posix.S_ISUID) != 0
+    elif defined(Windows):
+        return false
     else:
         debugEcho "[WARN] FileStatus.hasSetUidBit() is not implemented for current Architecture."
         return false
@@ -312,6 +404,8 @@ proc hasSetGidBit*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns false otherwise
     when defined(Posix):
         return self.fileType != FileType.NOT_EXISTING  and  (self.posixFileStat.st_mode.cint and posix.S_ISGID) != 0
+    elif defined(Windows):
+        return false
     else:
         debugEcho "[WARN] FileStatus.hasSetGidBit() is not implemented for current Architecture."
         return false
@@ -323,6 +417,8 @@ proc hasStickyBit*(self: FileStatus): bool {.noSideEffect.} =
     ## @returns false otherwise
     when defined(Posix):
         return self.fileType != FileType.NOT_EXISTING  and  (self.posixFileStat.st_mode.cint and posix.S_ISVTX) != 0
+    elif defined(Windows):
+        return false
     else:
         debugEcho "[WARN] FileStatus.hasStickyBit() is not implemented for current Architecture."
         return false
@@ -336,6 +432,8 @@ proc getLastAccessTime*(self: FileStatus): times.Time {.noSideEffect.} =
         return times.initTime(0, 0)
     when defined(Posix):
         return times.initTime(self.posixFileStat.st_atim.tv_sec.int64, self.posixFileStat.st_atim.tv_nsec.int)
+    elif defined(Windows):
+        return times.fromWinTime(winlean.rdFileTime(self.winFileAttribs.ftLastAccessTime))
     else:
         debugEcho "[WARN] FileStatus.getLastAccessTime() is not implemented for current Architecture."
         return times.initTime(0, 0)
@@ -349,6 +447,8 @@ proc getLastChangeTime*(self: FileStatus): times.Time {.noSideEffect.} =
         return times.initTime(0, 0)
     when defined(Posix):
         return times.initTime(self.posixFileStat.st_mtim.tv_sec.int64, self.posixFileStat.st_mtim.tv_nsec.int)
+    elif defined(Windows):
+        return times.fromWinTime(winlean.rdFileTime(self.winFileAttribs.ftLastWriteTime))
     else:
         debugEcho "[WARN] FileStatus.getLastChangeTime() is not implemented for current Architecture."
         return times.initTime(0, 0)
@@ -362,6 +462,8 @@ proc getLastStatusChangeTime*(self: FileStatus): times.Time {.noSideEffect.} =
         return times.initTime(0, 0)
     when defined(Posix):
         return times.initTime(self.posixFileStat.st_ctim.tv_sec.int64, self.posixFileStat.st_ctim.tv_nsec.int)
+    elif defined(Windows):
+        return times.fromWinTime(winlean.rdFileTime(self.winFileAttribs.ftLastWriteTime))
     else:
         debugEcho "[WARN] FileStatus.getLastStatusChangeTime() is not implemented for current Architecture."
         return times.initTime(0, 0)
@@ -377,6 +479,8 @@ proc isUserOwned*(self: FileStatus): bool {.sideEffect.} =
         return false
     when defined(Posix):
         return self.posixFileStat.st_uid == posix.geteuid()
+    elif defined(Windows):
+        return false
     else:
         debugEcho "[WARN] FileStatus.isUserOwned() is not implemented for current Architecture."
         return false
@@ -392,6 +496,8 @@ proc isGroupOwned*(self: FileStatus): bool {.sideEffect.} =
         return false
     when defined(Posix):
         return self.posixFileStat.st_gid == posix.getegid()
+    elif defined(Windows):
+        return false
     else:
         debugEcho "[WARN] FileStatus.isGroupOwned() is not implemented for current Architecture."
         return false
@@ -405,6 +511,8 @@ proc isGroupMember*(self: FileStatus): bool {.sideEffect.} =
         return false
     when defined(Posix):
         return posix_group_member(self.posixFileStat.st_gid) != 0
+    elif defined(Windows):
+        return false
     else:
         debugEcho "[WARN] FileStatus.isGroupMember() is not implemented for current Architecture."
         return false
@@ -426,6 +534,8 @@ proc isReadable*(self: FileStatus): bool {.sideEffect.} =
         # is readable for any group?
         result = result or ((self.posixFileStat.st_mode.cint and posix.S_IRGRP) != 0 and posix_group_member(self.posixFileStat.st_gid) != 0)
         return result
+    elif defined(Windows):
+        return self.isReadable
     else:
         debugEcho "[WARN] FileStatus.isReadable() is not implemented for current Architecture."
         return false
@@ -440,6 +550,8 @@ proc isReadableByUser*(self: FileStatus): bool {.sideEffect.} =
         return false
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IRUSR) != 0 and self.posixFileStat.st_uid == posix.geteuid())
+    elif defined(Windows):
+        return self.isReadable
     else:
         debugEcho "[WARN] FileStatus.isReadableByUser() is not implemented for current Architecture."
         return false
@@ -454,6 +566,8 @@ proc isReadableByGroup*(self: FileStatus): bool {.sideEffect.} =
         return false
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IRGRP) != 0 and posix_group_member(self.posixFileStat.st_gid) != 0)
+    elif defined(Windows):
+        return self.isReadable
     else:
         debugEcho "[WARN] FileStatus.isReadableByGroup() is not implemented for current Architecture."
         return false
@@ -468,6 +582,8 @@ proc isReadableByOther*(self: FileStatus): bool {.sideEffect.} =
         return false
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IROTH) != 0)
+    elif defined(Windows):
+        return self.isReadable
     else:
         debugEcho "[WARN] FileStatus.isReadableByOther() is not implemented for current Architecture."
         return false
@@ -489,6 +605,8 @@ proc isWritable*(self: FileStatus): bool {.sideEffect.} =
         # is writable for any group?
         result = result or ((self.posixFileStat.st_mode.cint and posix.S_IWGRP) != 0 and posix_group_member(self.posixFileStat.st_gid) != 0)
         return result
+    elif defined(Windows):
+        return self.isWritable
     else:
         debugEcho "[WARN] FileStatus.isWritable() is not implemented for current Architecture."
         return false
@@ -503,6 +621,8 @@ proc isWritableByUser*(self: FileStatus): bool {.sideEffect.} =
         return false
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IWUSR) != 0 and self.posixFileStat.st_uid == posix.geteuid())
+    elif defined(Windows):
+        return self.isWritable
     else:
         debugEcho "[WARN] FileStatus.isWritableByUser() is not implemented for current Architecture."
         return false
@@ -517,6 +637,8 @@ proc isWritableByGroup*(self: FileStatus): bool {.sideEffect.} =
         return false
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IWGRP) != 0 and posix_group_member(self.posixFileStat.st_gid) != 0)
+    elif defined(Windows):
+        return self.isWritable
     else:
         debugEcho "[WARN] FileStatus.isWritableByGroup() is not implemented for current Architecture."
         return false
@@ -531,6 +653,8 @@ proc isWritableByOther*(self: FileStatus): bool {.sideEffect.} =
         return false
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IWOTH) != 0)
+    elif defined(Windows):
+        return self.isWritable
     else:
         debugEcho "[WARN] FileStatus.isWritableByOther() is not implemented for current Architecture."
         return false
@@ -553,15 +677,7 @@ proc isExecutable*(self: FileStatus): bool {.sideEffect.} =
         result = result  or  ((self.posixFileStat.st_mode.cint and posix.S_IXGRP) != 0 and posix_group_member(self.posixFileStat.st_gid) != 0)
         return result
     elif defined(Windows):
-        let extname = common_path_helpers.extractExtension(self.pathStr)
-        result = false
-        result = result  or  strutils.cmpIgnoreCase(extname, ".exe") == 0
-        result = result  or  strutils.cmpIgnoreCase(extname, ".bat") == 0
-        result = result  or  strutils.cmpIgnoreCase(extname, ".cmd") == 0
-        result = result  or  strutils.cmpIgnoreCase(extname, ".com") == 0
-        result = result  or  strutils.cmpIgnoreCase(extname, ".ps1") == 0
-        #...
-        return result
+        return self.isExecutable
     else:
         debugEcho "[WARN] FileStatus.isExecutable() is not implemented for current Architecture."
         return false
@@ -576,6 +692,8 @@ proc isExecutableByUser*(self: FileStatus): bool {.sideEffect.} =
         return false
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IXUSR) != 0 and self.posixFileStat.st_uid == posix.geteuid())
+    elif defined(Windows):
+        return self.isExecutable
     else:
         debugEcho "[WARN] FileStatus.isExecutableByUser() is not implemented for current Architecture."
         return false
@@ -590,6 +708,8 @@ proc isExecutableByGroup*(self: FileStatus): bool {.sideEffect.} =
         return false
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IXGRP) != 0 and posix_group_member(self.posixFileStat.st_gid) != 0)
+    elif defined(Windows):
+        return self.isExecutable
     else:
         debugEcho "[WARN] FileStatus.isExecutableByGroup() is not implemented for current Architecture."
         return false
@@ -604,6 +724,8 @@ proc isExecutableByOther*(self: FileStatus): bool {.sideEffect.} =
         return false
     when defined(Posix):
         return ((self.posixFileStat.st_mode.cint and posix.S_IXOTH) != 0)
+    elif defined(Windows):
+        return self.isExecutable
     else:
         debugEcho "[WARN] FileStatus.isExecutableByOther() is not implemented for current Architecture."
         return false

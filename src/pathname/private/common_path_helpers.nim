@@ -59,11 +59,11 @@ proc extractBasename*(pathStr: string): string =
         return pathStr
     var endPos: int = pathStr.len
     # '/' die am Ende stehen ignorieren.
-    while endPos > 0 and pathStr[endPos-1] == '/':
+    while endPos > 0 and pathStr[endPos-1] == os.DirSep:
         endPos -= 1
     # Denn Anfang des Basenamen ermitteln.
     var startPos: int = endPos
-    while startPos > 0 and pathStr[startPos-1] != '/':
+    while startPos > 0 and pathStr[startPos-1] != os.DirSep:
         startPos -= 1
     assert( startPos >= 0 )
     assert( endPos   >= 0 )
@@ -74,8 +74,8 @@ proc extractBasename*(pathStr: string): string =
     if startPos < endPos:
         resultBasenameStr = system.substr(pathStr, startPos, endPos-1)
     elif startPos == endPos:
-        if pathStr[startPos] == '/':
-            resultBasenameStr = "/"
+        if pathStr[startPos] == os.DirSep:
+            resultBasenameStr = $os.DirSep
         else:
             resultBasenameStr = ""
     else:
@@ -90,14 +90,14 @@ proc extractExtension*(pathStr: string): string =
     ## @returns the File-Extension-Part of the given string.
     var endPos: int = pathStr.len
     # '/' die am Ende stehen ignorieren.
-    while endPos > 0 and pathStr[endPos-1] == '/':
+    while endPos > 0 and pathStr[endPos-1] == os.DirSep:
         endPos -= 1
     # Wenn nichts vorhanden, oder am Ende ein '.' ist, dann fast exit.
     if endPos == 0 or pathStr[endPos-1] == '.':
         return ""
     # Denn Anfang der Extension ermitteln.
     var startPos: int = endPos
-    while startPos > 0 and pathStr[startPos-1] != '/' and pathStr[startPos-1] != '.':
+    while startPos > 0 and pathStr[startPos-1] != os.DirSep and pathStr[startPos-1] != '.':
         startPos -= 1
     # '.' die evtl. mehrfach vor der Extension stehen konsumieren.
     while startPos > 0 and pathStr[startPos-1] == '.':
@@ -111,19 +111,22 @@ proc extractExtension*(pathStr: string): string =
     assert( endPos   <= pathStr.len )
     assert( startPos <= endPos )
     var resultExtnameStr: string
-    if startPos < endPos:
-        if startPos > 0 and pathStr[startPos-1] != '/':
-            # Alle '.' am Anfang eines Pfad-Items konsumieren (startPos zeigt auf ersten Punkt).
-            while startPos < endPos and pathStr[startPos+1] == '.':
-                startPos += 1
-            resultExtnameStr = system.substr(pathStr, startPos, endPos-1)
-        else:
-            resultExtnameStr = ""
-    elif startPos == endPos:
-        resultExtnameStr = ""
-    else:
-        echo "extractExtension - wtf - startPos >= endPos"
-        resultExtnameStr = ""
+    if startPos == endPos:
+        return ""
+    assert( startPos < endPos )
+    # Unter Posix haben Dateinamen der Form: ".xy" keine Extension unter Windows aber schon.
+    if pathStr[startPos] != '.':
+        return ""
+    when defined(Posix):
+        if startPos == 0 and pathStr[startPos] == '.':
+            return ""
+        if startPos > 0 and pathStr[startPos-1] == os.DirSep:
+            return ""
+    # Alle '.' am Anfang eines Pfad-Items konsumieren (startPos zeigt auf ersten Punkt).
+    #echo pathStr, " ", startPos, " ", endPos
+    while startPos < endPos - 1 and pathStr[startPos+1] == '.':
+        startPos += 1
+    resultExtnameStr = system.substr(pathStr, startPos, endPos-1)
     return resultExtnameStr
 
 

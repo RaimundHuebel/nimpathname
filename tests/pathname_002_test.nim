@@ -76,8 +76,10 @@ suite "utils.pathname - type Pathname - Check Entries for Posix":
 
 
     test "#extname()":
-        for checkEntry in pathnameCheckEntries:
+        for idx, checkEntry in pathnameCheckEntries:
             #echo "#extname - check: '" & checkEntry.path & "'"
+            if checkEntry.extname != Pathname.new(checkEntry.path).extname():
+                echo "#extname - check(", idx, "): '", checkEntry.path, "' -> '", checkEntry.extname, "' == '", Pathname.new(checkEntry.path).extname(), "'"
             check checkEntry.extname == Pathname.new(checkEntry.path).extname()
 
 

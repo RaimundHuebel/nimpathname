@@ -32,6 +32,7 @@ when defined(Posix):
 
 
 when defined(Windows):
+    import winlean
     import sequtils
 
 
@@ -208,7 +209,7 @@ proc isAbsolutePathWindows*(pathStr: string): bool =
     if unlikely(pathStr.len == 0):
         return false
     result = false
-    result = result  or ( pathStr.len >= 1  and  pathStr[0] in { '/', '\\' } )
+    #result = result  or ( pathStr.len >= 1  and  pathStr[0] in { '/', '\\' } )
     result = result  or ( pathStr.len == 2  and  pathStr[0] in {'a'..'z', 'A'..'Z'}  and  pathStr[1] == ':' )
     result = result  or ( pathStr.len >= 3  and  pathStr[0] in {'a'..'z', 'A'..'Z'}  and  pathStr[1] == ':'  and  pathStr[2] == '\\' )
     return result
@@ -623,35 +624,42 @@ proc isZeroSizeFile*(pathStr: string): bool =
 proc getFileSizeInBytes*(pathStr: string): int64 =
     ## @returns the FileSize of the File-System-Entry in Bytes.
     ## @returns -1 if the FileSize could not be determined.
-    return file_utils.getFileStatus(pathStr).getFileSizeInBytes()
+    return file_utils.getFileStatus(pathStr).fileSizeInBytes()
 
 
 
 proc getIoBlockSizeInBytes*(pathStr: string): int64 =
     ## @returns the Size of an IO-Block of the File-System-Entry in Bytes.
     ## @returns -1 if the BlockSize could not be determined.
-    return file_utils.getFileStatus(pathStr).getIoBlockSizeInBytes()
+    return file_utils.getFileStatus(pathStr).ioBlockSizeInBytes()
+
+
+
+proc getIoBlockCount*(pathStr: string): int64 =
+    ## @returns the count of assigned IO-Blocks of the File-System-Entry.
+    ## @returns -1 if the IoBlockCount could not be determined.
+    return file_utils.getFileStatus(pathStr).ioBlockCount()
 
 
 
 proc getUserId*(pathStr: string): int32 =
     ## @returns an int >= 0 containing the UserId which is assigned to the existing FileSystemEntry.
     ## @returns -1 otherwise
-    return file_utils.getFileStatus(pathStr).getUserId()
+    return file_utils.getFileStatus(pathStr).userId()
 
 
 
 proc getGroupId*(pathStr: string): int32 =
     ## @returns an int >= 0 containing the GroupId which is assigned to the existing FileSystemEntry.
     ## @returns -1 otherwise
-    return file_utils.getFileStatus(pathStr).getGroupId()
+    return file_utils.getFileStatus(pathStr).groupId()
 
 
 
 proc getCountHardlinks*(pathStr: string): int32 =
     ## @returns the count of hardlinks of the File-System-Entry.
     ## @returns -1 if the count could not be determined.
-    return file_utils.getFileStatus(pathStr).getCountHardlinks()
+    return file_utils.getFileStatus(pathStr).countHardlinks()
 
 
 
@@ -851,17 +859,25 @@ proc open*(pathStr: string, mode: FileMode = FileMode.fmRead; bufSize: int = -1)
 
 
 #TODO: testen
-proc touch*(pathStr: string): void {.raises: [IOError].} =
+proc touch*(pathStr: string, mode: uint32 = 0o664): void {.raises: [IOError].} =
     ## Updates modification time (mtime) and access time (atime) of file(s) in list.
     ## If no File/Directory exists, they will get created.
     ## @raises An IOError if something went wrong.
     ## The difference to #createFile is, that #touch does not throw an error if the target is not a regular file.
-    if file_utils.getFileStatus(pathStr).isNotExisting():
-        file_utils.open(pathStr, FileMode.fmAppend, 0).close();
-    assert(file_utils.getFileStatus(pathStr).isExisting())
+    let fileType = file_utils.getFileType(pathStr)
+    if not fileType.isExisting():
+        when defined(Posix):
+            let fileHandle = posix.open(pathStr, posix.O_CREAT or posix.O_WRONLY, mode)
+            if fileHandle < 0:
+                raise newException(
+                    system.IOError,
+                    "Failed to touch file '" & pathStr & "' (CAUSE: '" & $posix.strerror(posix.errno) & "')"
+                )
+            discard posix.close(fileHandle)
+        else:
+            file_utils.open(pathStr, FileMode.fmAppend, 0).close()
+    assert(file_utils.getFileType(pathStr).isExisting())
     #TODO: Zeitstempel der Dateien aktualisieren
-
-
 
 
 
@@ -871,7 +887,7 @@ proc touch*(pathStr: string): void {.raises: [IOError].} =
 
 
 
-proc createFile*(pathStr: string): void {.raises: [IOError].} =
+proc createFile*(pathStr: string, mode: uint32 = 0o664): void {.raises: [IOError].} =
     ## Creates an empty regular File.
     ## If the fs-entry already exists and it is a regular file nothing happens.
     ## If the fs-entry already exists but is not a regular file an IOError is raised.
@@ -880,7 +896,8 @@ proc createFile*(pathStr: string): void {.raises: [IOError].} =
     ## Alias:
     ## * `createFile() proc <#createFile,Pathname>`_
     ## * `createRegularFile() proc <#createRegularFile,Pathname>`_
-    file_utils.createRegularFile(pathStr)
+    file_utils.createRegularFile(pathStr, mode)
+    assert(file_utils.getFileType(pathStr).isRegularFile())
 
 
 
@@ -905,10 +922,14 @@ proc removeFile*(pathStr: string): void {.raises: [IOError].} =
                 "Failed to remove file '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
             )
     else:
-        raise newException(
-            system.IOError,
-            "removeFile is not supported by the current architecture"
-        )
+        try:
+            os.removeFile(pathStr)
+        except CatchableError as e:
+            raise newException(
+                system.IOError,
+                "Failed to remove file '" & pathStr & "' (CAUSE: '" & e.msg & "')"
+            )
+    assert(not file_utils.getFileType(pathStr).isExisting())
 
 
 
@@ -918,7 +939,7 @@ proc removeFile*(pathStr: string): void {.raises: [IOError].} =
 
 
 
-proc createRegularFile*(pathStr: string): void {.raises: [IOError].} =
+proc createRegularFile*(pathStr: string, mode: uint32 = 0o664): void {.raises: [IOError].} =
     ## Creates an empty regular File.
     ## If the fs-entry already exists and it is a regular file nothing happens.
     ## If the fs-entry already exists but is not a regular file an IOError is raised.
@@ -931,7 +952,17 @@ proc createRegularFile*(pathStr: string): void {.raises: [IOError].} =
     if fileType.isExisting():
         raise newException(system.IOError, "Cannot create regular file' " & pathStr & "' (does already exist as non regular file)")
     assert(fileType.isNotExisting())
-    file_utils.open(pathStr, FileMode.fmAppend, 0).close()
+    when defined(Posix):
+        let fileHandle = posix.open(pathStr, posix.O_CREAT or posix.O_WRONLY, mode)
+        if fileHandle < 0:
+            raise newException(
+                system.IOError,
+                "Failed to create file '" & pathStr & "' (CAUSE: '" & $posix.strerror(posix.errno) & "')"
+            )
+        discard posix.close(fileHandle)
+    else:
+        file_utils.open(pathStr, FileMode.fmAppend, 0).close()
+    assert(file_utils.getFileType(pathStr).isRegularFile())
 
 
 
@@ -954,12 +985,14 @@ proc removeRegularFile*(pathStr: string): void {.discardable,raises: [IOError].}
                 "Failed to remove regular file '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
             )
     else:
-        raise newException(
-            system.IOError,
-            "removeRegularFile is not supported by the current architecture"
-        )
-
-
+        try:
+            os.removeFile(pathStr)
+        except CatchableError as e:
+            raise newException(
+                system.IOError,
+                "Failed to remove file '" & pathStr & "' (CAUSE: '" & e.msg & "')"
+            )
+    assert(not file_utils.getFileType(pathStr).isExisting())
 
 
 
@@ -978,6 +1011,7 @@ proc createDirectory*(pathStr: string, mode: uint32 = 0o777): void {.raises: [IO
     ## * `createDirectory() proc <#createDirectory,Pathname>`_
     ## * `createEmptyDirectory() proc <#createEmptyDirectory,Pathname>`_
     file_utils.createEmptyDirectory(pathStr, mode)
+    assert(file_utils.getFileType(pathStr).isDirectory())
 
 
 
@@ -996,6 +1030,7 @@ proc removeDirectory*(pathStr: string, isRecursive: bool = false): void {.raises
         file_utils.removeDirectoryTree(pathStr)
     else:
         file_utils.removeEmptyDirectory(pathStr)
+    assert(not file_utils.getFileType(pathStr).isExisting())
 
 
 
@@ -1022,16 +1057,20 @@ proc createEmptyDirectory*(pathStr: string, mode: uint32 = 0o777): void {.raises
         raise newException(system.IOError, "Cannot create directory '" & pathStr & "' (does already exist as non directory)")
     assert(fileType.isNotExisting())
     when defined(Posix):
-        if posix.mkdir(pathStr, mode) != 0:
+        if unlikely( posix.mkdir(pathStr, mode) != 0 ):
             raise newException(
                 system.IOError,
                 "Failed to create directory '" & pathStr & "' (CAUSE: '" & $posix.strerror(posix.errno) & "')"
             )
     else:
-        raise newException(
-            system.IOError,
-            "createEmptyDirectory is not supported by the current architecture"
-        )
+        try:
+            os.createDir(pathStr)
+        except CatchableError as e:
+            raise newException(
+                system.IOError,
+                "Failed to create directory '" & pathStr & "' (CAUSE: '" & e.msg & "')"
+            )
+    assert(file_utils.getFileType(pathStr).isDirectory())
 
 
 
@@ -1052,16 +1091,33 @@ proc removeEmptyDirectory*(pathStr: string): void {.raises: [IOError].} =
         raise newException(system.IOError, "Cannot remove '" & pathStr & "' because it is not a directory")
     assert(fileType.isDirectory())
     when defined(Posix):
-        if posix.rmdir(pathStr) != 0:
+        if unlikely( posix.rmdir(pathStr) != 0 ):
             raise newException(
                 system.IOError,
                 "Failed to remove directory '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
             )
+    elif defined(Windows):
+        # see https://github.com/nim-lang/Nim/blob/version-1-2/lib/pure/os.nim#L2183
+        let widePathStr = newWideCString(pathStr)
+        let res = winlean.removeDirectoryW(widePathStr)
+        if unlikely( res == 0 ):
+            let lastError = winlean.getLastError()
+            var isError = true
+            isError = isError and lastError.int32 !=  2
+            isError = isError and lastError.int32 !=  3
+            isError = isError and lastError.int32 != 18
+            if unlikely( isError ):
+                # TODO: lastError in eine Message umwandeln
+                raise newException(
+                    system.IOError,
+                    "Failed to remove directory '" & pathStr & "', CAUSE: '" & $lastError & "'"
+                )
     else:
         raise newException(
             system.IOError,
             "removeEmptyDirectory is not supported by the current architecture"
         )
+    assert(not file_utils.getFileType(pathStr).isExisting())
 
 
 
@@ -1090,6 +1146,7 @@ proc removeDirectoryTree*(pathStr: string): void {.raises: [IOError].} =
             system.IOError,
             "Failed to remove directory tree '" & pathStr & "' (CAUSE: '" & e.msg & "')"
         )
+    assert(not file_utils.getFileType(pathStr).isExisting())
 
 
 
@@ -1124,6 +1181,7 @@ proc createPipeFile*(pathStr: string, mode: uint32 = 0o660): void {.raises: [IOE
                 system.IOError,
                 "Failed to create named pipe '" & pathStr & "' (CAUSE: '" & $posix.strerror(posix.errno) & "')"
             )
+        assert(file_utils.getFileType(pathStr).isPipeFile())
     else:
         raise newException(
             system.IOError,
@@ -1153,6 +1211,7 @@ proc removePipeFile*(pathStr: string): void {.raises: [IOError].} =
                 system.IOError,
                 "Failed to remove pipe file '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
             )
+        assert(not file_utils.getFileType(pathStr).isExisting())
     else:
         raise newException(
             system.IOError,
@@ -1179,6 +1238,7 @@ proc createFifo*(pathStr: string, mode: uint32 = 0o660): void {.inline,raises: [
     ## * `createFifo() proc <#createFifo,Pathname>`_
     # @see man 3 mkfifo
     file_utils.createPipeFile(pathStr, mode)
+    assert(file_utils.getFileType(pathStr).isPipeFile())
 
 
 
@@ -1189,9 +1249,7 @@ proc removeFifo*(pathStr: string): void {.inline,raises: [IOError].} =
     ## * `removePipeFile() proc <#removePipeFile,Pathname>`_
     ## * `removeFifo() proc <#removeFifo,Pathname>`_
     file_utils.removePipeFile(pathStr)
-
-
-
+    assert(not file_utils.getFileType(pathStr).isExisting())
 
 
 
@@ -1231,6 +1289,7 @@ proc createCharacterDeviceFile*(pathStr: string, mode: uint32 = 0o600, major: ui
                 system.IOError,
                 "Failed to create character device file '" & pathStr & "' (CAUSE: '" & $posix.strerror(posix.errno) & "')"
             )
+        assert(file_utils.getFileType(pathStr).isCharacterDeviceFile())
     else:
         raise newException(
             system.IOError,
@@ -1261,13 +1320,12 @@ proc removeCharacterDeviceFile*(pathStr: string): void {.raises: [IOError].} =
                 system.IOError,
                 "Failed to remove character device file '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
             )
+        assert(not file_utils.getFileType(pathStr).isExisting())
     else:
         raise newException(
             system.IOError,
             "removeCharacterDeviceFile is not supported by the current architecture"
         )
-
-
 
 
 
@@ -1307,11 +1365,13 @@ proc createBlockDeviceFile*(pathStr: string, mode: uint32 = 0o600, major: uint8,
                 system.IOError,
                 "Failed to create block device file '" & pathStr & "' (CAUSE: '" & $posix.strerror(posix.errno) & "')"
             )
+        assert(file_utils.getFileType(pathStr).isBlockDeviceFile())
     else:
         raise newException(
             system.IOError,
             "createBlockDeviceFile is not supported by the current architecture"
         )
+
 
 
 #TODO: Testen ...
@@ -1336,6 +1396,7 @@ proc removeBlockDeviceFile*(pathStr: string): void {.raises: [IOError].} =
                 system.IOError,
                 "Failed to remove block device file '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
             )
+        assert(not file_utils.getFileType(pathStr).isExisting())
     else:
         raise newException(
             system.IOError,
@@ -1372,6 +1433,7 @@ proc removeDeviceFile*(pathStr: string): void {.raises: [IOError].} =
                 system.IOError,
                 "Failed to remove device file '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
             )
+        assert(not file_utils.getFileType(pathStr).isExisting())
     else:
         raise newException(
             system.IOError,
@@ -1399,6 +1461,8 @@ proc createSymlink*(srcPath: string, dstPath: string): void {.raises: [IOError].
             system.IOError,
             "Failed to create symlink '" & dstPath & "' -> '" & srcPath & "' (CAUSE: '" & e.msg & "')"
         )
+    assert(file_utils.getFileType(dstPath).isSymlink())
+
 
 
 #TODO: Testen ...
@@ -1419,12 +1483,12 @@ proc removeSymlink*(pathStr: string): void {.raises: [IOError].} =
                 system.IOError,
                 "Failed to remove symlink '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
             )
+        assert(not file_utils.getFileType(pathStr).isExisting())
     else:
         raise newException(
             system.IOError,
             "removeSymlink is not supported by the current architecture"
         )
-
 
 
 
@@ -1471,7 +1535,7 @@ proc remove*(pathStr: string): void {.raises: [IOError].} =
             system.IOError,
             "Failed to remove '" & pathStr & "', CAUSE: 'Filetype not supported: " & $fileType & "'"
         )
-
+    assert(not file_utils.getFileType(pathStr).isExisting())
 
 
 

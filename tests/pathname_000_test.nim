@@ -433,35 +433,85 @@ suite "Pathname Tests 000":
 
 
     test "#isAbsolute()":
-        check true  == Pathname.new("/"  ).isAbsolute()
-        check true  == Pathname.new("/a" ).isAbsolute()
-        check true  == Pathname.new("/." ).isAbsolute()
-        check true  == Pathname.new("/..").isAbsolute()
-        check true  == Pathname.new("/a/../b/.").isAbsolute()
-        check true  == Pathname.new("/a/./b/..").isAbsolute()
+        when true: # Common
+            check false == Pathname.new(""  ).isAbsolute()
+            check false == Pathname.new("a" ).isAbsolute()
+            check false == Pathname.new("." ).isAbsolute()
+            check false == Pathname.new("..").isAbsolute()
+            check false == Pathname.new("a/../b/.").isAbsolute()
+            check false == Pathname.new("a/./b/..").isAbsolute()
 
-        check false == Pathname.new(""  ).isAbsolute()
-        check false == Pathname.new("a" ).isAbsolute()
-        check false == Pathname.new("." ).isAbsolute()
-        check false == Pathname.new("..").isAbsolute()
-        check false == Pathname.new("a/../b/.").isAbsolute()
-        check false == Pathname.new("a/./b/..").isAbsolute()
+        when defined(Posix):
+            check true  == Pathname.new("/"  ).isAbsolute()
+            check true  == Pathname.new("/a" ).isAbsolute()
+            check true  == Pathname.new("/." ).isAbsolute()
+            check true  == Pathname.new("/..").isAbsolute()
+            check true  == Pathname.new("/a/../b/.").isAbsolute()
+            check true  == Pathname.new("/a/./b/..").isAbsolute()
+
+            check false == Pathname.new("C:\\"  ).isAbsolute()
+            check false == Pathname.new("C:\\a" ).isAbsolute()
+            check false == Pathname.new("C:\\." ).isAbsolute()
+            check false == Pathname.new("C:\\..").isAbsolute()
+            check false == Pathname.new("C:\\a\\..\\b\\.").isAbsolute()
+            check false == Pathname.new("C:\\a\\.\\b\\..").isAbsolute()
+
+        when defined(Windows):
+            check true  == Pathname.new("C:\\"  ).isAbsolute()
+            check true  == Pathname.new("D:\\a" ).isAbsolute()
+            check true  == Pathname.new("E:\\." ).isAbsolute()
+            check true  == Pathname.new("F:\\..").isAbsolute()
+            check true  == Pathname.new("G:\\a\\..\\b\\.").isAbsolute()
+            check true  == Pathname.new("H:\\a\\.\\b\\..").isAbsolute()
+
+            check false == Pathname.new("/"  ).isAbsolute()
+            check false == Pathname.new("/a" ).isAbsolute()
+            check false == Pathname.new("/." ).isAbsolute()
+            check false == Pathname.new("/..").isAbsolute()
+            check false == Pathname.new("/a/../b/.").isAbsolute()
+            check false == Pathname.new("/a/./b/..").isAbsolute()
+
 
 
     test "#isRelative()":
-        check false == Pathname.new("/"  ).isRelative()
-        check false == Pathname.new("/a" ).isRelative()
-        check false == Pathname.new("/." ).isRelative()
-        check false == Pathname.new("/..").isRelative()
-        check false == Pathname.new("/a/../b/.").isRelative()
-        check false == Pathname.new("/a/./b/..").isRelative()
+        when true: # Common
+            check true  == Pathname.new(""  ).isRelative()
+            check true  == Pathname.new("a" ).isRelative()
+            check true  == Pathname.new("." ).isRelative()
+            check true  == Pathname.new("..").isRelative()
+            check true  == Pathname.new("a/../b/.").isRelative()
+            check true  == Pathname.new("a/./b/..").isRelative()
 
-        check true  == Pathname.new(""  ).isRelative()
-        check true  == Pathname.new("a" ).isRelative()
-        check true  == Pathname.new("." ).isRelative()
-        check true  == Pathname.new("..").isRelative()
-        check true  == Pathname.new("a/../b/.").isRelative()
-        check true  == Pathname.new("a/./b/..").isRelative()
+        when defined(Posix):
+            check false  == Pathname.new("/"  ).isRelative()
+            check false  == Pathname.new("/a" ).isRelative()
+            check false  == Pathname.new("/." ).isRelative()
+            check false  == Pathname.new("/..").isRelative()
+            check false  == Pathname.new("/a/../b/.").isRelative()
+            check false  == Pathname.new("/a/./b/..").isRelative()
+
+            check true  == Pathname.new("C:\\"  ).isRelative()
+            check true  == Pathname.new("C:\\a" ).isRelative()
+            check true  == Pathname.new("C:\\." ).isRelative()
+            check true  == Pathname.new("C:\\..").isRelative()
+            check true  == Pathname.new("C:\\a\\..\\b\\.").isRelative()
+            check true  == Pathname.new("C:\\a\\.\\b\\..").isRelative()
+
+        when defined(Windows):
+            check false  == Pathname.new("C:\\"  ).isRelative()
+            check false  == Pathname.new("D:\\a" ).isRelative()
+            check false  == Pathname.new("E:\\." ).isRelative()
+            check false  == Pathname.new("F:\\..").isRelative()
+            check false  == Pathname.new("G:\\a\\..\\b\\.").isRelative()
+            check false  == Pathname.new("H:\\a\\.\\b\\..").isRelative()
+
+            check true  == Pathname.new("/"  ).isRelative()
+            check true  == Pathname.new("/a" ).isRelative()
+            check true  == Pathname.new("/." ).isRelative()
+            check true  == Pathname.new("/..").isRelative()
+            check true  == Pathname.new("/a/../b/.").isRelative()
+            check true  == Pathname.new("/a/./b/..").isRelative()
+
 
 
     test "#parent()":
@@ -630,517 +680,1045 @@ suite "Pathname Tests 000":
             check ".." == Pathname.new("..\\ "  ).dirname().toPathStr()
             check ".." == Pathname.new("..\\ \\").dirname().toPathStr()
 
-
-    test "#basename()":
-        check "/" == Pathname.new("/"  ).basename().toPathStr()
-
-        check ""  == Pathname.new(""   ).basename().toPathStr()
-
-        check "a" == Pathname.new("/a" ).basename().toPathStr()
-        check "a" == Pathname.new("/a/").basename().toPathStr()
-        check " " == Pathname.new("/ " ).basename().toPathStr()
-        check " " == Pathname.new("/ /").basename().toPathStr()
-
-        check "a" == Pathname.new("a" ).basename().toPathStr()
-        check "a" == Pathname.new("a/").basename().toPathStr()
-        check " " == Pathname.new(" " ).basename().toPathStr()
-        check " " == Pathname.new(" /").basename().toPathStr()
-
-        check "." == Pathname.new("/."   ).basename().toPathStr()
-        check "." == Pathname.new("/./"  ).basename().toPathStr()
-        check "a" == Pathname.new("/./a" ).basename().toPathStr()
-        check "a" == Pathname.new("/./a/").basename().toPathStr()
-        check " " == Pathname.new("/./ " ).basename().toPathStr()
-        check " " == Pathname.new("/./ /").basename().toPathStr()
-
-        check "." == Pathname.new("."   ).basename().toPathStr()
-        check "." == Pathname.new("./"  ).basename().toPathStr()
-        check "a" == Pathname.new("./a" ).basename().toPathStr()
-        check "a" == Pathname.new("./a/").basename().toPathStr()
-        check " " == Pathname.new("./ " ).basename().toPathStr()
-        check " " == Pathname.new("./ /").basename().toPathStr()
-
-        check ".." == Pathname.new("/.."   ).basename().toPathStr()
-        check ".." == Pathname.new("/../"  ).basename().toPathStr()
-        check "a"  == Pathname.new("/../a" ).basename().toPathStr()
-        check "a"  == Pathname.new("/../a/").basename().toPathStr()
-        check " "  == Pathname.new("/../ " ).basename().toPathStr()
-        check " "  == Pathname.new("/../ /").basename().toPathStr()
-
-        check ".." == Pathname.new(".."   ).basename().toPathStr()
-        check ".." == Pathname.new("../"  ).basename().toPathStr()
-        check "a"  == Pathname.new("../a" ).basename().toPathStr()
-        check "a"  == Pathname.new("../a/").basename().toPathStr()
-        check " "  == Pathname.new("../ " ).basename().toPathStr()
-        check " "  == Pathname.new("../ /").basename().toPathStr()
-
-
-
     test "#dirname() with absolute paths":
-        check "/"    == Pathname.new("/"      ).dirname().toPathStr()
-        check "/"    == Pathname.new("/a"     ).dirname().toPathStr()
-        check "/"    == Pathname.new("/a/"    ).dirname().toPathStr()
-        check "/a"   == Pathname.new("/a/b"   ).dirname().toPathStr()
-        check "/a"   == Pathname.new("/a/b/"  ).dirname().toPathStr()
-        check "/a/b" == Pathname.new("/a/b/c" ).dirname().toPathStr()
-        check "/a/b" == Pathname.new("/a/b/c/").dirname().toPathStr()
+        when defined(Posix):
+            check "/"    == Pathname.new("/"      ).dirname().toPathStr()
+            check "/"    == Pathname.new("//"     ).dirname().toPathStr()
+            check "/"    == Pathname.new("/a"     ).dirname().toPathStr()
+            check "/"    == Pathname.new("/a/"    ).dirname().toPathStr()
+            check "/a"   == Pathname.new("/a/b"   ).dirname().toPathStr()
+            check "/a"   == Pathname.new("/a/b/"  ).dirname().toPathStr()
+            check "/a/b" == Pathname.new("/a/b/c" ).dirname().toPathStr()
+            check "/a/b" == Pathname.new("/a/b/c/").dirname().toPathStr()
 
-        check "/"      == Pathname.new("/"      ).dirname().toPathStr()
-        check "/"      == Pathname.new("/ "     ).dirname().toPathStr()
-        check "/"      == Pathname.new("/ /"    ).dirname().toPathStr()
-        check "/ "     == Pathname.new("/ /a"   ).dirname().toPathStr()
-        check "/ "     == Pathname.new("/ /a/"  ).dirname().toPathStr()
-        check "/ /a"   == Pathname.new("/ /a/b" ).dirname().toPathStr()
-        check "/ /a"   == Pathname.new("/ /a/b/").dirname().toPathStr()
+            check "/"      == Pathname.new("/"      ).dirname().toPathStr()
+            check "/"      == Pathname.new("/ "     ).dirname().toPathStr()
+            check "/"      == Pathname.new("/ /"    ).dirname().toPathStr()
+            check "/ "     == Pathname.new("/ /a"   ).dirname().toPathStr()
+            check "/ "     == Pathname.new("/ /a/"  ).dirname().toPathStr()
+            check "/ /a"   == Pathname.new("/ /a/b" ).dirname().toPathStr()
+            check "/ /a"   == Pathname.new("/ /a/b/").dirname().toPathStr()
 
-        check "/"      == Pathname.new("/."     ).dirname().toPathStr()
-        check "/"      == Pathname.new("/./"    ).dirname().toPathStr()
-        check "/."     == Pathname.new("/./a"   ).dirname().toPathStr()
-        check "/."     == Pathname.new("/./a/"  ).dirname().toPathStr()
-        check "/./a"   == Pathname.new("/./a/b" ).dirname().toPathStr()
-        check "/./a"   == Pathname.new("/./a/b/").dirname().toPathStr()
+            check "/"      == Pathname.new("/."     ).dirname().toPathStr()
+            check "/"      == Pathname.new("/./"    ).dirname().toPathStr()
+            check "/."     == Pathname.new("/./a"   ).dirname().toPathStr()
+            check "/."     == Pathname.new("/./a/"  ).dirname().toPathStr()
+            check "/./a"   == Pathname.new("/./a/b" ).dirname().toPathStr()
+            check "/./a"   == Pathname.new("/./a/b/").dirname().toPathStr()
 
-        check "/"      == Pathname.new("/.."     ).dirname().toPathStr()
-        check "/"      == Pathname.new("/../"    ).dirname().toPathStr()
-        check "/.."    == Pathname.new("/../a"   ).dirname().toPathStr()
-        check "/.."    == Pathname.new("/../a/"  ).dirname().toPathStr()
-        check "/../a"  == Pathname.new("/../a/b" ).dirname().toPathStr()
-        check "/../a"  == Pathname.new("/../a/b/").dirname().toPathStr()
+            check "/"      == Pathname.new("/.."     ).dirname().toPathStr()
+            check "/"      == Pathname.new("/../"    ).dirname().toPathStr()
+            check "/.."    == Pathname.new("/../a"   ).dirname().toPathStr()
+            check "/.."    == Pathname.new("/../a/"  ).dirname().toPathStr()
+            check "/../a"  == Pathname.new("/../a/b" ).dirname().toPathStr()
+            check "/../a"  == Pathname.new("/../a/b/").dirname().toPathStr()
+
+        when defined(Windows):
+            check "C:"       == Pathname.new("C:\\"         ).dirname().toPathStr()
+            check "C:"       == Pathname.new("C:\\a"        ).dirname().toPathStr()
+            check "C:"       == Pathname.new("C:\\a\\"      ).dirname().toPathStr()
+            check "C:\\a"    == Pathname.new("C:\\a\\b"     ).dirname().toPathStr()
+            check "C:\\a"    == Pathname.new("C:\\a\\b\\"   ).dirname().toPathStr()
+            check "C:\\a\\b" == Pathname.new("C:\\a\\b\\c"  ).dirname().toPathStr()
+            check "C:\\a\\b" == Pathname.new("C:\\a\\b\\c\\").dirname().toPathStr()
+
+            check "C:"        == Pathname.new("C:\\"         ).dirname().toPathStr()
+            check "C:"        == Pathname.new("C:\\ "        ).dirname().toPathStr()
+            check "C:"        == Pathname.new("C:\\ \\"      ).dirname().toPathStr()
+            check "C:\\ "     == Pathname.new("C:\\ \\a"     ).dirname().toPathStr()
+            check "C:\\ "     == Pathname.new("C:\\ \\a\\"   ).dirname().toPathStr()
+            check "C:\\ \\a"  == Pathname.new("C:\\ \\a\\b"  ).dirname().toPathStr()
+            check "C:\\ \\a"  == Pathname.new("C:\\ \\a\\b\\").dirname().toPathStr()
+
+            check "C:"        == Pathname.new("C:\\."        ).dirname().toPathStr()
+            check "C:"        == Pathname.new("C:\\.\\"      ).dirname().toPathStr()
+            check "C:\\."     == Pathname.new("C:\\.\\a"     ).dirname().toPathStr()
+            check "C:\\."     == Pathname.new("C:\\.\\a\\"   ).dirname().toPathStr()
+            check "C:\\.\\a"  == Pathname.new("C:\\.\\a\\b"  ).dirname().toPathStr()
+            check "C:\\.\\a"  == Pathname.new("C:\\.\\a\\b\\").dirname().toPathStr()
+
+            check "C:"        == Pathname.new("C:\\.."        ).dirname().toPathStr()
+            check "C:"        == Pathname.new("C:\\..\\"      ).dirname().toPathStr()
+            check "C:\\.."    == Pathname.new("C:\\..\\a"     ).dirname().toPathStr()
+            check "C:\\.."    == Pathname.new("C:\\..\\a\\"   ).dirname().toPathStr()
+            check "C:\\..\\a" == Pathname.new("C:\\..\\a\\b"  ).dirname().toPathStr()
+            check "C:\\..\\a" == Pathname.new("C:\\..\\a\\b\\").dirname().toPathStr()
 
 
     test "#dirname() with absolute paths (edgecase_00)":
-        check "//a"  == Pathname.new("//a//b").dirname().toPathStr()
-        check "//a"  == Pathname.new("//a//b//").dirname().toPathStr()
+        when defined(Posix):
+            check "//a"  == Pathname.new("//a//b").dirname().toPathStr()
+            check "//a"  == Pathname.new("//a//b//").dirname().toPathStr()
 
-        check "//a"  == Pathname.new("//a// ").dirname().toPathStr()
-        check "//a"  == Pathname.new("//a// //").dirname().toPathStr()
+            check "//a"  == Pathname.new("//a// ").dirname().toPathStr()
+            check "//a"  == Pathname.new("//a// //").dirname().toPathStr()
 
-        check "//a"  == Pathname.new("//a//.").dirname().toPathStr()
-        check "//a"  == Pathname.new("//a//.//").dirname().toPathStr()
+            check "//a"  == Pathname.new("//a//.").dirname().toPathStr()
+            check "//a"  == Pathname.new("//a//.//").dirname().toPathStr()
 
-        check "//a"  == Pathname.new("//a//..").dirname().toPathStr()
-        check "//a"  == Pathname.new("//a//..//").dirname().toPathStr()
+            check "//a"  == Pathname.new("//a//..").dirname().toPathStr()
+            check "//a"  == Pathname.new("//a//..//").dirname().toPathStr()
+
+        when defined(Windows):
+            check "C:\\\\a"  == Pathname.new("C:\\\\a\\\\b"    ).dirname().toPathStr()
+            check "C:\\\\a"  == Pathname.new("C:\\\\a\\\\b\\\\").dirname().toPathStr()
+
+            check "C:\\\\a"  == Pathname.new("C:\\\\a\\\\ "    ).dirname().toPathStr()
+            check "C:\\\\a"  == Pathname.new("C:\\\\a\\\\ \\\\").dirname().toPathStr()
+
+            check "C:\\\\a"  == Pathname.new("C:\\\\a\\\\."    ).dirname().toPathStr()
+            check "C:\\\\a"  == Pathname.new("C:\\\\a\\\\.\\\\").dirname().toPathStr()
+
+            check "C:\\\\a"  == Pathname.new("C:\\\\a\\\\.."    ).dirname().toPathStr()
+            check "C:\\\\a"  == Pathname.new("C:\\\\a\\\\..\\\\").dirname().toPathStr()
 
 
     test "#dirname() with absolute paths (edgecase_01)":
-        check "// "  == Pathname.new("// //a").dirname().toPathStr()
-        check "// "  == Pathname.new("// //a//").dirname().toPathStr()
+        when defined(Posix):
+            check "// "  == Pathname.new("// //a").dirname().toPathStr()
+            check "// "  == Pathname.new("// //a//").dirname().toPathStr()
 
-        check "// "  == Pathname.new("// // ").dirname().toPathStr()
-        check "// "  == Pathname.new("// // //").dirname().toPathStr()
+            check "// "  == Pathname.new("// // ").dirname().toPathStr()
+            check "// "  == Pathname.new("// // //").dirname().toPathStr()
 
-        check "// "  == Pathname.new("// //.").dirname().toPathStr()
-        check "// "  == Pathname.new("// //.//").dirname().toPathStr()
+            check "// "  == Pathname.new("// //.").dirname().toPathStr()
+            check "// "  == Pathname.new("// //.//").dirname().toPathStr()
 
-        check "// "  == Pathname.new("// //..").dirname().toPathStr()
-        check "// "  == Pathname.new("// //..//").dirname().toPathStr()
+            check "// "  == Pathname.new("// //..").dirname().toPathStr()
+            check "// "  == Pathname.new("// //..//").dirname().toPathStr()
+
+        when defined(Windows):
+            check "C:\\\\ "  == Pathname.new("C:\\\\ \\\\a").dirname().toPathStr()
+            check "C:\\\\ "  == Pathname.new("C:\\\\ \\\\a\\\\").dirname().toPathStr()
+
+            check "C:\\\\ "  == Pathname.new("C:\\\\ \\\\ ").dirname().toPathStr()
+            check "C:\\\\ "  == Pathname.new("C:\\\\ \\\\ \\\\").dirname().toPathStr()
+
+            check "C:\\\\ "  == Pathname.new("C:\\\\ \\\\.").dirname().toPathStr()
+            check "C:\\\\ "  == Pathname.new("C:\\\\ \\\\.\\\\").dirname().toPathStr()
+
+            check "C:\\\\ "  == Pathname.new("C:\\\\ \\\\..").dirname().toPathStr()
+            check "C:\\\\ "  == Pathname.new("C:\\\\ \\\\..\\\\").dirname().toPathStr()
 
 
     test "#dirname() with absolute paths (edgecase_02)":
-        check "/"  == Pathname.new("/ /"  ).dirname().toPathStr()
-        check "/"  == Pathname.new("/ //" ).dirname().toPathStr()
-        check "/"  == Pathname.new("/ ///").dirname().toPathStr()
+        when defined(Posix):
+            check "/"  == Pathname.new("/ /"  ).dirname().toPathStr()
+            check "/"  == Pathname.new("/ //" ).dirname().toPathStr()
+            check "/"  == Pathname.new("/ ///").dirname().toPathStr()
 
-        check "//"  == Pathname.new("// /"  ).dirname().toPathStr()
-        check "//"  == Pathname.new("// //" ).dirname().toPathStr()
-        check "//"  == Pathname.new("// ///").dirname().toPathStr()
+            check "//"  == Pathname.new("// /"  ).dirname().toPathStr()
+            check "//"  == Pathname.new("// //" ).dirname().toPathStr()
+            check "//"  == Pathname.new("// ///").dirname().toPathStr()
 
-        check "///"  == Pathname.new("/// /"  ).dirname().toPathStr()
-        check "///"  == Pathname.new("/// //" ).dirname().toPathStr()
-        check "///"  == Pathname.new("/// ///").dirname().toPathStr()
+            check "///"  == Pathname.new("/// /"  ).dirname().toPathStr()
+            check "///"  == Pathname.new("/// //" ).dirname().toPathStr()
+            check "///"  == Pathname.new("/// ///").dirname().toPathStr()
+
+        when defined(Windows):
+            check "C:" == Pathname.new("C:\\ \\"  ).dirname().toPathStr()
+            check "C:" == Pathname.new("C:\\ \\\\" ).dirname().toPathStr()
+            check "C:" == Pathname.new("C:\\ \\\\\\").dirname().toPathStr()
+
+            check "C:" == Pathname.new("C:\\\\ \\"  ).dirname().toPathStr()
+            check "C:" == Pathname.new("C:\\\\ \\\\" ).dirname().toPathStr()
+            check "C:" == Pathname.new("C:\\\\ \\\\\\").dirname().toPathStr()
+
+            check "C:" == Pathname.new("C:\\\\\\ \\"  ).dirname().toPathStr()
+            check "C:" == Pathname.new("C:\\\\\\ \\\\" ).dirname().toPathStr()
+            check "C:" == Pathname.new("C:\\\\\\ \\\\\\").dirname().toPathStr()
+
+
+    test "#dirname() with absolute paths (edgecase_03)":
+        when defined(Posix):
+            check "/ "  == Pathname.new("/ / "  ).dirname().toPathStr()
+            check "/ "  == Pathname.new("/ // " ).dirname().toPathStr()
+            check "/ "  == Pathname.new("/ /// ").dirname().toPathStr()
+
+            check "// "  == Pathname.new("// / "  ).dirname().toPathStr()
+            check "// "  == Pathname.new("// // " ).dirname().toPathStr()
+            check "// "  == Pathname.new("// /// ").dirname().toPathStr()
+
+            check "/// "  == Pathname.new("/// / "  ).dirname().toPathStr()
+            check "/// "  == Pathname.new("/// // " ).dirname().toPathStr()
+            check "/// "  == Pathname.new("/// /// ").dirname().toPathStr()
+
+        when defined(Windows):
+            check "C:\\ " == Pathname.new("C:\\ \\ "  ).dirname().toPathStr()
+            check "C:\\ " == Pathname.new("C:\\ \\\\ " ).dirname().toPathStr()
+            check "C:\\ " == Pathname.new("C:\\ \\\\\\ ").dirname().toPathStr()
+
+            check "C:\\\\ " == Pathname.new("C:\\\\ \\ "  ).dirname().toPathStr()
+            check "C:\\\\ " == Pathname.new("C:\\\\ \\\\ " ).dirname().toPathStr()
+            check "C:\\\\ " == Pathname.new("C:\\\\ \\\\\\ ").dirname().toPathStr()
+
+            check "C:\\\\\\ " == Pathname.new("C:\\\\\\ \\ "  ).dirname().toPathStr()
+            check "C:\\\\\\ " == Pathname.new("C:\\\\\\ \\\\ " ).dirname().toPathStr()
+            check "C:\\\\\\ " == Pathname.new("C:\\\\\\ \\\\\\ ").dirname().toPathStr()
 
 
     test "#dirname() with relative paths":
-        check "."   == Pathname.new("a"     ).dirname().toPathStr()
-        check "."   == Pathname.new("a/"    ).dirname().toPathStr()
-        check "a"   == Pathname.new("a/b"   ).dirname().toPathStr()
-        check "a"   == Pathname.new("a/b/"  ).dirname().toPathStr()
-        check "a/b" == Pathname.new("a/b/c" ).dirname().toPathStr()
-        check "a/b" == Pathname.new("a/b/c/").dirname().toPathStr()
+        check "."       == Pathname.new("a"     ).dirname().toPathStr()
+        check "."       == Pathname.new("a" / ""    ).dirname().toPathStr()
+        check "a"       == Pathname.new("a" / "b"   ).dirname().toPathStr()
+        check "a"       == Pathname.new("a" / "b" / ""  ).dirname().toPathStr()
+        check "a" / "b" == Pathname.new("a" / "b" / "c" ).dirname().toPathStr()
+        check "a" / "b" == Pathname.new("a" / "b" / "c" / "").dirname().toPathStr()
 
-        check "."     == Pathname.new(""      ).dirname().toPathStr()
-        check "."     == Pathname.new(" "     ).dirname().toPathStr()
-        check "."     == Pathname.new(" /"    ).dirname().toPathStr()
-        check " "     == Pathname.new(" /a"   ).dirname().toPathStr()
-        check " "     == Pathname.new(" /a/"  ).dirname().toPathStr()
-        check " /a"   == Pathname.new(" /a/b" ).dirname().toPathStr()
-        check " /a"   == Pathname.new(" /a/b/").dirname().toPathStr()
+        check "."       == Pathname.new(""      ).dirname().toPathStr()
+        check "."       == Pathname.new(" "     ).dirname().toPathStr()
+        check "."       == Pathname.new(" " / ""    ).dirname().toPathStr()
+        check " "       == Pathname.new(" " / "a"   ).dirname().toPathStr()
+        check " "       == Pathname.new(" " / "a" / ""  ).dirname().toPathStr()
+        check " " / "a" == Pathname.new(" " / "a" / "b" ).dirname().toPathStr()
+        check " " / "a" == Pathname.new(" " / "a" / "b" / "").dirname().toPathStr()
 
-        check "."     == Pathname.new("."     ).dirname().toPathStr()
-        check "."     == Pathname.new("./"    ).dirname().toPathStr()
-        check "."     == Pathname.new("./a"   ).dirname().toPathStr()
-        check "."     == Pathname.new("./a/"  ).dirname().toPathStr()
-        check "./a"   == Pathname.new("./a/b" ).dirname().toPathStr()
-        check "./a"   == Pathname.new("./a/b/").dirname().toPathStr()
+        check "." == Pathname.new("."     ).dirname().toPathStr()
+        check "." == Pathname.new("." / ""    ).dirname().toPathStr()
+        check "." == Pathname.new("." / "a"   ).dirname().toPathStr()
+        check "." == Pathname.new("." / "a" / ""  ).dirname().toPathStr()
+        check "a" == Pathname.new("." / "a" / "b" ).dirname().toPathStr()
+        check "a" == Pathname.new("." / "a" / "b" / "").dirname().toPathStr()
 
-        check "."     == Pathname.new(".."     ).dirname().toPathStr()
-        check "."     == Pathname.new("../"    ).dirname().toPathStr()
-        check ".."    == Pathname.new("../a"   ).dirname().toPathStr()
-        check ".."    == Pathname.new("../a/"  ).dirname().toPathStr()
-        check "../a"  == Pathname.new("../a/b" ).dirname().toPathStr()
-        check "../a"  == Pathname.new("../a/b/").dirname().toPathStr()
+        check "."        == Pathname.new(".."     ).dirname().toPathStr()
+        check "."        == Pathname.new(".." / ""    ).dirname().toPathStr()
+        check ".."       == Pathname.new(".." / "a"   ).dirname().toPathStr()
+        check ".."       == Pathname.new(".." / "a" / ""  ).dirname().toPathStr()
+        check ".." / "a" == Pathname.new(".." / "a" / "b" ).dirname().toPathStr()
+        check ".." / "a" == Pathname.new(".." / "a" / "b" / "").dirname().toPathStr()
 
 
-    test "#extname() file-form":
-        check ""  == Pathname.new("."   ).extname()
-        check ""  == Pathname.new("/."  ).extname()
-        check ""  == Pathname.new("//." ).extname()
-        check ""  == Pathname.new("///.").extname()
+    test "#basename()":
+        when true: # Common
+            check ""   == Pathname.new(""  ).basename().toPathStr()
+            check " "  == Pathname.new(" " ).basename().toPathStr()
+            check "."  == Pathname.new("." ).basename().toPathStr()
+            check ".." == Pathname.new("..").basename().toPathStr()
+            check "a"  == Pathname.new("a" ).basename().toPathStr()
+            check "b"  == Pathname.new("b" ).basename().toPathStr()
+            check "a"  == Pathname.new("a" / ""      ).basename().toPathStr()
+            check "b"  == Pathname.new("a" / "b"     ).basename().toPathStr()
+            check "b"  == Pathname.new("a" / "b" / "").basename().toPathStr()
 
-        check ""  == Pathname.new(".x"   ).extname()
-        check ""  == Pathname.new("/.x"  ).extname()
-        check ""  == Pathname.new("//.x" ).extname()
-        check ""  == Pathname.new("///.x").extname()
+        when defined(Posix):
+            check "/" == Pathname.new("/").basename().toPathStr()
 
-        check ".x"  == Pathname.new("a.x"   ).extname()
-        check ".x"  == Pathname.new("/a.x"  ).extname()
-        check ".x"  == Pathname.new("//a.x" ).extname()
-        check ".x"  == Pathname.new("///a.x").extname()
+            check "a" == Pathname.new("/a" ).basename().toPathStr()
+            check "a" == Pathname.new("/a/").basename().toPathStr()
+            check " " == Pathname.new("/ " ).basename().toPathStr()
+            check " " == Pathname.new("/ /").basename().toPathStr()
 
-        check ".xy" == Pathname.new("a.xy"   ).extname()
-        check ".xy" == Pathname.new("/a.xy"  ).extname()
-        check ".xy" == Pathname.new("//a.xy" ).extname()
-        check ".xy"  == Pathname.new("///a.xy").extname()
+            check "a" == Pathname.new("a" ).basename().toPathStr()
+            check "a" == Pathname.new("a/").basename().toPathStr()
+            check " " == Pathname.new(" " ).basename().toPathStr()
+            check " " == Pathname.new(" /").basename().toPathStr()
 
-        check "" == Pathname.new("a/.x"   ).extname()
-        check "" == Pathname.new("/a/.x"  ).extname()
-        check "" == Pathname.new("//a//.x" ).extname()
-        check ""  == Pathname.new("///a///.x").extname()
+            check "." == Pathname.new("/."   ).basename().toPathStr()
+            check "." == Pathname.new("/./"  ).basename().toPathStr()
+            check "a" == Pathname.new("/./a" ).basename().toPathStr()
+            check "a" == Pathname.new("/./a/").basename().toPathStr()
+            check " " == Pathname.new("/./ " ).basename().toPathStr()
+            check " " == Pathname.new("/./ /").basename().toPathStr()
 
-        check ".x" == Pathname.new("a/b.x"   ).extname()
-        check ".x" == Pathname.new("/a/b.x"  ).extname()
-        check ".x" == Pathname.new("//a//b.x" ).extname()
-        check ".x"  == Pathname.new("///a///b.x").extname()
+            check "." == Pathname.new("."   ).basename().toPathStr()
+            check "." == Pathname.new("./"  ).basename().toPathStr()
+            check "a" == Pathname.new("./a" ).basename().toPathStr()
+            check "a" == Pathname.new("./a/").basename().toPathStr()
+            check " " == Pathname.new("./ " ).basename().toPathStr()
+            check " " == Pathname.new("./ /").basename().toPathStr()
 
-        check ".xy" == Pathname.new("a/b.xy"   ).extname()
-        check ".xy" == Pathname.new("/a/b.xy"  ).extname()
-        check ".xy" == Pathname.new("//a//b.xy" ).extname()
-        check ".xy"  == Pathname.new("///a///b.xy").extname()
+            check ".." == Pathname.new("/.."   ).basename().toPathStr()
+            check ".." == Pathname.new("/../"  ).basename().toPathStr()
+            check "a"  == Pathname.new("/../a" ).basename().toPathStr()
+            check "a"  == Pathname.new("/../a/").basename().toPathStr()
+            check " "  == Pathname.new("/../ " ).basename().toPathStr()
+            check " "  == Pathname.new("/../ /").basename().toPathStr()
+
+            check ".." == Pathname.new(".."   ).basename().toPathStr()
+            check ".." == Pathname.new("../"  ).basename().toPathStr()
+            check "a"  == Pathname.new("../a" ).basename().toPathStr()
+            check "a"  == Pathname.new("../a/").basename().toPathStr()
+            check " "  == Pathname.new("../ " ).basename().toPathStr()
+            check " "  == Pathname.new("../ /").basename().toPathStr()
+
+        when defined(Windows):
+            check "C:" == Pathname.new("C:\\").basename().toPathStr()
+
+            check "a" == Pathname.new("C:\\a"  ).basename().toPathStr()
+            check "a" == Pathname.new("C:\\a\\").basename().toPathStr()
+            check " " == Pathname.new("C:\\ "  ).basename().toPathStr()
+            check " " == Pathname.new("C:\\ \\").basename().toPathStr()
+
+            check "a" == Pathname.new("a"  ).basename().toPathStr()
+            check "a" == Pathname.new("a\\").basename().toPathStr()
+            check " " == Pathname.new(" "  ).basename().toPathStr()
+            check " " == Pathname.new(" \\").basename().toPathStr()
+
+            check "." == Pathname.new("C:\\."     ).basename().toPathStr()
+            check "." == Pathname.new("C:\\.\\"   ).basename().toPathStr()
+            check "a" == Pathname.new("C:\\.\\a"  ).basename().toPathStr()
+            check "a" == Pathname.new("C:\\.\\a\\").basename().toPathStr()
+            check " " == Pathname.new("C:\\.\\ "  ).basename().toPathStr()
+            check " " == Pathname.new("C:\\.\\ \\").basename().toPathStr()
+
+            check "." == Pathname.new("."     ).basename().toPathStr()
+            check "." == Pathname.new(".\\"   ).basename().toPathStr()
+            check "a" == Pathname.new(".\\a"  ).basename().toPathStr()
+            check "a" == Pathname.new(".\\a\\").basename().toPathStr()
+            check " " == Pathname.new(".\\ "  ).basename().toPathStr()
+            check " " == Pathname.new(".\\ \\").basename().toPathStr()
+
+            check ".." == Pathname.new("C:\\.."    ).basename().toPathStr()
+            check ".." == Pathname.new("C:\\..\\"   ).basename().toPathStr()
+            check "a"  == Pathname.new("C:\\..\\a"  ).basename().toPathStr()
+            check "a"  == Pathname.new("C:\\..\\a\\").basename().toPathStr()
+            check " "  == Pathname.new("C:\\..\\ "  ).basename().toPathStr()
+            check " "  == Pathname.new("C:\\..\\ \\").basename().toPathStr()
+
+            check ".." == Pathname.new(".."     ).basename().toPathStr()
+            check ".." == Pathname.new("..\\"   ).basename().toPathStr()
+            check "a"  == Pathname.new("..\\a"  ).basename().toPathStr()
+            check "a"  == Pathname.new("..\\a\\").basename().toPathStr()
+            check " "  == Pathname.new("..\\ "  ).basename().toPathStr()
+            check " "  == Pathname.new("..\\ \\").basename().toPathStr()
+
+
+    test "#extname() file-form with relative paths":
+        when true: # Common
+            check ""    == Pathname.new("." ).extname()
+            check ""    == Pathname.new("..").extname()
+            check ""    == Pathname.new("x.").extname()
+            check ""    == Pathname.new("xy.").extname()
+            check ""    == Pathname.new("a.x.").extname()
+            check ""    == Pathname.new("a.xy.").extname()
+            check ""    == Pathname.new("a" / "b.x.").extname()
+            check ""    == Pathname.new("a" / "b.xy.").extname()
+            check ".x"  == Pathname.new("a.x").extname()
+            check ".xy" == Pathname.new("a.xy").extname()
+            check ".x"  == Pathname.new(".a.x").extname()
+            check ".xy" == Pathname.new(".a.xy").extname()
+            check ".x"  == Pathname.new("a" / "b.x").extname()
+            check ".xy" == Pathname.new("a" / "b.xy").extname()
+            check ".x"  == Pathname.new("a" / ".b.x").extname()
+            check ".xy" == Pathname.new("a" / ".b.xy").extname()
+
+        when defined(Posix):
+            check ""    == Pathname.new("." ).extname()
+            check ""    == Pathname.new(".x").extname()
+            check ""    == Pathname.new(".xy").extname()
+            check ".x"  == Pathname.new("a.x").extname()
+            check ".xy" == Pathname.new(".a.xy").extname()
+            check ".x"  == Pathname.new(".a.x").extname()
+            check ".xy" == Pathname.new("a.xy").extname()
+            check ""    == Pathname.new("a" / ".x").extname()
+            check ""    == Pathname.new("a" / ".xy").extname()
+            check ".x"  == Pathname.new("a" / "b.x").extname()
+            check ".xy" == Pathname.new("a" / "b.xy").extname()
+            check ".x"  == Pathname.new("a" / ".b.x").extname()
+            check ".xy" == Pathname.new("a" / ".b.xy").extname()
+
+        when defined(Windows):
+            check ""    == Pathname.new("." ).extname()
+            check ".x"  == Pathname.new(".x").extname()
+            check ".xy" == Pathname.new(".xy").extname()
+            check ".x"  == Pathname.new("a.x").extname()
+            check ".xy" == Pathname.new(".a.xy").extname()
+            check ".x"  == Pathname.new(".a.x").extname()
+            check ".xy" == Pathname.new("a.xy").extname()
+            check ".x"  == Pathname.new("a" / ".x").extname()
+            check ".xy" == Pathname.new("a" / ".xy").extname()
+            check ".x"  == Pathname.new("a" / "b.x").extname()
+            check ".xy" == Pathname.new("a" / "b.xy").extname()
+            check ".x"  == Pathname.new("a" / ".b.x").extname()
+            check ".xy" == Pathname.new("a" / ".b.xy").extname()
+
+
+    test "#extname() file-form with absolute paths":
+        when defined(Posix):
+            check ""  == Pathname.new("/."  ).extname()
+            check ""  == Pathname.new("//." ).extname()
+            check ""  == Pathname.new("///.").extname()
+
+            check ""  == Pathname.new("/.x"  ).extname()
+            check ""  == Pathname.new("//.x" ).extname()
+            check ""  == Pathname.new("///.x").extname()
+
+            check ".x"  == Pathname.new("/a.x"  ).extname()
+            check ".x"  == Pathname.new("//a.x" ).extname()
+            check ".x"  == Pathname.new("///a.x").extname()
+
+            check ".xy" == Pathname.new("/a.xy"  ).extname()
+            check ".xy" == Pathname.new("//a.xy" ).extname()
+            check ".xy"  == Pathname.new("///a.xy").extname()
+
+            check "" == Pathname.new("/a/.x"  ).extname()
+            check "" == Pathname.new("//a//.x" ).extname()
+            check ""  == Pathname.new("///a///.x").extname()
+
+            check ".x" == Pathname.new("/a/b.x"  ).extname()
+            check ".x" == Pathname.new("//a//b.x" ).extname()
+            check ".x"  == Pathname.new("///a///b.x").extname()
+
+            check ".xy" == Pathname.new("/a/b.xy"  ).extname()
+            check ".xy" == Pathname.new("//a//b.xy" ).extname()
+            check ".xy"  == Pathname.new("///a///b.xy").extname()
+
+        when defined(Windows):
+            check ""  == Pathname.new("C:\\."  ).extname()
+            check ""  == Pathname.new("C:\\\\." ).extname()
+            check ""  == Pathname.new("C:\\\\\\.").extname()
+
+            check ".x"  == Pathname.new("C:\\.x"  ).extname()
+            check ".x"  == Pathname.new("C:\\\\.x" ).extname()
+            check ".x"  == Pathname.new("C:\\\\\\.x").extname()
+
+            check ".x"  == Pathname.new("C:\\a.x"  ).extname()
+            check ".x"  == Pathname.new("C:\\\\a.x" ).extname()
+            check ".x"  == Pathname.new("C:\\\\\\a.x").extname()
+
+            check ".xy" == Pathname.new("C:\\a.xy"  ).extname()
+            check ".xy" == Pathname.new("C:\\\\a.xy" ).extname()
+            check ".xy"  == Pathname.new("C:\\\\\\a.xy").extname()
+
+            check ".x" == Pathname.new("C:\\a\\.x"  ).extname()
+            check ".x" == Pathname.new("C:\\\\a\\\\.x" ).extname()
+            check ".x"  == Pathname.new("C:\\\\\\a\\\\\\.x").extname()
+
+            check ".x" == Pathname.new("C:\\a\\b.x"  ).extname()
+            check ".x" == Pathname.new("C:\\\\a\\\\b.x" ).extname()
+            check ".x"  == Pathname.new("C:\\\\\\a\\\\\\b.x").extname()
+
+            check ".xy" == Pathname.new("C:\\a\\b.xy"  ).extname()
+            check ".xy" == Pathname.new("C:\\\\a\\\\b.xy" ).extname()
+            check ".xy"  == Pathname.new("C:\\\\\\a\\\\\\b.xy").extname()
 
 
     test "#extname() directory-form":
-        check ".x"  == Pathname.new("a.x/" ).extname()
-        check ".x"  == Pathname.new("a.x//").extname()
+        when defined(Posix):
+            check ".x"  == Pathname.new("a.x/" ).extname()
+            check ".x"  == Pathname.new("a.x//").extname()
 
-        check ".xy" == Pathname.new("a.xy/" ).extname()
-        check ".xy" == Pathname.new("a.xy//").extname()
+            check ".xy" == Pathname.new("a.xy/" ).extname()
+            check ".xy" == Pathname.new("a.xy//").extname()
 
-        check ".x"  == Pathname.new("/a.x/" ).extname()
-        check ".x"  == Pathname.new("/a.x//").extname()
+            check ".x"  == Pathname.new("/a.x/" ).extname()
+            check ".x"  == Pathname.new("/a.x//").extname()
 
-        check ".xy" == Pathname.new("/a.xy/" ).extname()
-        check ".xy" == Pathname.new("/a.xy//").extname()
+            check ".xy" == Pathname.new("/a.xy/" ).extname()
+            check ".xy" == Pathname.new("/a.xy//").extname()
 
-        check ".x"  == Pathname.new("/a.x/" ).extname()
-        check ".x"  == Pathname.new("/a.x//").extname()
+            check ".x"  == Pathname.new("/a.x/" ).extname()
+            check ".x"  == Pathname.new("/a.x//").extname()
 
-        check ".xy" == Pathname.new("/a.xy/" ).extname()
-        check ".xy" == Pathname.new("/a.xy//").extname()
+            check ".xy" == Pathname.new("/a.xy/" ).extname()
+            check ".xy" == Pathname.new("/a.xy//").extname()
 
-        check ".xy" == Pathname.new("//a.xy/" ).extname()
-        check ".xy" == Pathname.new("//a.xy//").extname()
+            check ".xy" == Pathname.new("//a.xy/" ).extname()
+            check ".xy" == Pathname.new("//a.xy//").extname()
+
+        when defined(Windows):
+            check ".x"  == Pathname.new("a.x\\" ).extname()
+            check ".x"  == Pathname.new("a.x\\\\").extname()
+
+            check ".xy" == Pathname.new("a.xy\\" ).extname()
+            check ".xy" == Pathname.new("a.xy\\\\").extname()
+
+            check ".x"  == Pathname.new("C:\\a.x\\" ).extname()
+            check ".x"  == Pathname.new("C:\\a.x\\\\").extname()
+
+            check ".xy" == Pathname.new("C:\\a.xy\\" ).extname()
+            check ".xy" == Pathname.new("C:\\a.xy\\\\").extname()
+
+            check ".x"  == Pathname.new("C:\\a.x\\" ).extname()
+            check ".x"  == Pathname.new("C:\\a.x\\\\").extname()
+
+            check ".xy" == Pathname.new("C:\\a.xy\\" ).extname()
+            check ".xy" == Pathname.new("C:\\a.xy\\\\").extname()
+
+            check ".xy" == Pathname.new("C:\\\\a.xy\\" ).extname()
+            check ".xy" == Pathname.new("C:\\\\a.xy\\\\").extname()
 
 
     test "#extname() (edgecase_00)":
-        check "" == Pathname.new(".x" ).extname()
-        check "" == Pathname.new(".xy").extname()
-        check "" == Pathname.new(".x" ).extname()
-        check "" == Pathname.new(".xy").extname()
+        when defined(Posix):
+            check "" == Pathname.new(".x" ).extname()
+            check "" == Pathname.new(".xy").extname()
 
-        check "" == Pathname.new("/.x" ).extname()
-        check "" == Pathname.new("/.xy").extname()
-        check "" == Pathname.new("//.x" ).extname()
-        check "" == Pathname.new("//.xy").extname()
+            check ".x"  == Pathname.new(".a.x" ).extname()
+            check ".xy" == Pathname.new(".a.xy").extname()
 
-        check "" == Pathname.new("a/.x" ).extname()
-        check "" == Pathname.new("a/.xy").extname()
-        check "" == Pathname.new("a//.x" ).extname()
-        check "" == Pathname.new("a//.xy").extname()
+            check "" == Pathname.new("/.x" ).extname()
+            check "" == Pathname.new("/.xy").extname()
+            check "" == Pathname.new("//.x" ).extname()
+            check "" == Pathname.new("//.xy").extname()
 
-        check "" == Pathname.new("/a/.x" ).extname()
-        check "" == Pathname.new("/a/.xy").extname()
-        check "" == Pathname.new("//a//.x" ).extname()
-        check "" == Pathname.new("//a//.xy").extname()
+            check "" == Pathname.new("a/.x" ).extname()
+            check "" == Pathname.new("a/.xy").extname()
+            check "" == Pathname.new("a//.x" ).extname()
+            check "" == Pathname.new("a//.xy").extname()
+
+            check "" == Pathname.new("/a/.x" ).extname()
+            check "" == Pathname.new("/a/.xy").extname()
+            check "" == Pathname.new("//a//.x" ).extname()
+            check "" == Pathname.new("//a//.xy").extname()
+
+        when defined(Windows):
+            check ".x"  == Pathname.new(".x" ).extname()
+            check ".xy" == Pathname.new(".xy").extname()
+
+            check ".x"  == Pathname.new(".a.x" ).extname()
+            check ".xy" == Pathname.new(".a.xy").extname()
+
+            check ".x"  == Pathname.new("C:\\.x" ).extname()
+            check ".xy" == Pathname.new("C:\\.xy").extname()
+            check ".x"  == Pathname.new("C:\\\\.x" ).extname()
+            check ".xy" == Pathname.new("C:\\\\.xy").extname()
+
+            check ".x"  == Pathname.new("a\\.x" ).extname()
+            check ".xy" == Pathname.new("a\\.xy").extname()
+            check ".x"  == Pathname.new("a\\\\.x" ).extname()
+            check ".xy" == Pathname.new("a\\\\.xy").extname()
+
+            check ".x"  == Pathname.new("C:\\a\\.x" ).extname()
+            check ".xy" == Pathname.new("C:\\a\\.xy").extname()
+            check ".x"  == Pathname.new("C:\\\\a\\\\.x" ).extname()
+            check ".xy" == Pathname.new("C:\\\\a\\\\.xy").extname()
 
 
     test "#extname() (edgecase_01)":
-        check "" == Pathname.new("." ).extname()
-        check "" == Pathname.new(". ").extname()
+        when defined(Posix):
+            check "" == Pathname.new("." ).extname()
+            check "" == Pathname.new(". ").extname()
 
-        check "" == Pathname.new("/." ).extname()
-        check "" == Pathname.new("//.").extname()
+            check "" == Pathname.new("/." ).extname()
+            check "" == Pathname.new("//.").extname()
 
-        check "" == Pathname.new("//." ).extname()
-        check "" == Pathname.new("//. ").extname()
+            check "" == Pathname.new("//." ).extname()
+            check "" == Pathname.new("//. ").extname()
 
-        check "" == Pathname.new("a/." ).extname()
-        check "" == Pathname.new("a//.").extname()
+            check "" == Pathname.new("a/." ).extname()
+            check "" == Pathname.new("a//.").extname()
 
-        check "" == Pathname.new("a/. ").extname()
-        check "" == Pathname.new("a//. ").extname()
+            check "" == Pathname.new("a/. ").extname()
+            check "" == Pathname.new("a//. ").extname()
 
-        check "" == Pathname.new("/a/."  ).extname()
-        check "" == Pathname.new("//a//.").extname()
+            check "" == Pathname.new("/a/."  ).extname()
+            check "" == Pathname.new("//a//.").extname()
 
-        check "" == Pathname.new("/a/."  ).extname()
-        check "" == Pathname.new("//a//.").extname()
+            check "" == Pathname.new("/a/."  ).extname()
+            check "" == Pathname.new("//a//.").extname()
 
-        check "" == Pathname.new("/a/. "  ).extname()
-        check "" == Pathname.new("//a//. ").extname()
+            check "" == Pathname.new("/a/. "  ).extname()
+            check "" == Pathname.new("//a//. ").extname()
+
+        when defined(Windows):
+            check ""   == Pathname.new("." ).extname()
+            check ". " == Pathname.new(". ").extname()
+
+            check "" == Pathname.new("C:\\."  ).extname()
+            check "" == Pathname.new("C:\\\\.").extname()
+
+            check ""   == Pathname.new("C:\\\\." ).extname()
+            check ". " == Pathname.new("C:\\\\. ").extname()
+
+            check "" == Pathname.new("a\\."  ).extname()
+            check "" == Pathname.new("a\\\\.").extname()
+
+            check ". " == Pathname.new("a\\. "  ).extname()
+            check ". " == Pathname.new("a\\\\. ").extname()
+
+            check "" == Pathname.new("C:\\a\\."    ).extname()
+            check "" == Pathname.new("C:\\\\a\\\\.").extname()
+
+            check "" == Pathname.new("C:\\a\\."    ).extname()
+            check "" == Pathname.new("C:\\\\a\\\\.").extname()
+
+            check ". " == Pathname.new("C:\\a\\. "    ).extname()
+            check ". " == Pathname.new("C:\\\\a\\\\. ").extname()
 
 
     test "#extname() (edgecase_02)":
-        check "" == Pathname.new("..x"   ).extname()
-        check "" == Pathname.new("/..x"  ).extname()
-        check "" == Pathname.new("//..x" ).extname()
-        check "" == Pathname.new("///..x").extname()
+        when defined(Posix):
+            check "" == Pathname.new("..x"   ).extname()
+            check "" == Pathname.new("/..x"  ).extname()
+            check "" == Pathname.new("//..x" ).extname()
+            check "" == Pathname.new("///..x").extname()
 
-        check "" == Pathname.new("a/..x"     ).extname()
-        check "" == Pathname.new("/a/..x"    ).extname()
-        check "" == Pathname.new("//a//..x"  ).extname()
-        check "" == Pathname.new("///a///..x").extname()
+            check "" == Pathname.new("a/..x"     ).extname()
+            check "" == Pathname.new("/a/..x"    ).extname()
+            check "" == Pathname.new("//a//..x"  ).extname()
+            check "" == Pathname.new("///a///..x").extname()
 
-        check ".y" == Pathname.new("..x.y"   ).extname()
-        check ".y" == Pathname.new("/..x.y"  ).extname()
-        check ".y" == Pathname.new("//..x.y" ).extname()
-        check ".y" == Pathname.new("///..x.y").extname()
+            check ".y" == Pathname.new("..x.y"   ).extname()
+            check ".y" == Pathname.new("/..x.y"  ).extname()
+            check ".y" == Pathname.new("//..x.y" ).extname()
+            check ".y" == Pathname.new("///..x.y").extname()
 
-        check ".y" == Pathname.new("a/..x.y"     ).extname()
-        check ".y" == Pathname.new("/a/..x.y"    ).extname()
-        check ".y" == Pathname.new("//a//..x.y"  ).extname()
-        check ".y" == Pathname.new("///a///..x.y").extname()
+            check ".y" == Pathname.new("a/..x.y"     ).extname()
+            check ".y" == Pathname.new("/a/..x.y"    ).extname()
+            check ".y" == Pathname.new("//a//..x.y"  ).extname()
+            check ".y" == Pathname.new("///a///..x.y").extname()
+
+        when defined(Windows):
+            check ".x" == Pathname.new("..x"   ).extname()
+            check ".x" == Pathname.new("/..x"  ).extname()
+            check ".x" == Pathname.new("//..x" ).extname()
+            check ".x" == Pathname.new("///..x").extname()
+
+            check ".x" == Pathname.new("a/..x"     ).extname()
+            check ".x" == Pathname.new("/a/..x"    ).extname()
+            check ".x" == Pathname.new("//a//..x"  ).extname()
+            check ".x" == Pathname.new("///a///..x").extname()
+
+            check ".y" == Pathname.new("..x.y"   ).extname()
+            check ".y" == Pathname.new("/..x.y"  ).extname()
+            check ".y" == Pathname.new("//..x.y" ).extname()
+            check ".y" == Pathname.new("///..x.y").extname()
+
+            check ".y" == Pathname.new("a/..x.y"     ).extname()
+            check ".y" == Pathname.new("/a/..x.y"    ).extname()
+            check ".y" == Pathname.new("//a//..x.y"  ).extname()
+            check ".y" == Pathname.new("///a///..x.y").extname()
 
 
     test "#extname() (edgecase_03)":
-        check ".x" == Pathname.new("a..x"   ).extname()
-        check ".x" == Pathname.new("/a..x"  ).extname()
-        check ".x" == Pathname.new("//a..x" ).extname()
-        check ".x" == Pathname.new("///a..x").extname()
+        when defined(Posix):
+            check ".x" == Pathname.new("a..x"   ).extname()
+            check ".x" == Pathname.new("/a..x"  ).extname()
+            check ".x" == Pathname.new("//a..x" ).extname()
+            check ".x" == Pathname.new("///a..x").extname()
 
-        check ".x" == Pathname.new("a/b..x"     ).extname()
-        check ".x" == Pathname.new("/a/b..x"    ).extname()
-        check ".x" == Pathname.new("//a//b..x"  ).extname()
-        check ".x" == Pathname.new("///a///b..x").extname()
+            check ".x" == Pathname.new("a/b..x"     ).extname()
+            check ".x" == Pathname.new("/a/b..x"    ).extname()
+            check ".x" == Pathname.new("//a//b..x"  ).extname()
+            check ".x" == Pathname.new("///a///b..x").extname()
 
-        check ".y" == Pathname.new("a..x.y"   ).extname()
-        check ".y" == Pathname.new("/a..x.y"  ).extname()
-        check ".y" == Pathname.new("//a..x.y" ).extname()
-        check ".y" == Pathname.new("///a..x.y").extname()
+            check ".y" == Pathname.new("a..x.y"   ).extname()
+            check ".y" == Pathname.new("/a..x.y"  ).extname()
+            check ".y" == Pathname.new("//a..x.y" ).extname()
+            check ".y" == Pathname.new("///a..x.y").extname()
 
-        check ".y" == Pathname.new("a/b..x.y"     ).extname()
-        check ".y" == Pathname.new("/a/b..x.y"    ).extname()
-        check ".y" == Pathname.new("//a//b..x.y"  ).extname()
-        check ".y" == Pathname.new("///a///b..x.y").extname()
+            check ".y" == Pathname.new("a/b..x.y"     ).extname()
+            check ".y" == Pathname.new("/a/b..x.y"    ).extname()
+            check ".y" == Pathname.new("//a//b..x.y"  ).extname()
+            check ".y" == Pathname.new("///a///b..x.y").extname()
+
+        when defined(Windows):
+            check ".x" == Pathname.new("a..x"   ).extname()
+            check ".x" == Pathname.new("C:\\a..x"  ).extname()
+            check ".x" == Pathname.new("C:\\\\a..x" ).extname()
+            check ".x" == Pathname.new("C:\\\\\\a..x").extname()
+
+            check ".x" == Pathname.new("a\\b..x"     ).extname()
+            check ".x" == Pathname.new("C:\\a\\b..x"    ).extname()
+            check ".x" == Pathname.new("C:\\\\a\\\\b..x"  ).extname()
+            check ".x" == Pathname.new("C:\\\\\\a\\\\\\b..x").extname()
+
+            check ".y" == Pathname.new("a..x.y"   ).extname()
+            check ".y" == Pathname.new("C:\\a..x.y"  ).extname()
+            check ".y" == Pathname.new("C:\\\\a..x.y" ).extname()
+            check ".y" == Pathname.new("C:\\\\\\a..x.y").extname()
+
+            check ".y" == Pathname.new("a\\b..x.y"     ).extname()
+            check ".y" == Pathname.new("C:\\a\\b..x.y"    ).extname()
+            check ".y" == Pathname.new("C:\\\\a\\\\b..x.y"  ).extname()
+            check ".y" == Pathname.new("C:\\\\\\a\\\\\\b..x.y").extname()
 
 
     test "#extname() (edgecase_04)":
-        check ".x" == Pathname.new("a..x/"     ).extname()
-        check ".x" == Pathname.new("/a..x//"   ).extname()
-        check ".x" == Pathname.new("//a..x///" ).extname()
-        check ".x" == Pathname.new("///a..x///").extname()
+        when defined(Posix):
+            check ".x" == Pathname.new("a..x/"     ).extname()
+            check ".x" == Pathname.new("/a..x//"   ).extname()
+            check ".x" == Pathname.new("//a..x///" ).extname()
+            check ".x" == Pathname.new("///a..x///").extname()
 
-        check ".x" == Pathname.new("a/b..x/"        ).extname()
-        check ".x" == Pathname.new("/a/b..x//"      ).extname()
-        check ".x" == Pathname.new("//a//b..x///"   ).extname()
-        check ".x" == Pathname.new("///a///b..x////").extname()
+            check ".x" == Pathname.new("a/b..x/"        ).extname()
+            check ".x" == Pathname.new("/a/b..x//"      ).extname()
+            check ".x" == Pathname.new("//a//b..x///"   ).extname()
+            check ".x" == Pathname.new("///a///b..x////").extname()
 
-        check ".y" == Pathname.new("a..x.y/"      ).extname()
-        check ".y" == Pathname.new("/a..x.y//"    ).extname()
-        check ".y" == Pathname.new("//a..x.y///"  ).extname()
-        check ".y" == Pathname.new("///a..x.y////").extname()
+            check ".y" == Pathname.new("a..x.y/"      ).extname()
+            check ".y" == Pathname.new("/a..x.y//"    ).extname()
+            check ".y" == Pathname.new("//a..x.y///"  ).extname()
+            check ".y" == Pathname.new("///a..x.y////").extname()
 
-        check ".y" == Pathname.new("a/b..x.y/"        ).extname()
-        check ".y" == Pathname.new("/a/b..x.y//"      ).extname()
-        check ".y" == Pathname.new("//a//b..x.y///"   ).extname()
-        check ".y" == Pathname.new("///a///b..x.y////").extname()
+            check ".y" == Pathname.new("a/b..x.y/"        ).extname()
+            check ".y" == Pathname.new("/a/b..x.y//"      ).extname()
+            check ".y" == Pathname.new("//a//b..x.y///"   ).extname()
+            check ".y" == Pathname.new("///a///b..x.y////").extname()
+
+        when defined(Windows):
+            check ".x" == Pathname.new("a..x\\"     ).extname()
+            check ".x" == Pathname.new("C:\\a..x\\\\"   ).extname()
+            check ".x" == Pathname.new("C:\\\\a..x\\\\\\" ).extname()
+            check ".x" == Pathname.new("C:\\\\\\a..x\\\\\\").extname()
+
+            check ".x" == Pathname.new("a\\b..x\\"        ).extname()
+            check ".x" == Pathname.new("C:\\a\\b..x\\\\"      ).extname()
+            check ".x" == Pathname.new("C:\\\\a\\\\b..x\\\\\\"   ).extname()
+            check ".x" == Pathname.new("C:\\\\\\a\\\\\\b..x\\\\\\\\").extname()
+
+            check ".y" == Pathname.new("a..x.y\\"      ).extname()
+            check ".y" == Pathname.new("C:\\a..x.y\\\\"    ).extname()
+            check ".y" == Pathname.new("C:\\\\a..x.y\\\\\\"  ).extname()
+            check ".y" == Pathname.new("C:\\\\\\a..x.y\\\\\\\\").extname()
+
+            check ".y" == Pathname.new("a\\b..x.y\\"        ).extname()
+            check ".y" == Pathname.new("C:\\a\\b..x.y\\\\"      ).extname()
+            check ".y" == Pathname.new("C:\\\\a\\\\b..x.y\\\\\\"   ).extname()
+            check ".y" == Pathname.new("C:\\\\\\a\\\\\\b..x.y\\\\\\\\").extname()
 
 
     test "#extname() (edgecase_05a)":
-        check "" == Pathname.new(".").extname()
-        check "" == Pathname.new("/.").extname()
-        check "" == Pathname.new("//.").extname()
-        check "" == Pathname.new("///.").extname()
+        when defined(Posix):
+            check "" == Pathname.new(".").extname()
+            check "" == Pathname.new("/.").extname()
+            check "" == Pathname.new("//.").extname()
+            check "" == Pathname.new("///.").extname()
 
-        check "" == Pathname.new("..").extname()
-        check "" == Pathname.new("/..").extname()
-        check "" == Pathname.new("//..").extname()
-        check "" == Pathname.new("///..").extname()
+            check "" == Pathname.new("..").extname()
+            check "" == Pathname.new("/..").extname()
+            check "" == Pathname.new("//..").extname()
+            check "" == Pathname.new("///..").extname()
 
-        check "" == Pathname.new("...").extname()
-        check "" == Pathname.new("/...").extname()
-        check "" == Pathname.new("//...").extname()
-        check "" == Pathname.new("///...").extname()
+            check "" == Pathname.new("...").extname()
+            check "" == Pathname.new("/...").extname()
+            check "" == Pathname.new("//...").extname()
+            check "" == Pathname.new("///...").extname()
 
-        check "" == Pathname.new("....").extname()
-        check "" == Pathname.new("/....").extname()
-        check "" == Pathname.new("//....").extname()
-        check "" == Pathname.new("///....").extname()
+            check "" == Pathname.new("....").extname()
+            check "" == Pathname.new("/....").extname()
+            check "" == Pathname.new("//....").extname()
+            check "" == Pathname.new("///....").extname()
+
+        when defined(Windows):
+            check "" == Pathname.new(".").extname()
+            check "" == Pathname.new("C:\\.").extname()
+            check "" == Pathname.new("C:\\\\.").extname()
+            check "" == Pathname.new("C:\\\\\\.").extname()
+
+            check "" == Pathname.new("..").extname()
+            check "" == Pathname.new("C:\\..").extname()
+            check "" == Pathname.new("C:\\\\..").extname()
+            check "" == Pathname.new("C:\\\\\\..").extname()
+
+            check "" == Pathname.new("...").extname()
+            check "" == Pathname.new("C:\\...").extname()
+            check "" == Pathname.new("C:\\\\...").extname()
+            check "" == Pathname.new("C:\\\\\\...").extname()
+
+            check "" == Pathname.new("....").extname()
+            check "" == Pathname.new("C:\\....").extname()
+            check "" == Pathname.new("C:\\\\....").extname()
+            check "" == Pathname.new("C:\\\\\\....").extname()
 
 
     test "#extname() (edgecase_05b)":
-        check "" == Pathname.new(".x").extname()
-        check "" == Pathname.new("/.x").extname()
-        check "" == Pathname.new("//.x").extname()
-        check "" == Pathname.new("///.x").extname()
+        when defined(Posix):
+            check "" == Pathname.new(".x").extname()
+            check "" == Pathname.new("/.x").extname()
+            check "" == Pathname.new("//.x").extname()
+            check "" == Pathname.new("///.x").extname()
 
-        check "" == Pathname.new("..x").extname()
-        check "" == Pathname.new("/..x").extname()
-        check "" == Pathname.new("//..x").extname()
-        check "" == Pathname.new("///..x").extname()
+            check "" == Pathname.new("..x").extname()
+            check "" == Pathname.new("/..x").extname()
+            check "" == Pathname.new("//..x").extname()
+            check "" == Pathname.new("///..x").extname()
 
-        check "" == Pathname.new("...x").extname()
-        check "" == Pathname.new("/...x").extname()
-        check "" == Pathname.new("//...x").extname()
-        check "" == Pathname.new("///...x").extname()
+            check "" == Pathname.new("...x").extname()
+            check "" == Pathname.new("/...x").extname()
+            check "" == Pathname.new("//...x").extname()
+            check "" == Pathname.new("///...x").extname()
 
-        check "" == Pathname.new("....x").extname()
-        check "" == Pathname.new("/....x").extname()
-        check "" == Pathname.new("//....x").extname()
-        check "" == Pathname.new("///....x").extname()
+            check "" == Pathname.new("....x").extname()
+            check "" == Pathname.new("/....x").extname()
+            check "" == Pathname.new("//....x").extname()
+            check "" == Pathname.new("///....x").extname()
+
+        when defined(Windows):
+            check ".x" == Pathname.new(".x").extname()
+            check ".x" == Pathname.new("C:\\.x").extname()
+            check ".x" == Pathname.new("C:\\\\.x").extname()
+            check ".x" == Pathname.new("C:\\\\\\.x").extname()
+
+            check ".x" == Pathname.new("..x").extname()
+            check ".x" == Pathname.new("C:\\..x").extname()
+            check ".x" == Pathname.new("C:\\\\..x").extname()
+            check ".x" == Pathname.new("C:\\\\\\..x").extname()
+
+            check ".x" == Pathname.new("...x").extname()
+            check ".x" == Pathname.new("C:\\...x").extname()
+            check ".x" == Pathname.new("C:\\\\...x").extname()
+            check ".x" == Pathname.new("C:\\\\\\...x").extname()
+
+            check ".x" == Pathname.new("....x").extname()
+            check ".x" == Pathname.new("C:\\....x").extname()
+            check ".x" == Pathname.new("C:\\\\....x").extname()
+            check ".x" == Pathname.new("C:\\\\\\....x").extname()
 
 
     test "#extname() (edgecase_05c)":
-        check "" == Pathname.new(". ").extname()
-        check "" == Pathname.new("/. ").extname()
-        check "" == Pathname.new("//. ").extname()
-        check "" == Pathname.new("///. ").extname()
+        when defined(Posix):
+            check "" == Pathname.new(". ").extname()
+            check "" == Pathname.new("/. ").extname()
+            check "" == Pathname.new("//. ").extname()
+            check "" == Pathname.new("///. ").extname()
 
-        check "" == Pathname.new(".. ").extname()
-        check "" == Pathname.new("/.. ").extname()
-        check "" == Pathname.new("//.. ").extname()
-        check "" == Pathname.new("///.. ").extname()
+            check "" == Pathname.new(".. ").extname()
+            check "" == Pathname.new("/.. ").extname()
+            check "" == Pathname.new("//.. ").extname()
+            check "" == Pathname.new("///.. ").extname()
 
-        check "" == Pathname.new("... ").extname()
-        check "" == Pathname.new("/... ").extname()
-        check "" == Pathname.new("//... ").extname()
-        check "" == Pathname.new("///... ").extname()
+            check "" == Pathname.new("... ").extname()
+            check "" == Pathname.new("/... ").extname()
+            check "" == Pathname.new("//... ").extname()
+            check "" == Pathname.new("///... ").extname()
 
-        check "" == Pathname.new(".... ").extname()
-        check "" == Pathname.new("/.... ").extname()
-        check "" == Pathname.new("//.... ").extname()
-        check "" == Pathname.new("///.... ").extname()
+            check "" == Pathname.new(".... ").extname()
+            check "" == Pathname.new("/.... ").extname()
+            check "" == Pathname.new("//.... ").extname()
+            check "" == Pathname.new("///.... ").extname()
+
+        when defined(Windows):
+            check ". " == Pathname.new(". ").extname()
+            check ". " == Pathname.new("C:\\. ").extname()
+            check ". " == Pathname.new("C:\\\\. ").extname()
+            check ". " == Pathname.new("C:\\\\\\. ").extname()
+
+            check ". " == Pathname.new(".. ").extname()
+            check ". " == Pathname.new("C:\\.. ").extname()
+            check ". " == Pathname.new("C:\\\\.. ").extname()
+            check ". " == Pathname.new("C:\\\\\\.. ").extname()
+
+            check ". " == Pathname.new("... ").extname()
+            check ". " == Pathname.new("C:\\... ").extname()
+            check ". " == Pathname.new("C:\\\\... ").extname()
+            check ". " == Pathname.new("C:\\\\\\... ").extname()
+
+            check ". " == Pathname.new(".... ").extname()
+            check ". " == Pathname.new("C:\\.... ").extname()
+            check ". " == Pathname.new("C:\\\\.... ").extname()
+            check ". " == Pathname.new("C:\\\\\\.... ").extname()
 
 
     test "#extname() (edgecase_06a)":
-        check "" == Pathname.new("a.").extname()
-        check "" == Pathname.new("/a.").extname()
-        check "" == Pathname.new("//a.").extname()
-        check "" == Pathname.new("///a.").extname()
+        when defined(Posix):
+            check "" == Pathname.new("a.").extname()
+            check "" == Pathname.new("/a.").extname()
+            check "" == Pathname.new("//a.").extname()
+            check "" == Pathname.new("///a.").extname()
+
+        when defined(Windows):
+            check "" == Pathname.new("a.").extname()
+            check "" == Pathname.new("C:\\a.").extname()
+            check "" == Pathname.new("C:\\\\a.").extname()
+            check "" == Pathname.new("C:\\\\\\a.").extname()
 
 
     test "#extname() (edgecase_06b)":
-        check "" == Pathname.new(" .").extname()
-        check "" == Pathname.new("/ .").extname()
-        check "" == Pathname.new("// .").extname()
-        check "" == Pathname.new("/// .").extname()
+        when defined(Posix):
+            check "" == Pathname.new(" .").extname()
+            check "" == Pathname.new("/ .").extname()
+            check "" == Pathname.new("// .").extname()
+            check "" == Pathname.new("/// .").extname()
+
+        when defined(Windows):
+            check "" == Pathname.new(" .").extname()
+            check "" == Pathname.new("C:\\ .").extname()
+            check "" == Pathname.new("C:\\\\ .").extname()
+            check "" == Pathname.new("C:\\\\\\ .").extname()
 
 
     test "#extname() (edgecase_06c)":
-        check "" == Pathname.new("a./").extname()
-        check "" == Pathname.new("/a.//").extname()
-        check "" == Pathname.new("//a.///").extname()
-        check "" == Pathname.new("///a.////").extname()
+        when defined(Posix):
+            check "" == Pathname.new("a./").extname()
+            check "" == Pathname.new("/a.//").extname()
+            check "" == Pathname.new("//a.///").extname()
+            check "" == Pathname.new("///a.////").extname()
+
+        when defined(Windows):
+            check "" == Pathname.new("a.\\").extname()
+            check "" == Pathname.new("C:\\a.\\\\").extname()
+            check "" == Pathname.new("C:\\\\a.\\\\\\").extname()
+            check "" == Pathname.new("C:\\\\\\a.\\\\\\\\").extname()
 
 
     test "#extname() (edgecase_06d)":
-        check "" == Pathname.new(" ./").extname()
-        check "" == Pathname.new("/ .//").extname()
-        check "" == Pathname.new("// .///").extname()
-        check "" == Pathname.new("/// .////").extname()
+        when defined(Posix):
+            check "" == Pathname.new(" ./").extname()
+            check "" == Pathname.new("/ .//").extname()
+            check "" == Pathname.new("// .///").extname()
+            check "" == Pathname.new("/// .////").extname()
+
+        when defined(Windows):
+            check "" == Pathname.new(" .\\").extname()
+            check "" == Pathname.new("C:\\ .\\\\").extname()
+            check "" == Pathname.new("C:\\\\ .\\\\\\").extname()
+            check "" == Pathname.new("C:\\\\\\ .\\\\\\\\").extname()
 
 
     test "#normalize()":
-        check "." == Pathname.new("").normalize().toPathStr()
+        when defined(Posix):
+            check "." == Pathname.new("").normalize().toPathStr()
 
-        check "a" == Pathname.new("a"  ).normalize().toPathStr()
-        check "a" == Pathname.new("a/" ).normalize().toPathStr()
-        check "a" == Pathname.new("a//").normalize().toPathStr()
+            check "a" == Pathname.new("a"  ).normalize().toPathStr()
+            check "a" == Pathname.new("a/" ).normalize().toPathStr()
+            check "a" == Pathname.new("a//").normalize().toPathStr()
 
-        check "/b" == Pathname.new("/b"   ).normalize().toPathStr()
-        check "/b" == Pathname.new("/b/"  ).normalize().toPathStr()
-        check "/b" == Pathname.new("//b//").normalize().toPathStr()
+            check "/b" == Pathname.new("/b"   ).normalize().toPathStr()
+            check "/b" == Pathname.new("/b/"  ).normalize().toPathStr()
+            check "/b" == Pathname.new("//b//").normalize().toPathStr()
 
-        check "." == Pathname.new("."  ).normalize().toPathStr()
-        check "." == Pathname.new("./" ).normalize().toPathStr()
-        check "." == Pathname.new(".//").normalize().toPathStr()
+            check "." == Pathname.new("."  ).normalize().toPathStr()
+            check "." == Pathname.new("./" ).normalize().toPathStr()
+            check "." == Pathname.new(".//").normalize().toPathStr()
 
-        check ".." == Pathname.new(".."  ).normalize().toPathStr()
-        check ".." == Pathname.new("../" ).normalize().toPathStr()
-        check ".." == Pathname.new("..//").normalize().toPathStr()
+            check ".." == Pathname.new(".."  ).normalize().toPathStr()
+            check ".." == Pathname.new("../" ).normalize().toPathStr()
+            check ".." == Pathname.new("..//").normalize().toPathStr()
 
-        check "/" == Pathname.new("/."     ).normalize().toPathStr()
-        check "/" == Pathname.new("/./"    ).normalize().toPathStr()
-        check "/" == Pathname.new("//."    ).normalize().toPathStr()
-        check "/" == Pathname.new("//.//"  ).normalize().toPathStr()
-        check "/" == Pathname.new("///."   ).normalize().toPathStr()
-        check "/" == Pathname.new("///.///").normalize().toPathStr()
+            check "/" == Pathname.new("/."     ).normalize().toPathStr()
+            check "/" == Pathname.new("/./"    ).normalize().toPathStr()
+            check "/" == Pathname.new("//."    ).normalize().toPathStr()
+            check "/" == Pathname.new("//.//"  ).normalize().toPathStr()
+            check "/" == Pathname.new("///."   ).normalize().toPathStr()
+            check "/" == Pathname.new("///.///").normalize().toPathStr()
 
-        check "/" == Pathname.new("/.."     ).normalize().toPathStr()
-        check "/" == Pathname.new("/../"    ).normalize().toPathStr()
-        check "/" == Pathname.new("//.."    ).normalize().toPathStr()
-        check "/" == Pathname.new("//..//"  ).normalize().toPathStr()
-        check "/" == Pathname.new("///.."   ).normalize().toPathStr()
-        check "/" == Pathname.new("///..///").normalize().toPathStr()
+            check "/" == Pathname.new("/.."     ).normalize().toPathStr()
+            check "/" == Pathname.new("/../"    ).normalize().toPathStr()
+            check "/" == Pathname.new("//.."    ).normalize().toPathStr()
+            check "/" == Pathname.new("//..//"  ).normalize().toPathStr()
+            check "/" == Pathname.new("///.."   ).normalize().toPathStr()
+            check "/" == Pathname.new("///..///").normalize().toPathStr()
+
+        when defined(Windows):
+            check "." == Pathname.new("").normalize().toPathStr()
+
+            check "a" == Pathname.new("a"  ).normalize().toPathStr()
+            check "a" == Pathname.new("a\\" ).normalize().toPathStr()
+            check "a" == Pathname.new("a\\\\").normalize().toPathStr()
+
+            check "C:\\b" == Pathname.new("C:\\b"   ).normalize().toPathStr()
+            check "C:\\b" == Pathname.new("C:\\b\\"  ).normalize().toPathStr()
+            check "C:\\b" == Pathname.new("C:\\\\b\\\\").normalize().toPathStr()
+
+            check "." == Pathname.new("."  ).normalize().toPathStr()
+            check "." == Pathname.new(".\\" ).normalize().toPathStr()
+            check "." == Pathname.new(".\\\\").normalize().toPathStr()
+
+            check ".." == Pathname.new(".."  ).normalize().toPathStr()
+            check ".." == Pathname.new("..\\" ).normalize().toPathStr()
+            check ".." == Pathname.new("..\\\\").normalize().toPathStr()
+
+            check "C:" == Pathname.new("C:\\."     ).normalize().toPathStr()
+            check "C:" == Pathname.new("C:\\.\\"    ).normalize().toPathStr()
+            check "C:" == Pathname.new("C:\\\\."    ).normalize().toPathStr()
+            check "C:" == Pathname.new("C:\\\\.\\\\"  ).normalize().toPathStr()
+            check "C:" == Pathname.new("C:\\\\\\."   ).normalize().toPathStr()
+            check "C:" == Pathname.new("C:\\\\\\.\\\\\\").normalize().toPathStr()
+
+            check "C:" == Pathname.new("C:\\.."     ).normalize().toPathStr()
+            check "C:" == Pathname.new("C:\\..\\"    ).normalize().toPathStr()
+            check "C:" == Pathname.new("C:\\\\.."    ).normalize().toPathStr()
+            check "C:" == Pathname.new("C:\\\\..\\\\"  ).normalize().toPathStr()
+            check "C:" == Pathname.new("C:\\\\\\.."   ).normalize().toPathStr()
+            check "C:" == Pathname.new("C:\\\\\\..\\\\\\").normalize().toPathStr()
 
 
     test "#cleanpath()":
-        check "." == Pathname.new("").cleanpath().toPathStr()
+        when defined(Posix):
+            check "." == Pathname.new("").cleanpath().toPathStr()
 
-        check "a" == Pathname.new("a"  ).cleanpath().toPathStr()
-        check "a" == Pathname.new("a/" ).cleanpath().toPathStr()
-        check "a" == Pathname.new("a//").cleanpath().toPathStr()
+            check "a" == Pathname.new("a"  ).cleanpath().toPathStr()
+            check "a" == Pathname.new("a/" ).cleanpath().toPathStr()
+            check "a" == Pathname.new("a//").cleanpath().toPathStr()
 
-        check "/b" == Pathname.new("/b"   ).cleanpath().toPathStr()
-        check "/b" == Pathname.new("/b/"  ).cleanpath().toPathStr()
-        check "/b" == Pathname.new("//b//").cleanpath().toPathStr()
+            check "/b" == Pathname.new("/b"   ).cleanpath().toPathStr()
+            check "/b" == Pathname.new("/b/"  ).cleanpath().toPathStr()
+            check "/b" == Pathname.new("//b//").cleanpath().toPathStr()
 
-        check "." == Pathname.new("."  ).cleanpath().toPathStr()
-        check "." == Pathname.new("./" ).cleanpath().toPathStr()
-        check "." == Pathname.new(".//").cleanpath().toPathStr()
+            check "." == Pathname.new("."  ).cleanpath().toPathStr()
+            check "." == Pathname.new("./" ).cleanpath().toPathStr()
+            check "." == Pathname.new(".//").cleanpath().toPathStr()
 
-        check ".." == Pathname.new(".."  ).cleanpath().toPathStr()
-        check ".." == Pathname.new("../" ).cleanpath().toPathStr()
-        check ".." == Pathname.new("..//").cleanpath().toPathStr()
+            check ".." == Pathname.new(".."  ).cleanpath().toPathStr()
+            check ".." == Pathname.new("../" ).cleanpath().toPathStr()
+            check ".." == Pathname.new("..//").cleanpath().toPathStr()
 
-        check "/" == Pathname.new("/."     ).cleanpath().toPathStr()
-        check "/" == Pathname.new("/./"    ).cleanpath().toPathStr()
-        check "/" == Pathname.new("//."    ).cleanpath().toPathStr()
-        check "/" == Pathname.new("//.//"  ).cleanpath().toPathStr()
-        check "/" == Pathname.new("///."   ).cleanpath().toPathStr()
-        check "/" == Pathname.new("///.///").cleanpath().toPathStr()
+            check "/" == Pathname.new("/."     ).cleanpath().toPathStr()
+            check "/" == Pathname.new("/./"    ).cleanpath().toPathStr()
+            check "/" == Pathname.new("//."    ).cleanpath().toPathStr()
+            check "/" == Pathname.new("//.//"  ).cleanpath().toPathStr()
+            check "/" == Pathname.new("///."   ).cleanpath().toPathStr()
+            check "/" == Pathname.new("///.///").cleanpath().toPathStr()
 
-        check "/" == Pathname.new("/.."     ).cleanpath().toPathStr()
-        check "/" == Pathname.new("/../"    ).cleanpath().toPathStr()
-        check "/" == Pathname.new("//.."    ).cleanpath().toPathStr()
-        check "/" == Pathname.new("//..//"  ).cleanpath().toPathStr()
-        check "/" == Pathname.new("///.."   ).cleanpath().toPathStr()
-        check "/" == Pathname.new("///..///").cleanpath().toPathStr()
+            check "/" == Pathname.new("/.."     ).cleanpath().toPathStr()
+            check "/" == Pathname.new("/../"    ).cleanpath().toPathStr()
+            check "/" == Pathname.new("//.."    ).cleanpath().toPathStr()
+            check "/" == Pathname.new("//..//"  ).cleanpath().toPathStr()
+            check "/" == Pathname.new("///.."   ).cleanpath().toPathStr()
+            check "/" == Pathname.new("///..///").cleanpath().toPathStr()
+
+        when defined(Windows):
+            check "." == Pathname.new("").cleanpath().toPathStr()
+
+            check "a" == Pathname.new("a"  ).cleanpath().toPathStr()
+            check "a" == Pathname.new("a\\" ).cleanpath().toPathStr()
+            check "a" == Pathname.new("a\\\\").cleanpath().toPathStr()
+
+            check "C:\\b" == Pathname.new("C:\\b"   ).cleanpath().toPathStr()
+            check "C:\\b" == Pathname.new("C:\\b\\"  ).cleanpath().toPathStr()
+            check "C:\\b" == Pathname.new("C:\\\\b\\\\").cleanpath().toPathStr()
+
+            check "." == Pathname.new("."  ).cleanpath().toPathStr()
+            check "." == Pathname.new(".\\" ).cleanpath().toPathStr()
+            check "." == Pathname.new(".\\\\").cleanpath().toPathStr()
+
+            check ".." == Pathname.new(".."  ).cleanpath().toPathStr()
+            check ".." == Pathname.new("..\\" ).cleanpath().toPathStr()
+            check ".." == Pathname.new("..\\\\").cleanpath().toPathStr()
+
+            check "C:" == Pathname.new("C:\\."     ).cleanpath().toPathStr()
+            check "C:" == Pathname.new("C:\\.\\"    ).cleanpath().toPathStr()
+            check "C:" == Pathname.new("C:\\\\."    ).cleanpath().toPathStr()
+            check "C:" == Pathname.new("C:\\\\.\\\\"  ).cleanpath().toPathStr()
+            check "C:" == Pathname.new("C:\\\\\\."   ).cleanpath().toPathStr()
+            check "C:" == Pathname.new("C:\\\\\\.\\\\\\").cleanpath().toPathStr()
+
+            check "C:" == Pathname.new("C:\\.."     ).cleanpath().toPathStr()
+            check "C:" == Pathname.new("C:\\..\\"    ).cleanpath().toPathStr()
+            check "C:" == Pathname.new("C:\\\\.."    ).cleanpath().toPathStr()
+            check "C:" == Pathname.new("C:\\\\..\\\\"  ).cleanpath().toPathStr()
+            check "C:" == Pathname.new("C:\\\\\\.."   ).cleanpath().toPathStr()
+            check "C:" == Pathname.new("C:\\\\\\..\\\\\\").cleanpath().toPathStr()
 
 
     test "#fileType() v1":
-        check FileType.REGULAR_FILE == Pathname.new(fixturePath("sample_dir/a_file")).fileType()
+        check FileType.REGULAR_FILE == Pathname.new(fixturePath("sample_dir", "a_file")).fileType()
 
-        check FileType.DIRECTORY == Pathname.new(fixturePath("sample_dir/a_dir")).fileType()
-
-        check FileType.SYMLINK      == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).fileType()
-        check FileType.NOT_EXISTING == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).fileType()
-        check FileType.NOT_EXISTING == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).fileType()
-
-        check FileType.SYMLINK   == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).fileType()
-        check FileType.DIRECTORY == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).fileType()
-        check FileType.DIRECTORY == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).fileType()
-
-        check FileType.CHARACTER_DEVICE == Pathname.new("/dev/null").fileType()
-
-        check FileType.BLOCK_DEVICE == Pathname.new("/dev/loop0").fileType()
+        check FileType.DIRECTORY == Pathname.new(fixturePath("sample_dir", "a_dir")).fileType()
 
         check FileType.NOT_EXISTING == Pathname.new(fixturePath("NON_EXISTING_FILE" )).fileType()
-        check FileType.NOT_EXISTING == Pathname.new(fixturePath("NON_EXISTING_FILE/")).fileType()
+        check FileType.NOT_EXISTING == Pathname.new(fixturePath("NON_EXISTING_FILE", "")).fileType()
 
-        check FileType.NOT_EXISTING == Pathname.new(fixturePath("sample_dir/NON_EXISTING_FILE" )).fileType()
-        check FileType.NOT_EXISTING == Pathname.new(fixturePath("sample_dir/NON_EXISTING_FILE/")).fileType()
+        check FileType.NOT_EXISTING == Pathname.new(fixturePath("sample_dir", "NON_EXISTING_FILE" )).fileType()
+        check FileType.NOT_EXISTING == Pathname.new(fixturePath("sample_dir", "NON_EXISTING_FILE", "")).fileType()
 
-        check FileType.SOCKET_FILE == Pathname.new("/tmp/.X11-unix/X0").fileType()
+        when defined(Posix):
+            check FileType.SYMLINK      == Pathname.new(fixturePath("sample_dir", "a_symlink_to_file"  )).fileType()
+            check FileType.NOT_EXISTING == Pathname.new(fixturePath("sample_dir", "a_symlink_to_file", "" )).fileType()
+            check FileType.NOT_EXISTING == Pathname.new(fixturePath("sample_dir", "a_symlink_to_file", "", "")).fileType()
+
+            check FileType.SYMLINK   == Pathname.new(fixturePath("sample_dir", "a_symlink_to_dir"  )).fileType()
+            check FileType.DIRECTORY == Pathname.new(fixturePath("sample_dir", "a_symlink_to_dir", "" )).fileType()
+            check FileType.DIRECTORY == Pathname.new(fixturePath("sample_dir", "a_symlink_to_dir", "", "")).fileType()
+
+        when defined(Posix):
+            check FileType.SOCKET_FILE == Pathname.new("/tmp/.X11-unix/X0").fileType()
+
+        when defined(Posix):
+            check FileType.CHARACTER_DEVICE == Pathname.new("/dev/null").fileType()
+            check FileType.BLOCK_DEVICE     == Pathname.new("/dev/loop0").fileType()
 
         when defined(Posix):
             discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
@@ -1150,31 +1728,35 @@ suite "Pathname Tests 000":
 
 
     test "#fileType() v2":
-        check true == Pathname.new(fixturePath("sample_dir/a_file")).fileType().isRegularFile()
+        check true == Pathname.new(fixturePath("sample_dir", "a_file")).fileType().isRegularFile()
 
-        check true == Pathname.new(fixturePath("sample_dir/a_dir")).fileType().isDirectory()
+        check true == Pathname.new(fixturePath("sample_dir", "a_dir")).fileType().isDirectory()
 
-        check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_file")).fileType().isSymlink()
-
-        check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir")).fileType().isSymlink()
-
-        check true == Pathname.new("/dev/null" ).fileType().isDeviceFile()
-        check true == Pathname.new("/dev/loop0").fileType().isDeviceFile()
-
-        check true == Pathname.new("/dev/null" ).fileType().isCharacterDeviceFile()
-        check true == Pathname.new("/dev/loop0").fileType().isBlockDeviceFile()
-
-        check true == Pathname.new(fixturePath("sample_dir/a_file"   )).fileType().isExisting()
-        check true == Pathname.new(fixturePath("sample_dir/a_dir"    )).fileType().isExisting()
-        check true == Pathname.new(fixturePath("sample_dir/a_symlink")).fileType().isExisting()
+        check true == Pathname.new(fixturePath("sample_dir", "a_file"   )).fileType().isExisting()
+        check true == Pathname.new(fixturePath("sample_dir", "a_dir"    )).fileType().isExisting()
+        check true == Pathname.new(fixturePath("sample_dir", "a_symlink")).fileType().isExisting()
 
         check true == Pathname.new(fixturePath("NON_EXISTING_FILE" )).fileType().isNotExisting()
-        check true == Pathname.new(fixturePath("NON_EXISTING_FILE/")).fileType().isNotExisting()
+        check true == Pathname.new(fixturePath("NON_EXISTING_FILE", "")).fileType().isNotExisting()
 
-        check true == Pathname.new(fixturePath("sample_dir/NON_EXISTING_FILE" )).fileType().isNotExisting()
-        check true == Pathname.new(fixturePath("sample_dir/NON_EXISTING_FILE/")).fileType().isNotExisting()
+        check true == Pathname.new(fixturePath("sample_dir", "NON_EXISTING_FILE"    )).fileType().isNotExisting()
+        check true == Pathname.new(fixturePath("sample_dir", "NON_EXISTING_FILE", "")).fileType().isNotExisting()
 
-        check true == Pathname.new("/tmp/.X11-unix/X0").fileType().isSocketFile()
+        when defined(Posix):
+            check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_file")).fileType().isSymlink()
+
+            check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir")).fileType().isSymlink()
+
+        when defined(Posix):
+            check true == Pathname.new("/dev/null" ).fileType().isDeviceFile()
+            check true == Pathname.new("/dev/loop0").fileType().isDeviceFile()
+
+        when defined(Posix):
+            check true == Pathname.new("/dev/null" ).fileType().isCharacterDeviceFile()
+            check true == Pathname.new("/dev/loop0").fileType().isBlockDeviceFile()
+
+        when defined(Posix):
+            check true == Pathname.new("/tmp/.X11-unix/X0").fileType().isSocketFile()
 
         when defined(Posix):
             discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
@@ -1186,215 +1768,255 @@ suite "Pathname Tests 000":
     test "#isExisting() with regular files":
         check true == Pathname.new(fixturePath("README.md"  )).isExisting()
 
-        check true == Pathname.new(fixturePath("sample_dir"  )).isExisting()
-        check true == Pathname.new(fixturePath("sample_dir/" )).isExisting()
-        check true == Pathname.new(fixturePath("sample_dir//")).isExisting()
+        check true == Pathname.new(fixturePath("sample_dir")).isExisting()
+        check true == Pathname.new(fixturePath("sample_dir", "" )).isExisting()
+        check true == Pathname.new(fixturePath("sample_dir", "", "")).isExisting()
 
-        check true  == Pathname.new(fixturePath("sample_dir/a_file"  )).isExisting()
-        check false == Pathname.new(fixturePath("sample_dir/a_file/" )).isExisting()
-        check false == Pathname.new(fixturePath("sample_dir/a_file//")).isExisting()
+        check true  == Pathname.new(fixturePath("sample_dir", "a_file")).isExisting()
+        check false == Pathname.new(fixturePath("sample_dir", "a_file", "" )).isExisting()
+        check false == Pathname.new(fixturePath("sample_dir", "a_file", "", "")).isExisting()
 
-        check true  == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isExisting()
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isExisting()
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2//")).isExisting()
+        check true  == Pathname.new(fixturePath("sample_dir", "a_file.no2")).isExisting()
+        check false == Pathname.new(fixturePath("sample_dir", "a_file.no2", "")).isExisting()
+        check false == Pathname.new(fixturePath("sample_dir", "a_file.no2", "", "")).isExisting()
 
-        check false == Pathname.new(fixturePath("NON_EXISTING_FILE"  )).isExisting()
-        check false == Pathname.new(fixturePath("NON_EXISTING_FILE/" )).isExisting()
-        check false == Pathname.new(fixturePath("NON_EXISTING_FILE//")).isExisting()
+        check false == Pathname.new(fixturePath("NON_EXISTING_FILE")).isExisting()
+        check false == Pathname.new(fixturePath("NON_EXISTING_FILE", "" )).isExisting()
+        check false == Pathname.new(fixturePath("NON_EXISTING_FILE", "", "")).isExisting()
 
-        check false == Pathname.new(fixturePath("sample_dir//NON_EXISTING_FILE"  )).isExisting()
-        check false == Pathname.new(fixturePath("sample_dir//NON_EXISTING_FILE/" )).isExisting()
-        check false == Pathname.new(fixturePath("sample_dir//NON_EXISTING_FILE//")).isExisting()
+        check false == Pathname.new(fixturePath("sample_dir", "", "NON_EXISTING_FILE")).isExisting()
+        check false == Pathname.new(fixturePath("sample_dir", "", "NON_EXISTING_FILE", "")).isExisting()
+        check false == Pathname.new(fixturePath("sample_dir", "", "NON_EXISTING_FILE", "", "")).isExisting()
 
-        check false == Pathname.new(fixturePath("NON_EXISTING_DIR//NON_EXISTING_FILE"  )).isExisting()
-        check false == Pathname.new(fixturePath("NON_EXISTING_DIR//NON_EXISTING_FILE/" )).isExisting()
-        check false == Pathname.new(fixturePath("NON_EXISTING_DIR//NON_EXISTING_FILE//")).isExisting()
+        check false == Pathname.new(fixturePath("NON_EXISTING_DIR", "", "NON_EXISTING_FILE")).isExisting()
+        check false == Pathname.new(fixturePath("NON_EXISTING_DIR", "", "NON_EXISTING_FILE", "")).isExisting()
+        check false == Pathname.new(fixturePath("NON_EXISTING_DIR", "", "NON_EXISTING_FILE", "", "")).isExisting()
 
-        check false == Pathname.new("/NON_EXISTING_FILE"  ).isExisting()
-        check false == Pathname.new("/NON_EXISTING_FILE/" ).isExisting()
-        check false == Pathname.new("/NON_EXISTING_FILE//").isExisting()
+        when defined(Posix):
+            check false == Pathname.new("/NON_EXISTING_FILE"  ).isExisting()
+            check false == Pathname.new("/NON_EXISTING_FILE/" ).isExisting()
+            check false == Pathname.new("/NON_EXISTING_FILE//").isExisting()
+
+        when defined(Windows):
+            check false == Pathname.new("C:\\NON_EXISTING_FILE"    ).isExisting()
+            check false == Pathname.new("C:\\NON_EXISTING_FILE\\"  ).isExisting()
+            check false == Pathname.new("C:\\NON_EXISTING_FILE\\\\").isExisting()
 
 
 
     test "#isExisting() with directories":
-        check true == Pathname.new(fixturePath("sample_dir"  )).isExisting()
-        check true == Pathname.new(fixturePath("sample_dir/" )).isExisting()
-        check true == Pathname.new(fixturePath("sample_dir//")).isExisting()
+        check true == Pathname.new(fixturePath("sample_dir")).isExisting()
+        check true == Pathname.new(fixturePath("sample_dir", "" )).isExisting()
+        check true == Pathname.new(fixturePath("sample_dir", "", "")).isExisting()
 
-        check true == Pathname.new(fixturePath("sample_dir/a_dir"  )).isExisting()
-        check true == Pathname.new(fixturePath("sample_dir/a_dir/" )).isExisting()
-        check true == Pathname.new(fixturePath("sample_dir/a_dir//")).isExisting()
+        check true == Pathname.new(fixturePath("sample_dir", "a_dir")).isExisting()
+        check true == Pathname.new(fixturePath("sample_dir", "a_dir", "" )).isExisting()
+        check true == Pathname.new(fixturePath("sample_dir", "a_dir", "", "")).isExisting()
 
-        check false == Pathname.new(fixturePath("NON_EXISTING_DIR"  )).isExisting()
-        check false == Pathname.new(fixturePath("NON_EXISTING_DIR/" )).isExisting()
-        check false == Pathname.new(fixturePath("NON_EXISTING_DIR//")).isExisting()
+        check false == Pathname.new(fixturePath("NON_EXISTING_DIR")).isExisting()
+        check false == Pathname.new(fixturePath("NON_EXISTING_DIR", "" )).isExisting()
+        check false == Pathname.new(fixturePath("NON_EXISTING_DIR", "", "")).isExisting()
 
-        check false == Pathname.new("/NON_EXISTING_DIR"  ).isExisting()
-        check false == Pathname.new("/NON_EXISTING_DIR/" ).isExisting()
-        check false == Pathname.new("/NON_EXISTING_DIR//").isExisting()
+        when defined(Posix):
+            check false == Pathname.new("/NON_EXISTING_DIR"  ).isExisting()
+            check false == Pathname.new("/NON_EXISTING_DIR/" ).isExisting()
+            check false == Pathname.new("/NON_EXISTING_DIR//").isExisting()
 
-
-
-    test "#isExisting() with device-files":
-        check true == Pathname.new("/dev/null"   ).isExisting()
-        check true == Pathname.new("/dev/zero"   ).isExisting()
-        check true == Pathname.new("/dev/random" ).isExisting()
-        check true == Pathname.new("/dev/urandom").isExisting()
-
-        check true == Pathname.new("/dev/loop0").isExisting()
-        check true == Pathname.new("/dev/loop1").isExisting()
-
-        check false == Pathname.new("/dev/NON_EXISTING_FILE" ).isExisting()
-        check false == Pathname.new("/dev/NON_EXISTING_DIR/" ).isExisting()
-        check false == Pathname.new("/dev/NON_EXISTING_DIR//").isExisting()
+        when defined(Windows):
+            check false == Pathname.new("C:\\NON_EXISTING_DIR"    ).isExisting()
+            check false == Pathname.new("C:\\NON_EXISTING_DIR\\"  ).isExisting()
+            check false == Pathname.new("C:\\NON_EXISTING_DIR\\\\").isExisting()
 
 
 
-    test "#isExisting() with symlink-files":
-        check true  == Pathname.new(fixturePath("sample_dir/a_symlink"  )).isExisting()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink/" )).isExisting()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink//")).isExisting()
+    when defined(Posix):
+        test "#isExisting() with device-files":
+            check true == Pathname.new("/dev/null"   ).isExisting()
+            check true == Pathname.new("/dev/zero"   ).isExisting()
+            check true == Pathname.new("/dev/random" ).isExisting()
+            check true == Pathname.new("/dev/urandom").isExisting()
 
-        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isExisting()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isExisting()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isExisting()
+            check true == Pathname.new("/dev/loop0").isExisting()
+            check true == Pathname.new("/dev/loop1").isExisting()
 
-        check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isExisting()
-        check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isExisting()
-        check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isExisting()
+            check false == Pathname.new("/dev/NON_EXISTING_FILE" ).isExisting()
+            check false == Pathname.new("/dev/NON_EXISTING_DIR/" ).isExisting()
+            check false == Pathname.new("/dev/NON_EXISTING_DIR//").isExisting()
 
-        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isExisting()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isExisting()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device//")).isExisting()
 
-        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isExisting()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isExisting()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isExisting()
 
-        check false == Pathname.new("/dev/NON_EXISTING_SYMLINK" ).isExisting()
+    when defined(Posix):
+        test "#isExisting() with symlink-files":
+            check true  == Pathname.new(fixturePath("sample_dir/a_symlink"  )).isExisting()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink/" )).isExisting()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink//")).isExisting()
+
+            check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isExisting()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isExisting()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isExisting()
+
+            check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isExisting()
+            check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isExisting()
+            check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isExisting()
+
+            check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isExisting()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isExisting()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device//")).isExisting()
+
+            check true  == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isExisting()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isExisting()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isExisting()
+
+            check false == Pathname.new("/dev/NON_EXISTING_SYMLINK" ).isExisting()
+
+
+
+    when defined(Posix):
+        test "#isExisting() with SymLink-Files":
+            check true == Pathname.new(fixturePath("sample_dir/a_symlink")).isExisting()
+
+
+
+    when defined(Posix):
+        test "#isExisting() with Socket-Files":
+            check true == Pathname.new("/tmp/.X11-unix/X0").isExisting()
 
 
 
     test "#isNotExisting()":
-        check false == Pathname.new(fixturePath("README.md"  )).isNotExisting()
+        check false == Pathname.new(fixturePath("README.md")).isNotExisting()
 
-        check false == Pathname.new(fixturePath("sample_dir"  )).isNotExisting()
-        check false == Pathname.new(fixturePath("sample_dir/" )).isNotExisting()
-        check false == Pathname.new(fixturePath("sample_dir//")).isNotExisting()
+        check false == Pathname.new(fixturePath("sample_dir")).isNotExisting()
+        check false == Pathname.new(fixturePath("sample_dir","")).isNotExisting()
+        check false == Pathname.new(fixturePath("sample_dir","","")).isNotExisting()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_file"  )).isNotExisting()
-        check true  == Pathname.new(fixturePath("sample_dir/a_file/" )).isNotExisting()
-        check true  == Pathname.new(fixturePath("sample_dir/a_file//")).isNotExisting()
+        check false == Pathname.new(fixturePath("sample_dir","a_file")).isNotExisting()
+        check true  == Pathname.new(fixturePath("sample_dir","a_file","")).isNotExisting()
+        check true  == Pathname.new(fixturePath("sample_dir","a_file","","")).isNotExisting()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isNotExisting()
-        check true  == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isNotExisting()
-        check true  == Pathname.new(fixturePath("sample_dir/a_file.no2//")).isNotExisting()
+        check false == Pathname.new(fixturePath("sample_dir","a_file.no2")).isNotExisting()
+        check true  == Pathname.new(fixturePath("sample_dir","a_file.no2","")).isNotExisting()
+        check true  == Pathname.new(fixturePath("sample_dir","a_file.no2","","")).isNotExisting()
 
-        check true == Pathname.new(fixturePath("NON_EXISTING_FILE"  )).isNotExisting()
-        check true == Pathname.new(fixturePath("NON_EXISTING_FILE/" )).isNotExisting()
-        check true == Pathname.new(fixturePath("NON_EXISTING_FILE//")).isNotExisting()
+        check true == Pathname.new(fixturePath("NON_EXISTING_FILE")).isNotExisting()
+        check true == Pathname.new(fixturePath("NON_EXISTING_FILE","")).isNotExisting()
+        check true == Pathname.new(fixturePath("NON_EXISTING_FILE","","")).isNotExisting()
 
-        check true == Pathname.new(fixturePath("sample_dir//NON_EXISTING_FILE"  )).isNotExisting()
-        check true == Pathname.new(fixturePath("sample_dir//NON_EXISTING_FILE/" )).isNotExisting()
-        check true == Pathname.new(fixturePath("sample_dir//NON_EXISTING_FILE//")).isNotExisting()
+        check true == Pathname.new(fixturePath("sample_dir","","NON_EXISTING_FILE")).isNotExisting()
+        check true == Pathname.new(fixturePath("sample_dir","","NON_EXISTING_FILE","")).isNotExisting()
+        check true == Pathname.new(fixturePath("sample_dir","","NON_EXISTING_FILE","","")).isNotExisting()
 
-        check true == Pathname.new(fixturePath("NON_EXISTING_DIR//NON_EXISTING_FILE"  )).isNotExisting()
-        check true == Pathname.new(fixturePath("NON_EXISTING_DIR//NON_EXISTING_FILE/" )).isNotExisting()
-        check true == Pathname.new(fixturePath("NON_EXISTING_DIR//NON_EXISTING_FILE//")).isNotExisting()
+        check true == Pathname.new(fixturePath("NON_EXISTING_DIR","","NON_EXISTING_FILE")).isNotExisting()
+        check true == Pathname.new(fixturePath("NON_EXISTING_DIR","","NON_EXISTING_FILE","")).isNotExisting()
+        check true == Pathname.new(fixturePath("NON_EXISTING_DIR","","NON_EXISTING_FILE","","")).isNotExisting()
 
-        check true == Pathname.new("/NON_EXISTING_FILE"  ).isNotExisting()
-        check true == Pathname.new("/NON_EXISTING_FILE/" ).isNotExisting()
-        check true == Pathname.new("/NON_EXISTING_FILE//").isNotExisting()
+        # Socket-File
+        when defined(Posix):
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink")).isNotExisting()
 
-        check false == Pathname.new("/tmp/.X11-unix/X0").isNotExisting()
+        # Socket-File
+        when defined(Posix):
+            check false == Pathname.new("/tmp/.X11-unix/X0").isNotExisting()
+
+        when defined(Posix):
+            check true == Pathname.new("/NON_EXISTING_FILE").isNotExisting()
+            check true == Pathname.new("/NON_EXISTING_FILE/").isNotExisting()
+            check true == Pathname.new("/NON_EXISTING_FILE//").isNotExisting()
+
+        when defined(Windows):
+            check true == Pathname.new("C:\\NON_EXISTING_FILE").isNotExisting()
+            check true == Pathname.new("C:\\NON_EXISTING_FILE\\").isNotExisting()
+            check true == Pathname.new("C:\\NON_EXISTING_FILE\\\\").isNotExisting()
 
 
 
     test "#isUnknownFileType()":
-        check false == Pathname.new(fixturePath("sample_dir/a_file"  )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("sample_dir/a_file/" )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("sample_dir/a_file//")).isUnknownFileType()
+        check false == Pathname.new(fixturePath("sample_dir","a_file"  )).isUnknownFileType()
+        check false == Pathname.new(fixturePath("sample_dir","a_file","" )).isUnknownFileType()
+        check false == Pathname.new(fixturePath("sample_dir","a_file","","")).isUnknownFileType()
 
         check false == Pathname.new(fixturePath("sample_dir"  )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("sample_dir/" )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("sample_dir//")).isUnknownFileType()
+        check false == Pathname.new(fixturePath("sample_dir","" )).isUnknownFileType()
+        check false == Pathname.new(fixturePath("sample_dir","","")).isUnknownFileType()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir/" )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir//")).isUnknownFileType()
+        check false == Pathname.new(fixturePath("sample_dir","a_dir"  )).isUnknownFileType()
+        check false == Pathname.new(fixturePath("sample_dir","a_dir","" )).isUnknownFileType()
+        check false == Pathname.new(fixturePath("sample_dir","a_dir","","")).isUnknownFileType()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2//")).isUnknownFileType()
+        check false == Pathname.new(fixturePath("sample_dir","a_file.no2"  )).isUnknownFileType()
+        check false == Pathname.new(fixturePath("sample_dir","a_file.no2","" )).isUnknownFileType()
+        check false == Pathname.new(fixturePath("sample_dir","a_file.no2","","")).isUnknownFileType()
 
         check false == Pathname.new(fixturePath("NON_EXISTING_FILE"  )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("NON_EXISTING_FILE/" )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("NON_EXISTING_FILE//")).isUnknownFileType()
+        check false == Pathname.new(fixturePath("NON_EXISTING_FILE","" )).isUnknownFileType()
+        check false == Pathname.new(fixturePath("NON_EXISTING_FILE","","")).isUnknownFileType()
 
-        check false == Pathname.new("/dev/null").isUnknownFileType()
-        check false == Pathname.new("/dev/zero").isUnknownFileType()
+        when defined(Posix):
+            check false == Pathname.new("/dev/null").isUnknownFileType()
+            check false == Pathname.new("/dev/zero").isUnknownFileType()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isUnknownFileType()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isUnknownFileType()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isUnknownFileType()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isUnknownFileType()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isUnknownFileType()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isUnknownFileType()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isUnknownFileType()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isUnknownFileType()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device//")).isUnknownFileType()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isUnknownFileType()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isUnknownFileType()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device//")).isUnknownFileType()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isUnknownFileType()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isUnknownFileType()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isUnknownFileType()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isUnknownFileType()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isUnknownFileType()
 
-        check false == Pathname.new("/tmp/.X11-unix/X0").isUnknownFileType()
+            check false == Pathname.new("/tmp/.X11-unix/X0").isUnknownFileType()
 
 
 
     test "#isRegularFile()":
-        check true  == Pathname.new(fixturePath("sample_dir/a_file"  )).isRegularFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_file/" )).isRegularFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_file//")).isRegularFile()
+        check true  == Pathname.new(fixturePath("sample_dir","a_file"  )).isRegularFile()
+        check false == Pathname.new(fixturePath("sample_dir","a_file","" )).isRegularFile()
+        check false == Pathname.new(fixturePath("sample_dir","a_file","","")).isRegularFile()
 
         check false == Pathname.new(fixturePath("sample_dir"  )).isRegularFile()
-        check false == Pathname.new(fixturePath("sample_dir/" )).isRegularFile()
-        check false == Pathname.new(fixturePath("sample_dir//")).isRegularFile()
+        check false == Pathname.new(fixturePath("sample_dir","" )).isRegularFile()
+        check false == Pathname.new(fixturePath("sample_dir","","")).isRegularFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).isRegularFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir/" )).isRegularFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir//")).isRegularFile()
+        check false == Pathname.new(fixturePath("sample_dir","a_dir"  )).isRegularFile()
+        check false == Pathname.new(fixturePath("sample_dir","a_dir","" )).isRegularFile()
+        check false == Pathname.new(fixturePath("sample_dir","a_dir","","")).isRegularFile()
 
-        check true  == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isRegularFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isRegularFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2//")).isRegularFile()
+        check true  == Pathname.new(fixturePath("sample_dir","a_file.no2"  )).isRegularFile()
+        check false == Pathname.new(fixturePath("sample_dir","a_file.no2","" )).isRegularFile()
+        check false == Pathname.new(fixturePath("sample_dir","a_file.no2","","")).isRegularFile()
 
         check false == Pathname.new(fixturePath("NON_EXISTING_FILE"  )).isRegularFile()
-        check false == Pathname.new(fixturePath("NON_EXISTING_FILE/" )).isRegularFile()
-        check false == Pathname.new(fixturePath("NON_EXISTING_FILE//")).isRegularFile()
+        check false == Pathname.new(fixturePath("NON_EXISTING_FILE","" )).isRegularFile()
+        check false == Pathname.new(fixturePath("NON_EXISTING_FILE","","")).isRegularFile()
 
-        check false == Pathname.new("/dev/null").isRegularFile()
-        check false == Pathname.new("/dev/zero").isRegularFile()
+        when defined(Posix):
+            check false == Pathname.new("/dev/null").isRegularFile()
+            check false == Pathname.new("/dev/zero").isRegularFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isRegularFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isRegularFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isRegularFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isRegularFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isRegularFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isRegularFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isRegularFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isRegularFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isRegularFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isRegularFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isRegularFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isRegularFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isRegularFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isRegularFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device//")).isRegularFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isRegularFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isRegularFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device//")).isRegularFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isRegularFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isRegularFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isRegularFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isRegularFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isRegularFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isRegularFile()
 
-        check false == Pathname.new("/tmp/.X11-unix/X0").isRegularFile()
+            check false == Pathname.new("/tmp/.X11-unix/X0").isRegularFile()
 
 
 
@@ -1419,222 +2041,261 @@ suite "Pathname Tests 000":
         check false == Pathname.new(fixturePath("NON_EXISTING_DIR/" )).isDirectory()
         check false == Pathname.new(fixturePath("NON_EXISTING_DIR//")).isDirectory()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isDirectory()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isDirectory()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isDirectory()
+        when defined(Posix):
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isDirectory()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isDirectory()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isDirectory()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isDirectory()
-        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isDirectory()
-        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isDirectory()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isDirectory()
+            check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isDirectory()
+            check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isDirectory()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isDirectory()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isDirectory()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device//")).isDirectory()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isDirectory()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isDirectory()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device//")).isDirectory()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isDirectory()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isDirectory()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isDirectory()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isDirectory()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isDirectory()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isDirectory()
 
-        check false == Pathname.new("/tmp/.X11-unix/X0").isDirectory()
+            check false == Pathname.new("/tmp/.X11-unix/X0").isDirectory()
 
 
 
     test "#isSymlink()":
-        check true  == Pathname.new(fixturePath("sample_dir/a_symlink"  )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink/" )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink//")).isSymlink()
+        when defined(Posix):
+            check true  == Pathname.new(fixturePath("sample_dir/a_symlink"  )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink/" )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink//")).isSymlink()
 
-        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isSymlink()
+            check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isSymlink()
 
-        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isSymlink()
+            check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isSymlink()
 
-        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device//")).isSymlink()
+            check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device//")).isSymlink()
 
-        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device"  )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device/" )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device//")).isSymlink()
+            check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device"  )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device/" )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device//")).isSymlink()
 
-        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device"  )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device/" )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device//")).isSymlink()
+            check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device"  )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device/" )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device//")).isSymlink()
 
-        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isSymlink()
+            check true  == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isSymlink()
 
-        check false == Pathname.new(fixturePath("sample_dir"  )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/" )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir//")).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir"  )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/" )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir//")).isSymlink()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir/" )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir//")).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_dir/" )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_dir//")).isSymlink()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_file"  )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_file/" )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_file//")).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_file"  )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_file/" )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_file//")).isSymlink()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2//")).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir/a_file.no2//")).isSymlink()
 
-        check false == Pathname.new(fixturePath("NON_EXISTING_DIR"  )).isSymlink()
-        check false == Pathname.new(fixturePath("NON_EXISTING_DIR/" )).isSymlink()
-        check false == Pathname.new(fixturePath("NON_EXISTING_DIR//")).isSymlink()
+            check false == Pathname.new(fixturePath("NON_EXISTING_DIR"  )).isSymlink()
+            check false == Pathname.new(fixturePath("NON_EXISTING_DIR/" )).isSymlink()
+            check false == Pathname.new(fixturePath("NON_EXISTING_DIR//")).isSymlink()
 
-        check false == Pathname.new("/tmp/.X11-unix/X0").isSymlink()
+            check false == Pathname.new("/tmp/.X11-unix/X0").isSymlink()
+
+        when defined(Windows):
+            check false == Pathname.new(fixturePath("sample_dir"  )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir\\" )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir\\\\")).isSymlink()
+
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir"  )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir\\" )).isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir\\\\")).isSymlink()
 
 
 
     test "#isDeviceFile()":
-        check false == Pathname.new(fixturePath("sample_dir/a_file")).isDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/"      )).isDeviceFile()
+        when defined(Posix):
+            check false == Pathname.new(fixturePath("sample_dir/a_file")).isDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir"       )).isDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/"      )).isDeviceFile()
 
-        check true == Pathname.new("/dev/null"   ).isDeviceFile()
-        check true == Pathname.new("/dev/zero"   ).isDeviceFile()
-        check true == Pathname.new("/dev/random" ).isDeviceFile()
-        check true == Pathname.new("/dev/urandom").isDeviceFile()
+            check true == Pathname.new("/dev/null"   ).isDeviceFile()
+            check true == Pathname.new("/dev/zero"   ).isDeviceFile()
+            check true == Pathname.new("/dev/random" ).isDeviceFile()
+            check true == Pathname.new("/dev/urandom").isDeviceFile()
 
-        check true == Pathname.new("/dev/loop0").isDeviceFile()
-        check true == Pathname.new("/dev/loop1").isDeviceFile()
+            check true == Pathname.new("/dev/loop0").isDeviceFile()
+            check true == Pathname.new("/dev/loop1").isDeviceFile()
 
-        check false == Pathname.new("/dev/NON_EXISTING"  ).isDeviceFile()
-        check false == Pathname.new("/dev/NON_EXISTING/" ).isDeviceFile()
+            check false == Pathname.new("/dev/NON_EXISTING"  ).isDeviceFile()
+            check false == Pathname.new("/dev/NON_EXISTING/" ).isDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device"  )).isDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device/" )).isDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device"  )).isDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device/" )).isDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device"  )).isDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device/" )).isDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device"  )).isDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device/" )).isDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isDeviceFile()
 
-        check false == Pathname.new("/tmp/.X11-unix/X0").isDeviceFile()
+            check false == Pathname.new("/tmp/.X11-unix/X0").isDeviceFile()
+
+        when defined(Windows):
+            check false == Pathname.new(fixturePath("sample_dir\\a_file")).isDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir"        )).isDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir\\"      )).isDeviceFile()
 
 
 
     test "#isCharacterDeviceFile()":
-        check false == Pathname.new(fixturePath("sample_dir/a_file")).isCharacterDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/"      )).isCharacterDeviceFile()
+        when defined(Posix):
+            check false == Pathname.new(fixturePath("sample_dir/a_file")).isCharacterDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir"       )).isCharacterDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/"      )).isCharacterDeviceFile()
 
-        check true == Pathname.new("/dev/null"   ).isCharacterDeviceFile()
-        check true == Pathname.new("/dev/zero"   ).isCharacterDeviceFile()
-        check true == Pathname.new("/dev/random" ).isCharacterDeviceFile()
-        check true == Pathname.new("/dev/urandom").isCharacterDeviceFile()
+            check true == Pathname.new("/dev/null"   ).isCharacterDeviceFile()
+            check true == Pathname.new("/dev/zero"   ).isCharacterDeviceFile()
+            check true == Pathname.new("/dev/random" ).isCharacterDeviceFile()
+            check true == Pathname.new("/dev/urandom").isCharacterDeviceFile()
 
-        check false == Pathname.new("/dev/loop0").isCharacterDeviceFile()
-        check false == Pathname.new("/dev/loop1").isCharacterDeviceFile()
+            check false == Pathname.new("/dev/loop0").isCharacterDeviceFile()
+            check false == Pathname.new("/dev/loop1").isCharacterDeviceFile()
 
-        check false == Pathname.new("/dev/NON_EXISTING"  ).isCharacterDeviceFile()
-        check false == Pathname.new("/dev/NON_EXISTING/" ).isCharacterDeviceFile()
+            check false == Pathname.new("/dev/NON_EXISTING"  ).isCharacterDeviceFile()
+            check false == Pathname.new("/dev/NON_EXISTING/" ).isCharacterDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isCharacterDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isCharacterDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isCharacterDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isCharacterDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isCharacterDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isCharacterDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isCharacterDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isCharacterDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isCharacterDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isCharacterDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isCharacterDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isCharacterDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device"  )).isCharacterDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device/" )).isCharacterDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device"  )).isCharacterDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device/" )).isCharacterDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device"  )).isCharacterDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device/" )).isCharacterDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device"  )).isCharacterDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device/" )).isCharacterDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isCharacterDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isCharacterDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isCharacterDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isCharacterDeviceFile()
 
-        check false == Pathname.new("/tmp/.X11-unix/X0").isCharacterDeviceFile()
+            check false == Pathname.new("/tmp/.X11-unix/X0").isCharacterDeviceFile()
+
+        when defined(Windows):
+            check false == Pathname.new(fixturePath("sample_dir\\a_file")).isCharacterDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir"        )).isCharacterDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir\\"      )).isCharacterDeviceFile()
 
 
 
     test "#isBlockDeviceFile()":
-        check false == Pathname.new(fixturePath("sample_dir/a_file")).isBlockDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/"      )).isBlockDeviceFile()
+        when defined(Posix):
+            check false == Pathname.new(fixturePath("sample_dir/a_file")).isBlockDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir"       )).isBlockDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/"      )).isBlockDeviceFile()
 
-        check false == Pathname.new("/dev/null"   ).isBlockDeviceFile()
-        check false == Pathname.new("/dev/zero"   ).isBlockDeviceFile()
-        check false == Pathname.new("/dev/random" ).isBlockDeviceFile()
-        check false == Pathname.new("/dev/urandom").isBlockDeviceFile()
+            check false == Pathname.new("/dev/null"   ).isBlockDeviceFile()
+            check false == Pathname.new("/dev/zero"   ).isBlockDeviceFile()
+            check false == Pathname.new("/dev/random" ).isBlockDeviceFile()
+            check false == Pathname.new("/dev/urandom").isBlockDeviceFile()
 
-        check true == Pathname.new("/dev/loop0").isBlockDeviceFile()
-        check true == Pathname.new("/dev/loop1").isBlockDeviceFile()
+            check true == Pathname.new("/dev/loop0").isBlockDeviceFile()
+            check true == Pathname.new("/dev/loop1").isBlockDeviceFile()
 
-        check false == Pathname.new("/dev/NON_EXISTING"  ).isBlockDeviceFile()
-        check false == Pathname.new("/dev/NON_EXISTING/" ).isBlockDeviceFile()
+            check false == Pathname.new("/dev/NON_EXISTING"  ).isBlockDeviceFile()
+            check false == Pathname.new("/dev/NON_EXISTING/" ).isBlockDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isBlockDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isBlockDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isBlockDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isBlockDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isBlockDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isBlockDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isBlockDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isBlockDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isBlockDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isBlockDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isBlockDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isBlockDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device"  )).isBlockDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device/" )).isBlockDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device"  )).isBlockDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_char_device/" )).isBlockDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device"  )).isBlockDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device/" )).isBlockDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device"  )).isBlockDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_block_device/" )).isBlockDeviceFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isBlockDeviceFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isBlockDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isBlockDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isBlockDeviceFile()
 
-        check false == Pathname.new("/tmp/.X11-unix/X0").isBlockDeviceFile()
+            check false == Pathname.new("/tmp/.X11-unix/X0").isBlockDeviceFile()
+
+        when defined(Windows):
+            check false == Pathname.new(fixturePath("sample_dir\\a_file")).isBlockDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir"        )).isBlockDeviceFile()
+            check false == Pathname.new(fixturePath("sample_dir\\"      )).isBlockDeviceFile()
 
 
 
     test "#isSocketFile()":
-        check true == Pathname.new("/tmp/.X11-unix/X0").isSocketFile()
+        when defined(Posix):
+            check true == Pathname.new("/tmp/.X11-unix/X0").isSocketFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_file"  )).isSocketFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_file/" )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_file"  )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_file/" )).isSocketFile()
 
-        check false == Pathname.new(fixturePath("sample_dir"  )).isSocketFile()
-        check false == Pathname.new(fixturePath("sample_dir/" )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir"  )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir/" )).isSocketFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).isSocketFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir/" )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_dir/" )).isSocketFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isSocketFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isSocketFile()
 
-        check false == Pathname.new(fixturePath("NON_EXISTING_FILE"  )).isSocketFile()
-        check false == Pathname.new(fixturePath("NON_EXISTING_FILE/" )).isSocketFile()
+            check false == Pathname.new(fixturePath("NON_EXISTING_FILE"  )).isSocketFile()
+            check false == Pathname.new(fixturePath("NON_EXISTING_FILE/" )).isSocketFile()
 
-        check false == Pathname.new("/dev/null").isSocketFile()
-        check false == Pathname.new("/dev/zero").isSocketFile()
+            check false == Pathname.new("/dev/null").isSocketFile()
+            check false == Pathname.new("/dev/zero").isSocketFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isSocketFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isSocketFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isSocketFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isSocketFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isSocketFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isSocketFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isSocketFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isSocketFile()
+
+        when defined(Windows):
+            check false == Pathname.new(fixturePath("sample_dir\\a_file"   )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir\\a_file\\" )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir"   )).isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir\\" )).isSocketFile()
 
 
 
@@ -1644,161 +2305,270 @@ suite "Pathname Tests 000":
             check true == Pathname.new(fixturePath("sample_dir/a_pipe")).isPipeFile()
             discard posix.unlink( fixturePath("sample_dir/a_pipe") )
 
-        check false == Pathname.new(fixturePath("sample_dir/a_file" )).isPipeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_file/")).isPipeFile()
+        when defined(Posix):
+            check false == Pathname.new(fixturePath("sample_dir/a_file" )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_file/")).isPipeFile()
 
-        check false == Pathname.new(fixturePath("sample_dir"  )).isPipeFile()
-        check false == Pathname.new(fixturePath("sample_dir/" )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir"  )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir/" )).isPipeFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).isPipeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir/" )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_dir/" )).isPipeFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isPipeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isPipeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2//")).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_file.no2//")).isPipeFile()
 
-        check false == Pathname.new(fixturePath("NON_EXISTING_FILE"  )).isPipeFile()
-        check false == Pathname.new(fixturePath("NON_EXISTING_FILE/" )).isPipeFile()
+            check false == Pathname.new(fixturePath("NON_EXISTING_FILE"  )).isPipeFile()
+            check false == Pathname.new(fixturePath("NON_EXISTING_FILE/" )).isPipeFile()
 
-        check false == Pathname.new("/dev/null").isPipeFile()
-        check false == Pathname.new("/dev/zero").isPipeFile()
+            check false == Pathname.new("/dev/null").isPipeFile()
+            check false == Pathname.new("/dev/zero").isPipeFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isPipeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isPipeFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isPipeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isPipeFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isPipeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isPipeFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isPipeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isPipeFile()
 
-        check false == Pathname.new("/tmp/.X11-unix/X0").isPipeFile()
+            check false == Pathname.new("/tmp/.X11-unix/X0").isPipeFile()
+
+        when defined(Windows):
+            check false == Pathname.new(fixturePath("sample_dir\\a_file"  )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir\\a_file\\")).isPipeFile()
+
+            check false == Pathname.new(fixturePath("sample_dir"   )).isPipeFile()
+            check false == Pathname.new(fixturePath("sample_dir\\" )).isPipeFile()
 
 
 
     test "#isHidden()":
-        check true == Pathname.new(fixturePath("sample_dir/.a_hidden_file")).isHidden()
-        check true == Pathname.new(fixturePath("sample_dir/.a_hidden_dir")).isHidden()
-        check true == Pathname.new(fixturePath("sample_dir/.a_hidden_dir/.keep")).isHidden()
+        when defined(Posix):
+            check true == Pathname.new(fixturePath("sample_dir/.a_hidden_file")).isHidden()
+            check true == Pathname.new(fixturePath("sample_dir/.a_hidden_dir")).isHidden()
+            check true == Pathname.new(fixturePath("sample_dir/.a_hidden_dir/.keep")).isHidden()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_file")).isHidden()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir")).isHidden()
-        check false == Pathname.new(fixturePath("sample_dir/NOT_EXISTING")).isHidden()
+            check false == Pathname.new(fixturePath("sample_dir/a_file")).isHidden()
+            check false == Pathname.new(fixturePath("sample_dir/a_dir")).isHidden()
+            check false == Pathname.new(fixturePath("sample_dir/NOT_EXISTING")).isHidden()
 
-        check false == Pathname.new(fixturePath("sample_dir/.NOT_EXISTING")).isHidden()
+            check false == Pathname.new(fixturePath("sample_dir/.NOT_EXISTING")).isHidden()
+
+        when defined(Windows):
+            check true == Pathname.new(fixturePath("sample_dir\\.a_hidden_file")).isHidden()
+            check true == Pathname.new(fixturePath("sample_dir\\.a_hidden_dir")).isHidden()
+            check true == Pathname.new(fixturePath("sample_dir\\.a_hidden_dir\\.keep")).isHidden()
+
+            check false == Pathname.new(fixturePath("sample_dir\\a_file")).isHidden()
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir")).isHidden()
+            check false == Pathname.new(fixturePath("sample_dir\\NOT_EXISTING")).isHidden()
+
+            check false == Pathname.new(fixturePath("sample_dir\\.NOT_EXISTING")).isHidden()
 
 
 
     test "#isVisible()":
-        check true  == Pathname.new(fixturePath("sample_dir/a_file")).isVisible()
-        check true  == Pathname.new(fixturePath("sample_dir/a_dir")).isVisible()
+        when defined(Posix):
+            check true  == Pathname.new(fixturePath("sample_dir/a_file")).isVisible()
+            check true  == Pathname.new(fixturePath("sample_dir/a_dir")).isVisible()
 
-        check false == Pathname.new(fixturePath("sample_dir/.a_hidden_file")).isVisible()
-        check false == Pathname.new(fixturePath("sample_dir/.a_hidden_dir")).isVisible()
-        check false == Pathname.new(fixturePath("sample_dir/.a_hidden_dir/.keep")).isVisible()
-        check false == Pathname.new(fixturePath("sample_dir/NOT_EXISTING")).isVisible()
-        check false == Pathname.new(fixturePath("sample_dir/.NOT_EXISTING")).isVisible()
+            check false == Pathname.new(fixturePath("sample_dir/.a_hidden_file")).isVisible()
+            check false == Pathname.new(fixturePath("sample_dir/.a_hidden_dir")).isVisible()
+            check false == Pathname.new(fixturePath("sample_dir/.a_hidden_dir/.keep")).isVisible()
+            check false == Pathname.new(fixturePath("sample_dir/NOT_EXISTING")).isVisible()
+            check false == Pathname.new(fixturePath("sample_dir/.NOT_EXISTING")).isVisible()
 
+        when defined(Windows):
+            check true  == Pathname.new(fixturePath("sample_dir\\a_file")).isVisible()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_dir")).isVisible()
+
+            check false == Pathname.new(fixturePath("sample_dir\\.a_hidden_file")).isVisible()
+            check false == Pathname.new(fixturePath("sample_dir\\.a_hidden_dir")).isVisible()
+            check false == Pathname.new(fixturePath("sample_dir\\.a_hidden_dir\\.keep")).isVisible()
+            check false == Pathname.new(fixturePath("sample_dir\\NOT_EXISTING")).isVisible()
+            check false == Pathname.new(fixturePath("sample_dir\\.NOT_EXISTING")).isVisible()
 
 
     test "#isZeroSizeFile()":
-        check true  == Pathname.new(fixturePath("sample_dir/a_file" )).isZeroSizeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_file/")).isZeroSizeFile()
+        when defined(Posix):
+            check true  == Pathname.new(fixturePath("sample_dir/a_file" )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_file/")).isZeroSizeFile()
 
-        check false == Pathname.new(fixturePath("README.md")).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("README.md")).isZeroSizeFile()
 
-        check false == Pathname.new(fixturePath("sample_dir"  )).isZeroSizeFile()
-        check false == Pathname.new(fixturePath("sample_dir/" )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir"  )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/" )).isZeroSizeFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).isZeroSizeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir/" )).isZeroSizeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir//")).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_dir/" )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_dir//")).isZeroSizeFile()
 
-        check true  == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isZeroSizeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isZeroSizeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_file.no2//")).isZeroSizeFile()
+            check true  == Pathname.new(fixturePath("sample_dir/a_file.no2"  )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_file.no2/" )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_file.no2//")).isZeroSizeFile()
 
-        check false == Pathname.new(fixturePath("NON_EXISTING_FILE"  )).isZeroSizeFile()
-        check false == Pathname.new(fixturePath("NON_EXISTING_FILE/" )).isZeroSizeFile()
-        check false == Pathname.new(fixturePath("NON_EXISTING_FILE//")).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("NON_EXISTING_FILE"  )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("NON_EXISTING_FILE/" )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("NON_EXISTING_FILE//")).isZeroSizeFile()
 
-        check false == Pathname.new("/dev/null").isZeroSizeFile()
-        check false == Pathname.new("/dev/zero").isZeroSizeFile()
+            check false == Pathname.new("/dev/null").isZeroSizeFile()
+            check false == Pathname.new("/dev/zero").isZeroSizeFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isZeroSizeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isZeroSizeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file"  )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/" )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_file//")).isZeroSizeFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isZeroSizeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isZeroSizeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir"  )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/" )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir//")).isZeroSizeFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isZeroSizeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isZeroSizeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device//")).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device"  )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device/" )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_device//")).isZeroSizeFile()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isZeroSizeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isZeroSizeFile()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid"  )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid/" )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir/a_symlink_invalid//")).isZeroSizeFile()
 
+        when defined(Windows):
+            check true  == Pathname.new(fixturePath("sample_dir\\a_file"  )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir\\a_file\\")).isZeroSizeFile()
 
+            check false == Pathname.new(fixturePath("README.md")).isZeroSizeFile()
 
-    test "#getFileSizeInBytes()":
-        check 0 == Pathname.new(fixturePath("sample_dir/a_file")).getFileSizeInBytes()
-        check 4096 == Pathname.new(fixturePath("sample_dir/a_dir")).getFileSizeInBytes()
-        ## When needs update -> change to a file with fixed file size ...
-        check 122 == Pathname.new(fixturePath("README.md")).getFileSizeInBytes()
+            check false == Pathname.new(fixturePath("sample_dir"  )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir\\" )).isZeroSizeFile()
 
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir"  )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir\\" )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir\\\\")).isZeroSizeFile()
 
+            check true  == Pathname.new(fixturePath("sample_dir\\a_file.no2"  )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir\\a_file.no2\\" )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("sample_dir\\a_file.no2\\\\")).isZeroSizeFile()
 
-    test "#getIoBlockSizeInBytes()":
-        check 4096 == Pathname.new(fixturePath("sample_dir/a_file")).getIoBlockSizeInBytes()
-        check 4096 == Pathname.new(fixturePath("sample_dir/a_dir")).getIoBlockSizeInBytes()
-        ## When needs update -> change to a file with fixed file size ...
-        check 4096 == Pathname.new(fixturePath("README.md")).getIoBlockSizeInBytes()
-
-
-
-    test "#getUserId()":
-        check 0    == Pathname.new("/").getUserId()
-        check 1000 == Pathname.new(fixturePath("sample_dir/a_file")).getUserId()
-
-
-
-    test "#getGroupId()":
-        check 0    == Pathname.new("/").getGroupId()
-        check 1000 == Pathname.new(fixturePath("sample_dir/a_file")).getGroupId()
+            check false == Pathname.new(fixturePath("NON_EXISTING_FILE"  )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("NON_EXISTING_FILE\\" )).isZeroSizeFile()
+            check false == Pathname.new(fixturePath("NON_EXISTING_FILE\\\\")).isZeroSizeFile()
 
 
 
-    test "#getCountHardlinks()":
-        check 1 == Pathname.new(fixturePath("sample_dir/a_file")).getCountHardlinks()
+    test "#fileSizeInBytes()":
+        when defined(Posix):
+            check 0    == Pathname.new(fixturePath("sample_dir/a_file")).fileSizeInBytes()
+            check 4096 == Pathname.new(fixturePath("sample_dir/a_dir" )).fileSizeInBytes()
+            ## When needs update -> change to a file with fixed file size ...
+            check 122 == Pathname.new(fixturePath("README.md")).fileSizeInBytes()
+
+        when defined(Windows):
+            check 0 == Pathname.new(fixturePath("sample_dir\\a_file")).fileSizeInBytes()
+            check 0 == Pathname.new(fixturePath("sample_dir\\a_dir")).fileSizeInBytes()
+            ## When needs update -> change to a file with fixed file size ...
+            check 122 == Pathname.new(fixturePath("README.md")).fileSizeInBytes()
+
+
+
+    test "#ioBlockSizeInBytes()":
+        when defined(Posix):
+            check 4096 == Pathname.new(fixturePath("sample_dir/a_file")).ioBlockSizeInBytes()
+            check 4096 == Pathname.new(fixturePath("sample_dir/a_dir")).ioBlockSizeInBytes()
+            ## When needs update -> change to a file with fixed file size ...
+            check 4096 == Pathname.new(fixturePath("README.md")).ioBlockSizeInBytes()
+
+        when defined(Windows):
+            check -1 == Pathname.new(fixturePath("sample_dir/a_file")).ioBlockSizeInBytes()
+            check -1 == Pathname.new(fixturePath("sample_dir/a_dir")).ioBlockSizeInBytes()
+            check -1 == Pathname.new(fixturePath("README.md")).ioBlockSizeInBytes()
+
+
+
+    test "#ioBlockCount()":
+        when defined(Posix):
+            check 0 == Pathname.new(fixturePath("sample_dir/a_file")).ioBlockCount()
+            check 8 == Pathname.new(fixturePath("sample_dir/a_dir")).ioBlockCount()
+            ## When needs update -> change to a file with fixed file size ...
+            check 8 == Pathname.new(fixturePath("README.md")).ioBlockCount()
+
+        when defined(Windows):
+            check -1 == Pathname.new(fixturePath("sample_dir/a_file")).ioBlockCount()
+            check -1 == Pathname.new(fixturePath("sample_dir/a_dir")).ioBlockCount()
+            check -1 == Pathname.new(fixturePath("README.md")).ioBlockCount()
+
+
+
+    test "#userId()":
+        when defined(Posix):
+            check 0    == Pathname.new("/").userId()
+            check 1000 == Pathname.new(fixturePath("sample_dir/a_file")).userId()
+            check -1   == Pathname.new(fixturePath("sample_dir/NOT_EXISTING")).userId()
+
+        when defined(Windows):
+            check -1 == Pathname.new("C:").userId()
+            check -1 == Pathname.new(fixturePath("sample_dir\\a_file")).userId()
+            check -1  == Pathname.new(fixturePath("sample_dir\\NOT_EXISTING")).userId()
+
+
+
+    test "#groupId()":
+        when defined(Posix):
+            check 0    == Pathname.new("/").groupId()
+            check 1000 == Pathname.new(fixturePath("sample_dir/a_file")).groupId()
+            check -1   == Pathname.new(fixturePath("sample_dir/NOT_EXISTING")).groupId()
+
+        when defined(Windows):
+            check -1 == Pathname.new("/").groupId()
+            check -1 == Pathname.new(fixturePath("sample_dir\\a_file")).groupId()
+            check -1 == Pathname.new(fixturePath("sample_dir\\NOT_EXISTING")).groupId()
+
+
+
+    test "#countHardlinks()":
+        when defined(Posix):
+            check 1 == Pathname.new(fixturePath("sample_dir/a_file")).countHardlinks()
+
+        when defined(Windows):
+            check 1 == Pathname.new(fixturePath("sample_dir\\a_file")).countHardlinks()
 
 
 
     test "#hasSetUidBit()":
-        check true == Pathname.new("/bin/su").hasSetUidBit()
+        when defined(Posix):
+            check true  == Pathname.new("/bin/su").hasSetUidBit()
+            check false == Pathname.new(fixturePath("sample_dir/a_file" )).hasSetUidBit()
+            check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).hasSetUidBit()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_file" )).hasSetUidBit()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).hasSetUidBit()
+        when defined(Windows):
+            check false == Pathname.new(fixturePath("sample_dir\\a_file" )).hasSetUidBit()
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir"  )).hasSetUidBit()
 
 
     test "#hasSetGidBit()":
-        check true == Pathname.new("/usr/bin/wall").hasSetGidBit()
+        when defined(Posix):
+            check true  == Pathname.new("/usr/bin/wall").hasSetGidBit()
+            check false == Pathname.new(fixturePath("sample_dir/a_file" )).hasSetGidBit()
+            check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).hasSetGidBit()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_file" )).hasSetGidBit()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).hasSetGidBit()
+        when defined(Windows):
+            check false == Pathname.new(fixturePath("sample_dir\\a_file" )).hasSetGidBit()
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir"  )).hasSetGidBit()
 
 
 
     test "#hasStickyBit()":
-        check true == Pathname.new("/tmp").hasStickyBit()
+        when defined(Posix):
+            check true  == Pathname.new("/tmp").hasStickyBit()
+            check false == Pathname.new(fixturePath("sample_dir/a_file" )).hasStickyBit()
+            check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).hasStickyBit()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_file" )).hasStickyBit()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir"  )).hasStickyBit()
+        when defined(Windows):
+            check false == Pathname.new(fixturePath("sample_dir\\a_file" )).hasStickyBit()
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir"  )).hasStickyBit()
 
 
 
@@ -1822,11 +2592,11 @@ suite "Pathname Tests 000":
 
         check maxTime >= minTime
 
-        check maxTime >= Pathname.new(fixturePath("sample_dir/a_file" )).getLastChangeTime()
-        check minTime <= Pathname.new(fixturePath("sample_dir/a_file" )).getLastChangeTime()
+        check maxTime >= Pathname.new(fixturePath("sample_dir","a_file" )).getLastChangeTime()
+        check minTime <= Pathname.new(fixturePath("sample_dir","a_file" )).getLastChangeTime()
 
-        check maxTime >= Pathname.new(fixturePath("sample_dir/a_dir")).getLastChangeTime()
-        check minTime <= Pathname.new(fixturePath("sample_dir/a_dir")).getLastChangeTime()
+        check maxTime >= Pathname.new(fixturePath("sample_dir","a_dir")).getLastChangeTime()
+        check minTime <= Pathname.new(fixturePath("sample_dir","a_dir")).getLastChangeTime()
 
 
 
@@ -1836,123 +2606,245 @@ suite "Pathname Tests 000":
 
         check maxTime >= minTime
 
-        check maxTime >= Pathname.new(fixturePath("sample_dir/a_file" )).getLastStatusChangeTime()
-        check minTime <= Pathname.new(fixturePath("sample_dir/a_file" )).getLastStatusChangeTime()
+        check maxTime >= Pathname.new(fixturePath("sample_dir","a_file" )).getLastStatusChangeTime()
+        check minTime <= Pathname.new(fixturePath("sample_dir","a_file" )).getLastStatusChangeTime()
 
-        check maxTime >= Pathname.new(fixturePath("sample_dir/a_dir")).getLastStatusChangeTime()
-        check minTime <= Pathname.new(fixturePath("sample_dir/a_dir")).getLastStatusChangeTime()
+        check maxTime >= Pathname.new(fixturePath("sample_dir","a_dir")).getLastStatusChangeTime()
+        check minTime <= Pathname.new(fixturePath("sample_dir","a_dir")).getLastStatusChangeTime()
 
 
 
     test "#isUserOwned()":
-        check true == Pathname.new(fixturePath("sample_dir/a_file")).isUserOwned()
-        check true == Pathname.new(fixturePath("sample_dir/a_dir" )).isUserOwned()
+        when defined(Posix):
+            check true == Pathname.new(fixturePath("sample_dir/a_file")).isUserOwned()
+            check true == Pathname.new(fixturePath("sample_dir/a_dir" )).isUserOwned()
 
-        check false == Pathname.new("/"   ).isUserOwned()
-        check false == Pathname.new("/tmp").isUserOwned()
+            check false == Pathname.new("/"   ).isUserOwned()
+            check false == Pathname.new("/tmp").isUserOwned()
+
+        when defined(Windows):
+            check false == Pathname.new(fixturePath("sample_dir\\a_file")).isUserOwned()
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir" )).isUserOwned()
+
+            check false == Pathname.new("C:").isUserOwned()
 
 
 
     test "#isGroupOwned()":
-        check true == Pathname.new(fixturePath("sample_dir/a_file")).isGroupOwned()
-        check true == Pathname.new(fixturePath("sample_dir/a_dir" )).isGroupOwned()
+        when defined(Posix):
+            check true == Pathname.new(fixturePath("sample_dir/a_file")).isGroupOwned()
+            check true == Pathname.new(fixturePath("sample_dir/a_dir" )).isGroupOwned()
 
-        check false == Pathname.new("/"   ).isGroupOwned()
-        check false == Pathname.new("/tmp").isGroupOwned()
+            check false == Pathname.new("/"   ).isGroupOwned()
+            check false == Pathname.new("/tmp").isGroupOwned()
 
+        when defined(Windows):
+            check false == Pathname.new(fixturePath("sample_dir\\a_file")).isGroupOwned()
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir" )).isGroupOwned()
+
+            check false == Pathname.new("C:").isGroupOwned()
 
 
     test "#isGroupMember()":
-        check true == Pathname.new(fixturePath("sample_dir/a_file")).isGroupMember()
-        check true == Pathname.new(fixturePath("sample_dir/a_dir" )).isGroupMember()
+        when defined(Posix):
+            check true == Pathname.new(fixturePath("sample_dir/a_file")).isGroupMember()
+            check true == Pathname.new(fixturePath("sample_dir/a_dir" )).isGroupMember()
 
-        check false == Pathname.new("/"   ).isGroupMember()
-        check false == Pathname.new("/tmp").isGroupMember()
+            check false == Pathname.new("/"   ).isGroupMember()
+            check false == Pathname.new("/tmp").isGroupMember()
+
+        when defined(Posix):
+            check false == Pathname.new(fixturePath("sample_dir\\a_file")).isGroupMember()
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir" )).isGroupMember()
+
+            check false == Pathname.new("C:").isGroupMember()
 
 
 
     test "#isReadable()":
-        check false == Pathname.new("/var/log/syslog"               ).isReadable()
-        check true  == Pathname.new(fixturePath("sample_dir/a_file")).isReadable()
-        check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isReadable()
+        when defined(Posix):
+            check false == Pathname.new("/var/log/syslog").isReadable()
+            check true  == Pathname.new(fixturePath("sample_dir/a_file")).isReadable()
+            check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isReadable()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isReadable()
+
+        when defined(Windows):
+            check true  == Pathname.new("C:").isReadable()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_file")).isReadable()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_dir" )).isReadable()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isReadable()
 
 
 
     test "#isReadableByUser()":
-        check false == Pathname.new("/var/log/syslog"               ).isReadableByUser()
-        check true  == Pathname.new(fixturePath("sample_dir/a_file")).isReadableByUser()
-        check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isReadableByUser()
+        when defined(Posix):
+            check false == Pathname.new("/var/log/syslog").isReadableByUser()
+            check true  == Pathname.new(fixturePath("sample_dir/a_file")).isReadableByUser()
+            check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isReadableByUser()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isReadableByUser()
+
+        when defined(Windows):
+            check true  == Pathname.new("C:").isReadableByUser()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_file")).isReadableByUser()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_dir" )).isReadableByUser()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isReadableByUser()
 
 
 
     test "#isReadableByGroup()":
-        check false == Pathname.new("/var/log/syslog"               ).isReadableByGroup()
-        check true  == Pathname.new(fixturePath("sample_dir/a_file")).isReadableByGroup()
-        check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isReadableByGroup()
+        when defined(Posix):
+            check false == Pathname.new("/var/log/syslog").isReadableByGroup()
+            check true  == Pathname.new(fixturePath("sample_dir/a_file")).isReadableByGroup()
+            check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isReadableByGroup()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isReadableByGroup()
+
+        when defined(Windows):
+            check true  == Pathname.new("C:").isReadableByGroup()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_file")).isReadableByGroup()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_dir" )).isReadableByGroup()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isReadableByGroup()
 
 
 
     test "#isReadableByOther()":
-        check false == Pathname.new("/var/log/syslog"               ).isReadableByOther()
-        check true  == Pathname.new(fixturePath("sample_dir/a_file")).isReadableByOther()
-        check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isReadableByOther()
+        when defined(Posix):
+            check false == Pathname.new("/var/log/syslog").isReadableByOther()
+            check true  == Pathname.new(fixturePath("sample_dir/a_file")).isReadableByOther()
+            check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isReadableByOther()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isReadableByOther()
+
+        when defined(Windows):
+            check true  == Pathname.new("C:").isReadableByOther()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_file")).isReadableByOther()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_dir" )).isReadableByOther()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isReadableByOther()
 
 
 
     test "#isWritable()":
-        check false == Pathname.new("/var/log/syslog"               ).isWritable()
-        check true  == Pathname.new(fixturePath("sample_dir/a_file")).isWritable()
-        check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isWritable()
+        when defined(Posix):
+            check false == Pathname.new("/var/log/syslog").isWritable()
+            check true  == Pathname.new(fixturePath("sample_dir/a_file")).isWritable()
+            check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isWritable()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isWritable()
+
+        when defined(Windows):
+            check true  == Pathname.new("C:").isWritable()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_file")).isWritable()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_dir" )).isWritable()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isWritable()
 
 
 
     test "#isWritableByUser()":
-        check false == Pathname.new("/var/log/syslog"               ).isWritableByUser()
-        check true  == Pathname.new(fixturePath("sample_dir/a_file")).isWritableByUser()
-        check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isWritableByUser()
+        when defined(Posix):
+            check false == Pathname.new("/var/log/syslog").isWritableByUser()
+            check true  == Pathname.new(fixturePath("sample_dir/a_file")).isWritableByUser()
+            check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isWritableByUser()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isWritableByUser()
+
+        when defined(Windows):
+            check true  == Pathname.new("C:").isWritableByUser()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_file")).isWritableByUser()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_dir" )).isWritableByUser()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isWritableByUser()
 
 
 
     test "#isWritableByGroup()":
-        check false == Pathname.new("/var/log/syslog"               ).isWritableByGroup()
-        check false == Pathname.new(fixturePath("sample_dir/a_file")).isWritableByGroup()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir" )).isWritableByGroup()
+        when defined(Posix):
+            check false == Pathname.new("/var/log/syslog").isWritableByGroup()
+            check false == Pathname.new(fixturePath("sample_dir/a_file")).isWritableByGroup()
+            check false == Pathname.new(fixturePath("sample_dir/a_dir" )).isWritableByGroup()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isWritableByGroup()
+
+        when defined(Windows):
+            check true  == Pathname.new("C:").isWritableByGroup()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_file")).isWritableByGroup()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_dir" )).isWritableByGroup()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isWritableByGroup()
 
 
 
     test "#isWritableByOther()":
-        check false == Pathname.new("/var/log/syslog"               ).isWritableByOther()
-        check false == Pathname.new(fixturePath("sample_dir/a_file")).isWritableByOther()
-        check false == Pathname.new(fixturePath("sample_dir/a_dir" )).isWritableByOther()
+        when defined(Posix):
+            check false == Pathname.new("/var/log/syslog"               ).isWritableByOther()
+            check false == Pathname.new(fixturePath("sample_dir/a_file")).isWritableByOther()
+            check false == Pathname.new(fixturePath("sample_dir/a_dir" )).isWritableByOther()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isWritableByOther()
+
+        when defined(Windows):
+            check true  == Pathname.new("C:").isWritableByOther()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_file")).isWritableByOther()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_dir" )).isWritableByOther()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isWritableByOther()
 
 
 
     test "#isExecutable()":
-        check true  == Pathname.new("/bin/cat"                      ).isExecutable()
-        check false == Pathname.new(fixturePath("sample_dir/a_file")).isExecutable()
-        check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isExecutable()
+        when defined(Posix):
+            check true  == Pathname.new("/bin/cat").isExecutable()
+            check false == Pathname.new(fixturePath("sample_dir/a_file")).isExecutable()
+            check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isExecutable()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isExecutable()
 
+        when defined(Windows):
+            check true  == Pathname.new("C:\\windows\\notepad.exe").isExecutable()
+            check false == Pathname.new("C:\\windows\\system.ini").isExecutable()
+            check false == Pathname.new("C:").isExecutable()
+            check false == Pathname.new(fixturePath("sample_dir\\a_file")).isExecutable()
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir" )).isExecutable()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isExecutable()
 
 
     test "#isExecutableByUser()":
-        check false == Pathname.new("/bin/cat"                      ).isExecutableByUser()
-        check false == Pathname.new(fixturePath("sample_dir/a_file")).isExecutableByUser()
-        check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isExecutableByUser()
+        when defined(Posix):
+            check false == Pathname.new("/bin/cat").isExecutableByUser()
+            check false == Pathname.new(fixturePath("sample_dir/a_file")).isExecutableByUser()
+            check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isExecutableByUser()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isExecutableByUser()
+
+        when defined(Windows):
+            check true  == Pathname.new("C:\\windows\\notepad.exe").isExecutableByUser()
+            check false == Pathname.new("C:\\windows\\system.ini").isExecutableByUser()
+            check false == Pathname.new("C:").isExecutableByUser()
+            check false == Pathname.new(fixturePath("sample_dir\\a_file")).isExecutableByUser()
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir" )).isExecutableByUser()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isExecutableByUser()
 
 
 
     test "#isExecutableByGroup()":
-        check false == Pathname.new("/bin/cat"                      ).isExecutableByGroup()
-        check false == Pathname.new(fixturePath("sample_dir/a_file")).isExecutableByGroup()
-        check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isExecutableByGroup()
+        when defined(Posix):
+            check false == Pathname.new("/bin/cat").isExecutableByGroup()
+            check false == Pathname.new(fixturePath("sample_dir/a_file")).isExecutableByGroup()
+            check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isExecutableByGroup()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isExecutableByGroup()
+
+        when defined(Windows):
+            check true  == Pathname.new("C:\\windows\\notepad.exe").isExecutableByGroup()
+            check false == Pathname.new("C:\\windows\\system.ini").isExecutableByGroup()
+            check false == Pathname.new("C:").isExecutableByGroup()
+            check false == Pathname.new(fixturePath("sample_dir\\a_file")).isExecutableByGroup()
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir" )).isExecutableByGroup()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isExecutableByGroup()
 
 
 
     test "#isExecutableByOther()":
-        check true  == Pathname.new("/bin/cat"                      ).isExecutableByOther()
-        check false == Pathname.new(fixturePath("sample_dir/a_file")).isExecutableByOther()
-        check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isExecutableByOther()
+        when defined(Posix):
+            check true  == Pathname.new("/bin/cat"                      ).isExecutableByOther()
+            check false == Pathname.new(fixturePath("sample_dir/a_file")).isExecutableByOther()
+            check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).isExecutableByOther()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isExecutableByOther()
 
+        when defined(Windows):
+            check true  == Pathname.new("C:\\windows\\notepad.exe").isExecutableByOther()
+            check false == Pathname.new("C:\\windows\\system.ini").isExecutableByOther()
+            check false == Pathname.new("C:").isExecutableByOther()
+            check false == Pathname.new(fixturePath("sample_dir\\a_file")).isExecutableByOther()
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir" )).isExecutableByOther()
+            check false == Pathname.new(fixturePath("NOT_EXISTENT")).isExecutableByOther()
 
 
 
@@ -1961,18 +2853,30 @@ suite "Pathname Tests 000":
 #-----------------------------------------------------------------------------------------------------------------------
 
 
-    test "#fileInfo() - is<FileMode>()":
-        check pcFile  == Pathname.new(fixturePath("sample_dir/a_file")).fileInfo().kind
 
-        check pcDir  == Pathname.new(fixturePath("sample_dir/a_dir")).fileInfo().kind
+    test "#fileInfo()":
+        check pcFile == Pathname.new(fixturePath("sample_dir","a_file")).fileInfo().kind
+        check pcDir  == Pathname.new(fixturePath("sample_dir","a_dir" )).fileInfo().kind
 
-        check pcLinkToFile == Pathname.new(fixturePath("sample_dir/a_symlink_to_file")).fileInfo().kind
+        try:
+            discard Pathname.new(fixturePath("NOT_EXISTENT")).fileInfo().kind
+            fail
+        except OSError:
+            discard
 
-        check pcLinkToDir == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir")).fileInfo().kind
-        check pcDir       == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/")).fileInfo().kind
+        when defined(Posix):
+            check pcLinkToFile == Pathname.new(fixturePath("sample_dir","a_symlink_to_file")).fileInfo().kind
+            check pcLinkToDir  == Pathname.new(fixturePath("sample_dir","a_symlink_to_dir" )).fileInfo().kind
+            check pcDir        == Pathname.new(fixturePath("sample_dir","a_symlink_to_dir","")).fileInfo().kind
 
-        check pcFile == Pathname.new("/dev/null" ).fileInfo().kind
-        check pcFile == Pathname.new("/dev/loop0").fileInfo().kind
+            check pcDir  == Pathname.new("/").fileInfo().kind
+            check pcFile == Pathname.new("/dev/null" ).fileInfo().kind
+            check pcFile == Pathname.new("/dev/loop0").fileInfo().kind
+
+        when defined(Windows):
+            check pcDir  == Pathname.new("C:").fileInfo().kind
+            check pcDir  == Pathname.new("C:\\windows").fileInfo().kind
+            check pcFile == Pathname.new("C:\\windows\\notepad.exe").fileInfo().kind
 
 
 
@@ -1981,105 +2885,168 @@ suite "Pathname Tests 000":
 #-----------------------------------------------------------------------------------------------------------------------
 
 
-    test "#fileStatus() - getFileType()":
-        check FileType.REGULAR_FILE == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().getFileType()
 
-        check FileType.DIRECTORY == Pathname.new(fixturePath("sample_dir/a_dir")).fileStatus().getFileType()
-
-        check FileType.SYMLINK      == Pathname.new(fixturePath("sample_dir/a_symlink_to_file")).fileStatus().getFileType()
-        check FileType.NOT_EXISTING == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/")).fileStatus().getFileType()
-
-        check FileType.SYMLINK   == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir" )).fileStatus().getFileType()
-        check FileType.DIRECTORY == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/")).fileStatus().getFileType()
-
-        check FileType.CHARACTER_DEVICE == Pathname.new("/dev/null" ).fileStatus().getFileType()
-
-        check FileType.BLOCK_DEVICE == Pathname.new("/dev/loop0" ).fileStatus().getFileType()
-
-        check FileType.NOT_EXISTING == Pathname.new(fixturePath("NON_EXISTING_FILE" )).fileStatus().getFileType()
-        check FileType.NOT_EXISTING == Pathname.new(fixturePath("NON_EXISTING_FILE/")).fileStatus().getFileType()
-
-        check FileType.SOCKET_FILE == Pathname.new("/tmp/.X11-unix/X0").fileStatus().getFileType()
+    test "#fileStatus().fileType()":
+        when true: # Common
+            check FileType.REGULAR_FILE == Pathname.new(fixturePath("sample_dir","a_file")).fileStatus().fileType()
+            check FileType.DIRECTORY    == Pathname.new(fixturePath("sample_dir","a_dir" )).fileStatus().fileType()
+            check FileType.NOT_EXISTING == Pathname.new(fixturePath("NON_EXISTING_FILE"  )).fileStatus().fileType()
+            check FileType.NOT_EXISTING == Pathname.new(fixturePath("NON_EXISTING_FILE/" )).fileStatus().fileType()
 
         when defined(Posix):
+            check FileType.SYMLINK      == Pathname.new(fixturePath("sample_dir/a_symlink_to_file" )).fileStatus().fileType()
+            check FileType.NOT_EXISTING == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/")).fileStatus().fileType()
+
+            check FileType.SYMLINK   == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir" )).fileStatus().fileType()
+            check FileType.DIRECTORY == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/")).fileStatus().fileType()
+
+            check FileType.CHARACTER_DEVICE == Pathname.new("/dev/null").fileStatus().fileType()
+
+            check FileType.BLOCK_DEVICE == Pathname.new("/dev/loop0").fileStatus().fileType()
+
+            check FileType.SOCKET_FILE == Pathname.new("/tmp/.X11-unix/X0").fileStatus().fileType()
+
             discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
-            check FileType.PIPE_FILE == Pathname.new(fixturePath("sample_dir/a_pipe")).fileStatus().getFileType()
+            check FileType.PIPE_FILE == Pathname.new(fixturePath("sample_dir/a_pipe")).fileStatus().fileType()
             discard posix.unlink( fixturePath("sample_dir/a_pipe") )
 
 
 
     test "#fileStatus() - Sample00":
-        check true == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().isRegularFile()
+        when true: # Common
+            check true == Pathname.new(fixturePath("sample_dir","a_file")).fileStatus().isRegularFile()
+            check true == Pathname.new(fixturePath("sample_dir","a_dir" )).fileStatus().isDirectory()
 
-        check true == Pathname.new(fixturePath("sample_dir/a_dir")).fileStatus().isDirectory()
+            check true == Pathname.new(fixturePath("NON_EXISTING_FILE"   )).fileStatus().isNotExisting()
+            check true == Pathname.new(fixturePath("NON_EXISTING_FILE","")).fileStatus().isNotExisting()
 
-        check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_file")).fileStatus().isSymlink()
-        check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_file")).fileStatus().isExisting()
-        check true == Pathname.new(fixturePath("sample_dir/a_symlink_to_file/")).fileStatus().isNotExisting()
+            check true == Pathname.new(fixturePath("sample_dir","NON_EXISTING_FILE"   )).fileStatus().isNotExisting()
+            check true == Pathname.new(fixturePath("sample_dir","NON_EXISTING_FILE","")).fileStatus().isNotExisting()
 
-        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir" )).fileStatus().isSymlink()
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir" )).fileStatus().isDirectory()
+            check true == Pathname.new(fixturePath("sample_dir","a_file"   )).fileStatus().isExisting()
+            check true == Pathname.new(fixturePath("sample_dir","a_dir"    )).fileStatus().isExisting()
+            check true == Pathname.new(fixturePath("sample_dir","a_symlink")).fileStatus().isExisting()
 
-        check false == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/")).fileStatus().isSymlink()
-        check true  == Pathname.new(fixturePath("sample_dir/a_symlink_to_dir/")).fileStatus().isDirectory()
+        when defined(Posix):
+            check true  == Pathname.new("/dev/null" ).fileStatus().isDeviceFile()
+            check true  == Pathname.new("/dev/null" ).fileStatus().isCharacterDeviceFile()
+            check false == Pathname.new("/dev/null" ).fileStatus().isBlockDeviceFile()
 
-        check true == Pathname.new("/dev/null" ).fileStatus().isDeviceFile()
-        check true == Pathname.new("/dev/loop0").fileStatus().isDeviceFile()
+            check true  == Pathname.new("/dev/loop0").fileStatus().isDeviceFile()
+            check false == Pathname.new("/dev/loop0").fileStatus().isCharacterDeviceFile()
+            check true  == Pathname.new("/dev/loop0").fileStatus().isBlockDeviceFile()
 
-        check true == Pathname.new("/dev/null" ).fileStatus().isCharacterDeviceFile()
-        check true == Pathname.new("/dev/loop0").fileStatus().isBlockDeviceFile()
+        when defined(Posix):
+            check true == Pathname.new("/tmp/.X11-unix/X0").fileStatus().isSocketFile()
 
-        check true == Pathname.new(fixturePath("sample_dir/a_file"   )).fileStatus().isExisting()
-        check true == Pathname.new(fixturePath("sample_dir/a_dir"    )).fileStatus().isExisting()
-        check true == Pathname.new(fixturePath("sample_dir/a_symlink")).fileStatus().isExisting()
+        when defined(Posix):
+            check true == Pathname.new(fixturePath("sample_dir","a_symlink_to_file")).fileStatus().isSymlink()
+            check true == Pathname.new(fixturePath("sample_dir","a_symlink_to_file"   )).fileStatus().isExisting()
+            check true == Pathname.new(fixturePath("sample_dir","a_symlink_to_file","")).fileStatus().isNotExisting()
 
-        check true == Pathname.new(fixturePath("NON_EXISTING_FILE" )).fileStatus().isNotExisting()
-        check true == Pathname.new(fixturePath("NON_EXISTING_FILE/")).fileStatus().isNotExisting()
+            check true  == Pathname.new(fixturePath("sample_dir","a_symlink_to_dir" )).fileStatus().isSymlink()
+            check false == Pathname.new(fixturePath("sample_dir","a_symlink_to_dir" )).fileStatus().isDirectory()
 
-        check true == Pathname.new(fixturePath("sample_dir/NON_EXISTING_FILE" )).fileStatus().isNotExisting()
-        check true == Pathname.new(fixturePath("sample_dir/NON_EXISTING_FILE/")).fileStatus().isNotExisting()
-
-        check true == Pathname.new("/tmp/.X11-unix/X0").fileStatus().isSocketFile()
+            check false == Pathname.new(fixturePath("sample_dir","a_symlink_to_dir","")).fileStatus().isSymlink()
+            check true  == Pathname.new(fixturePath("sample_dir","a_symlink_to_dir","")).fileStatus().isDirectory()
 
         when defined(Posix):
             discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
             check true == Pathname.new(fixturePath("sample_dir/a_pipe")).fileStatus().isPipeFile()
-            discard posix.unlink( fixturePath("sample_dir/a_pipe") )
+            discard posix.unlink( fixturePath("sample_dir/a_pipe"))
+
+        when defined(Windows):
+            check false == Pathname.new(fixturePath("sample_dir\\a_symlink_to_file"  )).fileStatus().isSymlink()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_symlink_to_file"  )).fileStatus().isExisting()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_symlink_to_file\\")).fileStatus().isNotExisting()
+
+            check false == Pathname.new(fixturePath("sample_dir\\a_symlink_to_dir")).fileStatus().isSymlink()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_symlink_to_dir")).fileStatus().isDirectory() #wine?
+
+            check false == Pathname.new(fixturePath("sample_dir\\a_symlink_to_dir\\")).fileStatus().isSymlink()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_symlink_to_dir\\")).fileStatus().isDirectory() #wine?
 
 
 
     test "#fileStatus() - Sample01":
-        check false == Pathname.new("/var/log/syslog").fileStatus().isReadable()
-        check true  == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().isReadable()
-        check true  == Pathname.new(fixturePath("sample_dir/a_dir")).fileStatus().isReadable()
+        when true: # Common
+            check true  == Pathname.new(fixturePath("sample_dir","a_file")).fileStatus().isReadable()
+            check true  == Pathname.new(fixturePath("sample_dir","a_dir" )).fileStatus().isReadable()
+            check false == Pathname.new(fixturePath("NOT_EXISTING"       )).fileStatus().isReadable()
 
-        check false == Pathname.new("/var/log/syslog").fileStatus().isWritable()
-        check true  == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().isWritable()
-        check true  == Pathname.new(fixturePath("sample_dir/a_dir")).fileStatus().isWritable()
+            check true  == Pathname.new(fixturePath("sample_dir","a_file")).fileStatus().isWritable()
+            check true  == Pathname.new(fixturePath("sample_dir","a_dir" )).fileStatus().isWritable()
+            check false == Pathname.new(fixturePath("NOT_EXISTING"       )).fileStatus().isWritable()
 
-        check true  == Pathname.new("/bin/cat").fileStatus().isExecutable()
-        check false == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().isExecutable()
-        check true  == Pathname.new(fixturePath("sample_dir/a_dir")).fileStatus().isExecutable()
+            check false == Pathname.new(fixturePath("sample_dir","a_file")).fileStatus().isExecutable()
+            #check false == Pathname.new(fixturePath("sample_dir","a_dir")).fileStatus().isExecutable() # Posix vs. Windows
+            check false == Pathname.new(fixturePath("NOT_EXISTING"       )).fileStatus().isExecutable()
+
+        when defined(Posix):
+            check false == Pathname.new("/var/log/syslog").fileStatus().isReadable()
+            check true  == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().isReadable()
+            check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).fileStatus().isReadable()
+            check false == Pathname.new(fixturePath("NOT_EXISTING"     )).fileStatus().isReadable()
+
+            check false == Pathname.new("/var/log/syslog").fileStatus().isWritable()
+            check true  == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().isWritable()
+            check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).fileStatus().isWritable()
+            check false == Pathname.new(fixturePath("NOT_EXISTING"     )).fileStatus().isWritable()
+
+            check true  == Pathname.new("/bin/cat").fileStatus().isExecutable()
+            check false == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().isExecutable()
+            check true  == Pathname.new(fixturePath("sample_dir/a_dir" )).fileStatus().isExecutable()
+            check false == Pathname.new(fixturePath("NOT_EXISTING"     )).fileStatus().isExecutable()
+
+        when defined(Windows):
+            check true  == Pathname.new(fixturePath("sample_dir\\a_file")).fileStatus().isReadable()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_dir" )).fileStatus().isReadable()
+            check false == Pathname.new(fixturePath("NOT_EXISTING"      )).fileStatus().isReadable()
+
+            check true  == Pathname.new(fixturePath("sample_dir\\a_file")).fileStatus().isWritable()
+            check true  == Pathname.new(fixturePath("sample_dir\\a_dir" )).fileStatus().isWritable()
+            check false == Pathname.new(fixturePath("NOT_EXISTING"      )).fileStatus().isWritable()
+
+            check false == Pathname.new(fixturePath("sample_dir\\a_file")).fileStatus().isExecutable()
+            check false == Pathname.new(fixturePath("sample_dir\\a_dir" )).fileStatus().isExecutable()
+            check false == Pathname.new(fixturePath("NOT_EXISTING"      )).fileStatus().isExecutable()
 
 
 
     test "#fileStatus() - Sample02()":
-        check fixturePath("sample_dir/a_file") == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().getPathStr()
-        check fixturePath("sample_dir/a_dir")  == Pathname.new(fixturePath("sample_dir/a_dir" )).fileStatus().getPathStr()
+        when true: # Common
+            check fixturePath("sample_dir","a_file") == Pathname.new(fixturePath("sample_dir","a_file")).fileStatus().pathStr()
+            check fixturePath("sample_dir","a_dir")  == Pathname.new(fixturePath("sample_dir","a_dir" )).fileStatus().pathStr()
+            check   0 == Pathname.new(fixturePath("sample_dir","a_file")).fileStatus().fileSizeInBytes()
+            check 122 == Pathname.new(fixturePath("README.md")).fileStatus().fileSizeInBytes()
 
-        check 0 == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().getFileSizeInBytes()
-        check 4096 == Pathname.new(fixturePath("sample_dir/a_dir")).getFileSizeInBytes()
-        ## When needs update -> change to a file with fixed file size ...
-        check 122 == Pathname.new(fixturePath("README.md")).fileStatus().getFileSizeInBytes()
+        when defined(Posix):
+            check    0 == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().fileSizeInBytes()
+            check  122 == Pathname.new(fixturePath("README.md")).fileStatus().fileSizeInBytes()
+            check 4096 == Pathname.new(fixturePath("sample_dir/a_dir")).fileSizeInBytes()
+
+        when defined(Windows):
+            check   0 == Pathname.new(fixturePath("sample_dir\\a_file")).fileStatus().fileSizeInBytes()
+            check 122 == Pathname.new(fixturePath("README.md")).fileStatus().fileSizeInBytes()
+            check   0 == Pathname.new(fixturePath("sample_dir\\a_dir")).fileSizeInBytes()
 
 
 
     test "#fileStatus() - Sample03()":
-        check 0    == Pathname.new("/").fileStatus().getUserId()
-        check 1000 == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().getUserId()
+        when defined(Posix):
+            check 0    == Pathname.new("/").fileStatus().userId()
+            check 1000 == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().userId()
 
-        check 0    == Pathname.new("/").fileStatus().getGroupId()
-        check 1000 == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().getGroupId()
+            check 0    == Pathname.new("/").fileStatus().groupId()
+            check 1000 == Pathname.new(fixturePath("sample_dir/a_file")).fileStatus().groupId()
+
+        when defined(Windows):
+            check -1 == Pathname.new("C:").fileStatus().userId()
+            check -1 == Pathname.new(fixturePath("sample_dir\\a_file")).fileStatus().userId()
+
+            check -1 == Pathname.new("C:").fileStatus().groupId()
+            check -1 == Pathname.new(fixturePath("sample_dir\\a_file")).fileStatus().groupId()
+
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -2087,29 +3054,42 @@ suite "Pathname Tests 000":
 #-----------------------------------------------------------------------------------------------------------------------
 
 
-    test "#tap() Usage-Sample":
 
-        let pathname = Pathname.new(fixturePath("TEST_TAP_DIR_USAGE_SAMPLE")).removeDirectoryTree()
-        check false == pathname.isExisting()
-        pathname.tap do (testDir: Pathname):
-            testDir.createDirectory()
-            #testDir.createDirectory("bin")
-            #testDir.createDirectory("src")
-            #testDir.createDirectory("tests")
-            testDir.createFile("FILE_A")
-            testDir.createRegularFile("FILE_B")
-        check true == pathname.isDirectory()
-        pathname.removeDirectoryTree()
+    test "#tap() Usage-Sample":
+        when true: # Common
+            let pathname = Pathname.new(fixturePath("TEST_TAP_DIR_USAGE_SAMPLE")).removeDirectoryTree()
+            check false == pathname.isExisting()
+            pathname.tap do (testDir: Pathname):
+                testDir.createDirectory(mode=0o750)
+                testDir.createDirectory("bin", mode=0o700)
+                testDir.createDirectory("src")
+                testDir.createDirectory("tests")
+                testDir.createDirectory("DIR_TO_REMOVE")
+                testDir.removeDirectory("DIR_TO_REMOVE")
+                testDir.createRegularFile("FILE_A1")
+                testDir.createRegularFile("FILE_A2", mode=0o640)
+                testDir.createFile("FILE_B1")
+                testDir.createFile("FILE_B2", mode=0o640)
+                testDir.touch("FILE_C1")
+                testDir.touch("FILE_C2", mode=0o640)
+                testDir.createRegularFile("FILE_TO_REMOVE")
+                testDir.removeRegularFile("FILE_TO_REMOVE")
+            check true == pathname.isDirectory()
+            pathname.removeDirectoryTree()
+
 
 
     test "#tap() should take a function providing self as param":
-        let pathname = Pathname.new(fixturePath("TEST_TAP_DIR"))
-        pathname.tap do (inner: Pathname):
-            check inner == pathname
+        when true: # Common
+            let pathname = Pathname.new(fixturePath("TEST_TAP_DIR"))
+            pathname.tap do (inner: Pathname):
+                check inner == pathname
+
 
 
     test "#tap() should return self for Method-Chaining":
-        let pathname = Pathname.new(fixturePath("TEST_TAP_DIR"))
-        let pathname2 = pathname.tap do (inner: Pathname):
-            discard
-        check pathname2 == pathname
+        when true: # Common
+            let pathname = Pathname.new(fixturePath("TEST_TAP_DIR"))
+            let pathname2 = pathname.tap do (inner: Pathname):
+                discard
+            check pathname2 == pathname

@@ -607,35 +607,41 @@ proc isZeroSizeFile*(self: Pathname): bool =
 
 
 
-proc getFileSizeInBytes*(self: Pathname): int64 =
+proc fileSizeInBytes*(self: Pathname): int64 =
     ## @returns the FileSize of the File-System-Entry in Bytes.
     ## @returns -1 if the FileSize could not be determined.
     return file_utils.getFileSizeInBytes(self.path)
 
 
 
-proc getIoBlockSizeInBytes*(self: Pathname): int64 =
+proc ioBlockSizeInBytes*(self: Pathname): int64 =
     ## @returns the Size of an IO-Block of the File-System-Entry in Bytes.
     ## @returns -1 if the BlockSize could not be determined.
     return file_utils.getIoBlockSizeInBytes(self.path)
 
 
+proc ioBlockCount*(self: Pathname): int64 =
+    ## @returns the count of assigned IO-Blocks of the File-System-Entry.
+    ## @returns -1 if the IoBlockCount could not be determined.
+    return file_utils.getIoBlockCount(self.path)
 
-proc getUserId*(self: Pathname): int32 =
+
+
+proc userId*(self: Pathname): int32 =
     ## @returns an int >= 0 containing the UserId which is assigned to the existing FileSystemEntry.
     ## @returns -1 otherwise
     return file_utils.getUserId(self.path)
 
 
 
-proc getGroupId*(self: Pathname): int32 =
+proc groupId*(self: Pathname): int32 =
     ## @returns an int >= 0 containing the GroupId which is assigned to the existing FileSystemEntry.
     ## @returns -1 otherwise
     return file_utils.getGroupId(self.path)
 
 
 
-proc getCountHardlinks*(self: Pathname): int32 =
+proc countHardlinks*(self: Pathname): int32 =
     ## @returns the count of hardlinks of the File-System-Entry.
     ## @returns -1 if the count could not be determined.
     return file_utils.getCountHardlinks(self.path)
@@ -822,19 +828,25 @@ proc open*(self: Pathname, mode: FileMode = FileMode.fmRead; bufSize: int = -1):
     return file_utils.open(self.path, mode, bufSize)
 
 
+
 #TODO: testen
-proc touch*(self: Pathname): Pathname {.discardable,inline,raises: [IOError].} =
+proc touch*(self: Pathname, optionalPathComponents: varargs[string], mode: uint32 = 0o664): Pathname {.discardable,raises: [IOError].} =
     ## Updates modification time (mtime) and access time (atime) of file(s) in list.
     ## If no File/Directory exists, they will get created.
     ## @raises An IOError if something went wrong.
     ## The difference to #createFile is, that #touch does not throw an error if the target is not a regular file.
-    file_utils.touch(self.path)
+    var targetPathname = self
+    if optionalPathComponents.len > 0:
+        targetPathname = self.join(optionalPathComponents)
+    file_utils.touch(targetPathname.path, mode)
     return self
+
 
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Pathname - tap()
 #-----------------------------------------------------------------------------------------------------------------------
+
 
 
 proc tap*(self: Pathname, tapFn: proc (pathname: Pathname)): Pathname {.discardable,inline.} =
@@ -850,7 +862,7 @@ proc tap*(self: Pathname, tapFn: proc (pathname: Pathname)): Pathname {.discarda
 
 
 
-proc createFile*(self: Pathname, optionalPathComponents: varargs[string]): Pathname {.inline,discardable,raises: [IOError],inline.} =
+proc createFile*(self: Pathname, optionalPathComponents: varargs[string], mode: uint32 = 0o664): Pathname {.inline,discardable,raises: [IOError],inline.} =
     ## Creates an empty regular File.
     ## If the fs-entry already exists and it is a regular file nothing happens.
     ## If the fs-entry already exists but is not a regular file an IOError is raised.
@@ -859,7 +871,7 @@ proc createFile*(self: Pathname, optionalPathComponents: varargs[string]): Pathn
     ## Alias:
     ## * `createFile() proc <#createFile,Pathname>`_
     ## * `createRegularFile() proc <#createRegularFile,Pathname>`_
-    return self.createRegularFile(optionalPathComponents)
+    return self.createRegularFile(optionalPathComponents, mode=mode)
 
 
 
@@ -881,7 +893,7 @@ proc removeFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError
 
 
 
-proc createRegularFile*(self: Pathname, optionalPathComponents: varargs[string]): Pathname {.discardable,raises: [IOError].} =
+proc createRegularFile*(self: Pathname, optionalPathComponents: varargs[string], mode: uint32 = 0o664): Pathname {.discardable,raises: [IOError].} =
     ## Creates an empty regular File.
     ## If the fs-entry already exists and it is a regular file nothing happens.
     ## If the fs-entry already exists but is not a regular file an IOError is raised.
@@ -890,17 +902,20 @@ proc createRegularFile*(self: Pathname, optionalPathComponents: varargs[string])
     var targetPathname = self
     if optionalPathComponents.len > 0:
         targetPathname = self.join(optionalPathComponents)
-    file_utils.createRegularFile(targetPathname.path)
-    return targetPathname
+    file_utils.createRegularFile(targetPathname.path, mode)
+    return self
 
 
 
-proc removeRegularFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+proc removeRegularFile*(self: Pathname, optionalPathComponents: varargs[string]): Pathname {.discardable,raises: [IOError].} =
     ## Removes a regular file and only that.
     ## @raises An IOError if the referenced FS-Entry is existing but is not a regular file, or could not be deleted.
     # @see https://stackoverflow.com/questions/15335223/what-happens-when-unlink-a-directory/15335559#15335559
     # @see man 2 unlink
-    file_utils.removeRegularFile(self.path)
+    var targetPathname = self
+    if optionalPathComponents.len > 0:
+        targetPathname = self.join(optionalPathComponents)
+    file_utils.removeRegularFile(targetPathname.path)
     return self
 
 
@@ -911,7 +926,7 @@ proc removeRegularFile*(self: Pathname): Pathname {.inline,discardable,raises: [
 
 
 
-proc createDirectory*(self: Pathname, mode: uint32 = 0o777): Pathname {.inline,discardable,raises: [IOError],inline.} =
+proc createDirectory*(self: Pathname, optionalPathComponents: varargs[string], mode: uint32 = 0o775): Pathname {.discardable,raises: [IOError].} =
     ## Creates an empty Directory.
     ## If the fs-entry already exists and it is a directory nothing happens.
     ## If the fs-entry already exists but is not a directory an IOError is raised.
@@ -920,12 +935,15 @@ proc createDirectory*(self: Pathname, mode: uint32 = 0o777): Pathname {.inline,d
     ## Alias:
     ## * `createDirectory() proc <#createDirectory,Pathname>`_
     ## * `createEmptyDirectory() proc <#createEmptyDirectory,Pathname>`_
-    file_utils.createEmptyDirectory(self.path, mode)
+    var targetPathname = self
+    if optionalPathComponents.len > 0:
+        targetPathname = self.join(optionalPathComponents)
+    file_utils.createEmptyDirectory(targetPathname.path, mode)
     return self
 
 
 
-proc removeDirectory*(self: Pathname, isRecursive: bool = false): Pathname {.inline,discardable,raises: [IOError].} =
+proc removeDirectory*(self: Pathname, optionalPathComponents: varargs[string], isRecursive: bool = false): Pathname {.discardable,raises: [IOError].} =
     ## Removes an directory.
     ## @raises An IOError if the referenced FS-Entry exists but is not an empty directory (when isRecursive == false, like the default)
     ## @raises An IOError if the referenced FS-Entry is a directory or could not be deleted (not empty, no permission).
@@ -936,7 +954,10 @@ proc removeDirectory*(self: Pathname, isRecursive: bool = false): Pathname {.inl
     ## * `removeDirectoryTree() proc <#removeDirectoryTree,Pathname>`_
     # @see https://stackoverflow.com/questions/15335223/what-happens-when-unlink-a-directory/15335559#15335559
     # @see man 2 rmdir
-    file_utils.removeDirectory(self.path, isRecursive)
+    var targetPathname = self
+    if optionalPathComponents.len > 0:
+        targetPathname = self.join(optionalPathComponents)
+    file_utils.removeDirectory(targetPathname.path, isRecursive)
     return self
 
 
@@ -947,7 +968,7 @@ proc removeDirectory*(self: Pathname, isRecursive: bool = false): Pathname {.inl
 
 
 
-proc createEmptyDirectory*(self: Pathname, mode: uint32 = 0o777): Pathname {.inline,discardable,raises: [IOError].} =
+proc createEmptyDirectory*(self: Pathname, optionalPathComponents: varargs[string], mode: uint32 = 0o775): Pathname {.discardable,raises: [IOError].} =
     ## Creates an empty Directory.
     ## If the fs-entry already exists and it is a directory nothing happens.
     ## If the fs-entry already exists but is not a directory an IOError is raised.
@@ -956,12 +977,15 @@ proc createEmptyDirectory*(self: Pathname, mode: uint32 = 0o777): Pathname {.inl
     ## * `createDirectory() proc <#createDirectory,Pathname>`_
     ## * `createEmptyDirectory() proc <#createEmptyDirectory,Pathname>`_
     # @see man 2 mkdir
-    file_utils.createEmptyDirectory(self.path, mode)
+    var targetPathname = self
+    if optionalPathComponents.len > 0:
+        targetPathname = self.join(optionalPathComponents)
+    file_utils.createEmptyDirectory(targetPathname.path, mode)
     return self
 
 
 
-proc removeEmptyDirectory*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+proc removeEmptyDirectory*(self: Pathname, optionalPathComponents: varargs[string]): Pathname {.discardable,raises: [IOError].} =
     ## Removes an empty directory and only that.
     ## @raises An IOError if the referenced FS-Entry is existing but is not an empty directory, or could not be deleted.
     ## See also:
@@ -970,7 +994,10 @@ proc removeEmptyDirectory*(self: Pathname): Pathname {.inline,discardable,raises
     ## * `removeDirectoryTree() proc <#removeDirectoryTree,Pathname>`_
     # @see https://stackoverflow.com/questions/15335223/what-happens-when-unlink-a-directory/15335559#15335559
     # @see man 2 rmdir
-    file_utils.removeEmptyDirectory(self.path)
+    var targetPathname = self
+    if optionalPathComponents.len > 0:
+        targetPathname = self.join(optionalPathComponents)
+    file_utils.removeEmptyDirectory(targetPathname.path)
     return self
 
 
@@ -982,11 +1009,14 @@ proc removeEmptyDirectory*(self: Pathname): Pathname {.inline,discardable,raises
 
 
 
-proc removeDirectoryTree*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+proc removeDirectoryTree*(self: Pathname, optionalPathComponents: varargs[string]): Pathname {.discardable,raises: [IOError].} =
     ## Removes a directory with all its contents (eg. recursively).
     ## Please be cautious if using this proc.
     ## @see `os.removeDir() proc <#os.removeDir,string>`_
-    file_utils.removeDirectoryTree(self.path)
+    var targetPathname = self
+    if optionalPathComponents.len > 0:
+        targetPathname = self.join(optionalPathComponents)
+    file_utils.removeDirectoryTree(targetPathname.path)
     return self
 
 
@@ -998,7 +1028,7 @@ proc removeDirectoryTree*(self: Pathname): Pathname {.inline,discardable,raises:
 
 
 
-proc createPipeFile*(self: Pathname, mode: uint32 = 0o660): Pathname {.inline,discardable,raises: [IOError].} =
+proc createPipeFile*(self: Pathname, optionalPathComponents: varargs[string], mode: uint32 = 0o660): Pathname {.discardable,raises: [IOError].} =
     ## Creates a named Pipe (aka Fifo).
     ## If the fs-entry already exists and it is a named pipe nothing happens.
     ## If the fs-entry already exists but is not a named pipe an IOError is raised.
@@ -1009,12 +1039,15 @@ proc createPipeFile*(self: Pathname, mode: uint32 = 0o660): Pathname {.inline,di
     ## * `createPipeFile() proc <#createPipeFile,Pathname>`_
     ## * `createFifo() proc <#createFifo,Pathname>`_
     # @see man 3 mkfifo
-    file_utils.createPipeFile(self.path, mode)
+    var targetPathname = self
+    if optionalPathComponents.len > 0:
+        targetPathname = self.join(optionalPathComponents)
+    file_utils.createPipeFile(targetPathname.path, mode)
     return self
 
 
 
-proc removePipeFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+proc removePipeFile*(self: Pathname, optionalPathComponents: varargs[string]): Pathname {.discardable,raises: [IOError].} =
     ## Removes a named pipe file and only that.
     ## @raises An IOError if the referenced FS-Entry is existing but is not a pipe file, or could not be deleted.
     ## Alias:
@@ -1022,7 +1055,10 @@ proc removePipeFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOE
     ## * `removeFifo() proc <#removeFifo,Pathname>`_
     # @see https://stackoverflow.com/questions/15335223/what-happens-when-unlink-a-directory/15335559#15335559
     # @see man 2 unlink
-    file_utils.removePipeFile(self.path)
+    var targetPathname = self
+    if optionalPathComponents.len > 0:
+        targetPathname = self.join(optionalPathComponents)
+    file_utils.removePipeFile(targetPathname.path)
     return self
 
 
@@ -1033,7 +1069,7 @@ proc removePipeFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOE
 
 
 
-proc createFifo*(self: Pathname, mode: uint32 = 0o660): Pathname {.inline,discardable,raises: [IOError],inline.} =
+proc createFifo*(self: Pathname, optionalPathComponents: varargs[string], mode: uint32 = 0o660): Pathname {.inline,discardable,raises: [IOError].} =
     ## Creates a named Pipe (aka Fifo).
     ## If the fs-entry already exists and it is a named pipe nothing happens.
     ## If the fs-entry already exists but is not a named pipe an IOError is raised.
@@ -1044,17 +1080,17 @@ proc createFifo*(self: Pathname, mode: uint32 = 0o660): Pathname {.inline,discar
     ## * `createPipeFile() proc <#createPipeFile,Pathname>`_
     ## * `createFifo() proc <#createFifo,Pathname>`_
     # @see man 3 mkfifo
-    return self.createPipeFile(mode)
+    return self.createPipeFile(optionalPathComponents, mode)
 
 
 
-proc removeFifo*(self: Pathname): Pathname {.inline,discardable,raises: [IOError],inline.} =
+proc removeFifo*(self: Pathname, optionalPathComponents: varargs[string]): Pathname {.inline,discardable,raises: [IOError].} =
     ## Removes a named pipe file and only that.
     ## @raises An IOError if the referenced FS-Entry is existing but is not a pipe file, or could not be deleted.
     ## Alias:
     ## * `removePipeFile() proc <#removePipeFile,Pathname>`_
     ## * `removeFifo() proc <#removeFifo,Pathname>`_
-    return self.removePipeFile()
+    return self.removePipeFile(optionalPathComponents)
 
 
 
