@@ -19,7 +19,7 @@ suite "Pathname Tests 001":
 
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Pathname - File-System-Access
+# Pathname - readAll()
 #-----------------------------------------------------------------------------------------------------------------------
 
 
@@ -36,6 +36,10 @@ suite "Pathname Tests 001":
         expect(IOError):
             discard Pathname.new(fixturePath("sample_dir")).readAll()
 
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - read()
+#-----------------------------------------------------------------------------------------------------------------------
 
 
     test "#read() from existing File":
@@ -80,6 +84,11 @@ suite "Pathname Tests 001":
             discard Pathname.new(fixturePath("sample_dir")).read(5, 6)
 
 
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - open()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
     test "#open() from existing File":
         var file: File = Pathname.new(fixturePath("sample_dir/a_file")).open()
         file.close
@@ -96,35 +105,55 @@ suite "Pathname Tests 001":
 
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Pathname - createFile()/removeFile()
+# Pathname - createFile()
 #-----------------------------------------------------------------------------------------------------------------------
 
 
     test "#createFile() should create a regular File":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_FILE")).removeRegularFile()
+        let pathname = Pathname.new(fixturePath("TEST_CREATE_FILE")).remove()
         check false == pathname.isExisting()
-        pathname.createFile()
-        check true == pathname.isRegularFile()
-        pathname.removeRegularFile()
-
-
-    test "#createFile() should allow multiple calls":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_FILE")).removeRegularFile()
-        check false == pathname.isExisting()
-        pathname.createFile()
-        check true == pathname.isRegularFile()
         pathname.createFile()
         check true == pathname.isRegularFile()
         pathname.removeRegularFile()
 
 
     test "#createFile() should return self for Method-Chaining":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_FILE")).removeRegularFile()
+        let pathname = Pathname.new(fixturePath("TEST_CREATE_FILE")).remove()
         let pathname2: Pathname = pathname.createFile()
         #echo "'", pathname, "'"
         #echo "'", pathname2, "'"
         check pathname2 == pathname
         pathname.removeRegularFile()
+
+
+    test "#createFile() should allow multiple calls":
+        let pathname = Pathname.new(fixturePath("TEST_CREATE_FILE")).remove()
+        check false == pathname.isExisting()
+        pathname.createFile()
+        check true == pathname.isRegularFile()
+        pathname.createFile()
+        check true == pathname.isRegularFile()
+        pathname.removeRegularFile()
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - removeFile()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+    test "#removeFile() should return self for Method-Chaining":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_FILE"))
+        let pathname2: Pathname = pathname.removeFile()
+        check pathname2 == pathname
+
+
+    test "#removeFile() should allow multiple calls":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_FILE")).remove().createRegularFile()
+        check true == pathname.isRegularFile()
+        pathname.removeFile()
+        check false == pathname.isExisting()
+        pathname.removeFile()
+        check false == pathname.isExisting()
 
 
     test "#removeFile() should handle deletion of non existing file-entry":
@@ -135,21 +164,15 @@ suite "Pathname Tests 001":
         check false == pathname.isExisting()
 
 
-    test "#removeFile() should return self for Method-Chaining":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_FILE"))
-        let pathname2: Pathname = pathname.removeFile()
-        check pathname2 == pathname
-
-
     test "#removeFile() should delete a regular file":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_FILE")).createRegularFile()
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_FILE")).remove().createRegularFile()
         check true == pathname.isRegularFile()
         pathname.removeFile()
         check false == pathname.isExisting()
 
 
     test "#removeFile() should NOT delete a directory":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_FILE_WITH_DIRECTORY")).createEmptyDirectory()
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_FILE_WITH_DIRECTORY")).remove().createEmptyDirectory()
         check true == pathname.isDirectory()
         try:
             pathname.removeFile()
@@ -160,48 +183,80 @@ suite "Pathname Tests 001":
         pathname.removeEmptyDirectory()
 
 
-    test "#removeFile() should delete a symlink":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_FILE_WITH_SYMLINK")).removeSymlink().createSymlinkTo("NOT_EXISTING")
-        check true == pathname.isSymlink()
-        pathname.removeFile()
-        check false == pathname.isExisting()
+    when not pathname.AreSymlinksSupported:
+        test "#removeFile() symlinks are not supported for this Architecture":
+            skip
 
 
-    test "#removeFile() should delete a pipe/fifo":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_FILE_WITH_PIPE")).createPipeFile()
-        check true == pathname.isPipeFile()
-        pathname.removeFile()
-        check false == pathname.isExisting()
+    when pathname.AreSymlinksSupported:
+        test "#removeFile() should delete a symlink":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_FILE_WITH_SYMLINK")).remove().createSymlinkTo("NOT_EXISTING")
+            check true == pathname.isSymlink()
+            pathname.removeFile()
+            check false == pathname.isExisting()
+
+
+    when not pathname.ArePipesSupported:
+        test "#removeFile() pipes/fifos are not supported for this Architecture":
+            skip
+
+
+    when pathname.ArePipesSupported:
+        test "#removeFile() should delete a pipe/fifo":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_FILE_WITH_FIFO")).remove().createPipeFile()
+            check true == pathname.isPipeFile()
+            pathname.removeFile()
+            check false == pathname.isExisting()
 
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Pathname - createRegularFile()/removeRegularFile()
+# Pathname - createRegularFile()
 #-----------------------------------------------------------------------------------------------------------------------
 
 
     test "#createRegularFile() should create a regular File":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_REGULAR_FILE")).removeRegularFile()
+        let pathname = Pathname.new(fixturePath("TEST_CREATE_REGULAR_FILE")).remove().removeRegularFile()
         check false == pathname.isExisting()
-        pathname.createRegularFile()
-        check true == pathname.isRegularFile()
-        pathname.removeRegularFile()
-
-
-    test "#createRegularFile() should allow multiple calls":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_REGULAR_FILE")).removeRegularFile()
-        check false == pathname.isExisting()
-        pathname.createRegularFile()
-        check true == pathname.isRegularFile()
         pathname.createRegularFile()
         check true == pathname.isRegularFile()
         pathname.removeRegularFile()
 
 
     test "#createRegularFile() should return self for Method-Chaining":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_REGULAR_FILE")).removeRegularFile()
+        let pathname = Pathname.new(fixturePath("TEST_CREATE_REGULAR_FILE")).remove().removeRegularFile()
         let pathname2: Pathname = pathname.createRegularFile()
         check pathname2 == pathname
         pathname.removeRegularFile()
+
+
+    test "#createRegularFile() should allow multiple calls":
+        let pathname = Pathname.new(fixturePath("TEST_CREATE_REGULAR_FILE")).remove().removeRegularFile()
+        check false == pathname.isExisting()
+        pathname.createRegularFile()
+        check true == pathname.isRegularFile()
+        pathname.createRegularFile()
+        check true == pathname.isRegularFile()
+        pathname.removeRegularFile()
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - removeRegularFile()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+    test "#removeRegularFile() should return self for Method-Chaining":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_REGULAR_FILE"))
+        let pathname2: Pathname = pathname.removeRegularFile()
+        check pathname2 == pathname
+
+
+    test "#removeRegularFile() should allow multiple calls":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_REGULAR_FILE")).remove().createRegularFile()
+        check true == pathname.isRegularFile()
+        pathname.removeRegularFile()
+        check false == pathname.isExisting()
+        pathname.removeRegularFile()
+        check false == pathname.isExisting()
 
 
     test "#removeRegularFile() should handle deletion of non existing file-entry":
@@ -213,14 +268,14 @@ suite "Pathname Tests 001":
 
 
     test "#removeRegularFile() should delete a regular file":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_REGULAR_FILE")).createRegularFile()
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_REGULAR_FILE")).remove().createRegularFile()
         check true == pathname.isRegularFile()
         pathname.removeRegularFile()
         check false == pathname.isExisting()
 
 
     test "#removeRegularFile() should NOT delete a directory":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_REGULAR_FILE_WITH_DIRECTORY")).createEmptyDirectory()
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_REGULAR_FILE_WITH_DIRECTORY")).remove().createEmptyDirectory()
         check true == pathname.isDirectory()
         try:
             pathname.removeRegularFile()
@@ -231,239 +286,75 @@ suite "Pathname Tests 001":
         pathname.removeEmptyDirectory()
 
 
-    test "#removeRegularFile() should NOT delete a symlink":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_REGULAR_FILE_WITH_SYMLINK")).removeSymlink().createSymlinkTo("NOT_EXISTING")
-        check true == pathname.isSymlink()
-        try:
-            pathname.removeRegularFile()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isSymlink()
-        pathname.removeSymlink()
+    when not pathname.AreSymlinksSupported:
+        test "#removeRegularFile() symlinks are not supported for this Architecture":
+            skip
 
 
-    test "#removeRegularFile() should NOT delete a pipe/fifo":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_REGULAR_FILE_WITH_PIPE")).createPipeFile()
-        check true == pathname.isPipeFile()
-        try:
-            pathname.removeRegularFile()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isPipeFile()
-        pathname.removePipeFile()
+    when pathname.AreSymlinksSupported:
+        test "#removeRegularFile() should NOT delete a symlink":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_REGULAR_FILE_WITH_SYMLINK")).remove().createSymlinkTo("NOT_EXISTING")
+            check true == pathname.isSymlink()
+            try:
+                pathname.removeRegularFile()
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isSymlink()
+            pathname.removeSymlink()
 
 
-    test "#removeRegularFile() should return self for Method-Chaining":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_REGULAR_FILE"))
-        let pathname2: Pathname = pathname.removeRegularFile()
-        check pathname2 == pathname
+    when not pathname.ArePipesSupported:
+        test "#removeRegularFile() pipes/fifos are not supported for this Architecture":
+            skip
+
+
+    when pathname.ArePipesSupported:
+        test "#removeRegularFile() should NOT delete a pipe/fifo":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_REGULAR_FILE_WITH_PIPE")).remove().createPipeFile()
+            check true == pathname.isPipeFile()
+            try:
+                pathname.removeRegularFile()
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isPipeFile()
+            pathname.removePipeFile()
 
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Pathname - createDirectory()/removeDirectory()
+# Pathname - createDirectory()
 #-----------------------------------------------------------------------------------------------------------------------
 
 
     test "#createDirectory() should create an empty directory":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_DIRECTORY")).removeEmptyDirectory()
+        let pathname = Pathname.new(fixturePath("TEST_CREATE_DIRECTORY")).remove()
         check false == pathname.isExisting()
-        pathname.createDirectory()
-        check true == pathname.isDirectory()
-        pathname.removeEmptyDirectory()
-
-
-    test "#createDirectory() should allow multiple calls":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_DIRECTORY")).removeEmptyDirectory()
-        check false == pathname.isExisting()
-        pathname.createDirectory()
-        check true == pathname.isDirectory()
         pathname.createDirectory()
         check true == pathname.isDirectory()
         pathname.removeEmptyDirectory()
 
 
     test "#createDirectory() should return self for Method-Chaining":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_DIRECTORY")).removeEmptyDirectory()
+        let pathname = Pathname.new(fixturePath("TEST_CREATE_DIRECTORY")).remove()
         let pathname2: Pathname = pathname.createDirectory()
         check pathname2 == pathname
         pathname.removeEmptyDirectory()
 
 
-    test "#removeDirectory() should handle deletion of non existing file-entry":
-        let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+    test "#createDirectory() should allow multiple calls":
+        let pathname = Pathname.new(fixturePath("TEST_CREATE_DIRECTORY")).remove()
         check false == pathname.isExisting()
-        pathname.removeDirectory()
-        pathname.removeDirectory(isRecursive=true)
-        pathname.removeDirectory(isRecursive=false)
-        check false == pathname.isExisting()
-
-
-    test "#removeDirectory() should delete an empty directory by default":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_EMPTY_DIR")).createEmptyDirectory()
+        pathname.createDirectory()
         check true == pathname.isDirectory()
-        pathname.removeDirectory()
-        check false == pathname.isExisting()
-
-
-    test "#removeDirectory(isRecursive=false) should delete an empty directory":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_EMPTY_DIR")).createEmptyDirectory()
+        pathname.createDirectory()
         check true == pathname.isDirectory()
-        pathname.removeDirectory(isRecursive=false)
-        check false == pathname.isExisting()
+        pathname.removeEmptyDirectory()
 
 
-    test "#removeDirectory(isRecursive=true) should delete an empty directory":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_EMPTY_DIR")).createEmptyDirectory()
-        check true == pathname.isDirectory()
-        pathname.removeDirectory(isRecursive=true)
-        check false == pathname.isExisting()
-
-
-    test "#removeDirectory() should NOT delete a full directory by default":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FULL_DIR")).createEmptyDirectory()
-        check true == pathname.isDirectory()
-        let pathname2 = pathname.join("A_FILE").createRegularFile()
-        check true == pathname2.isRegularFile()
-        try:
-            pathname.removeDirectory()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isDirectory()
-        pathname.removeDirectoryTree()
-
-
-    test "#removeDirectory(isRecursive=false) should NOT delete a full directory":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FULL_DIR")).createEmptyDirectory()
-        check true == pathname.isDirectory()
-        let pathname2 = pathname.join("A_FILE").createRegularFile()
-        check true == pathname2.isRegularFile()
-        try:
-            pathname.removeDirectory(isRecursive=false)
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isDirectory()
-        pathname.removeDirectoryTree()
-
-
-    test "#removeDirectory(isRecursive=true) should delete an empty directory":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FULL_DIR")).createEmptyDirectory()
-        check true == pathname.isDirectory()
-        let pathname2 = pathname.join("A_FILE").createRegularFile()
-        check true == pathname2.isRegularFile()
-        pathname.removeDirectory(isRecursive=true)
-        check false == pathname.isExisting()
-
-
-    test "#removeDirectory() should NOT delete a regular file by default":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FILE")).createRegularFile()
-        check true == pathname.isRegularFile()
-        try:
-            pathname.removeDirectory()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isRegularFile()
-        pathname.removeRegularFile()
-
-
-    test "#removeDirectory(isRecursive=false) should NOT delete a regular file":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FILE")).createRegularFile()
-        check true == pathname.isRegularFile()
-        try:
-            pathname.removeDirectory(isRecursive=false)
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isRegularFile()
-        pathname.removeRegularFile()
-
-
-    test "#removeDirectory(isRecursive=true) should NOT delete a regular file":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FILE")).createRegularFile()
-        check true == pathname.isRegularFile()
-        try:
-            pathname.removeDirectory(isRecursive=true)
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isRegularFile()
-        pathname.removeRegularFile()
-
-
-    test "#removeDirectory() should NOT delete a pipe/fifo by default":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FIFO")).createPipeFile()
-        check true == pathname.isPipeFile()
-        try:
-            pathname.removeDirectory()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isPipeFile()
-        pathname.removePipeFile()
-
-
-    test "#removeDirectory(isRecursive=false) should NOT delete a pipe/fifo":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FIFO")).createPipeFile()
-        check true == pathname.isPipeFile()
-        try:
-            pathname.removeDirectory(isRecursive=false)
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isPipeFile()
-        pathname.removePipeFile()
-
-
-    test "#removeDirectory(isRecursive=true) should NOT delete a pipe/fifo":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FIFO")).createPipeFile()
-        check true == pathname.isPipeFile()
-        try:
-            pathname.removeDirectory(isRecursive=true)
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isPipeFile()
-        pathname.removePipeFile()
-
-
-    test "#removeDirectory() should NOT delete a symlink by default":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_SYMLINK")).removeSymlink().createSymlinkTo("NOT_EXISTING")
-        check true == pathname.isSymlink()
-        try:
-            pathname.removeDirectory()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isSymlink()
-        pathname.removeSymlink()
-
-
-    test "#removeDirectory(isRecursive=false) should NOT delete a symlink":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_SYMLINK")).removeSymlink().createSymlinkTo("NOT_EXISTING")
-        check true == pathname.isSymlink()
-        try:
-            pathname.removeDirectory(isRecursive=false)
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isSymlink()
-        pathname.removeSymlink()
-
-
-    test "#removeDirectory(isRecursive=true) should NOT delete a symlink":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_SYMLINK")).removeSymlink().createSymlinkTo("NOT_EXISTING")
-        check true == pathname.isSymlink()
-        try:
-            pathname.removeDirectory(isRecursive=true)
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isSymlink()
-        pathname.removeSymlink()
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - removeDirectory()
+#-----------------------------------------------------------------------------------------------------------------------
 
 
     test "#removeDirectory() should return self for Method-Chaining":
@@ -479,13 +370,214 @@ suite "Pathname Tests 001":
             check pathname2 == pathname
 
 
+    test "#removeDirectory() should allow multiple calls":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY")).remove().createEmptyDirectory()
+        check true == pathname.isDirectory()
+        pathname.removeDirectory()
+        check false == pathname.isExisting()
+        pathname.removeDirectory()
+        check false == pathname.isExisting()
+
+
+    test "#removeDirectory() should handle deletion of non existing file-entry":
+        let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+        check false == pathname.isExisting()
+        pathname.removeDirectory()
+        pathname.removeDirectory(isRecursive=true)
+        pathname.removeDirectory(isRecursive=false)
+        check false == pathname.isExisting()
+
+
+    test "#removeDirectory() should delete an empty directory by default":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_EMPTY_DIR")).remove().createEmptyDirectory()
+        check true == pathname.isDirectory()
+        pathname.removeDirectory()
+        check false == pathname.isExisting()
+
+
+    test "#removeDirectory(isRecursive=false) should delete an empty directory":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_EMPTY_DIR")).remove().createEmptyDirectory()
+        check true == pathname.isDirectory()
+        pathname.removeDirectory(isRecursive=false)
+        check false == pathname.isExisting()
+
+
+    test "#removeDirectory(isRecursive=true) should delete an empty directory":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_EMPTY_DIR")).remove().createEmptyDirectory()
+        check true == pathname.isDirectory()
+        pathname.removeDirectory(isRecursive=true)
+        check false == pathname.isExisting()
+
+
+    test "#removeDirectory() should NOT delete a full directory by default":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FULL_DIR")).remove().createEmptyDirectory()
+        check true == pathname.isDirectory()
+        let pathname2 = pathname.join("A_FILE").createRegularFile()
+        check true == pathname2.isRegularFile()
+        try:
+            pathname.removeDirectory()
+            fail()
+        except IOError:
+            check true
+        check true == pathname.isDirectory()
+        pathname.removeDirectoryTree()
+
+
+    test "#removeDirectory(isRecursive=false) should NOT delete a full directory":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FULL_DIR")).remove().createEmptyDirectory()
+        check true == pathname.isDirectory()
+        let pathname2 = pathname.join("A_FILE").createRegularFile()
+        check true == pathname2.isRegularFile()
+        try:
+            pathname.removeDirectory(isRecursive=false)
+            fail()
+        except IOError:
+            check true
+        check true == pathname.isDirectory()
+        pathname.removeDirectoryTree()
+
+
+    test "#removeDirectory(isRecursive=true) should delete an empty directory":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FULL_DIR")).remove().createEmptyDirectory()
+        check true == pathname.isDirectory()
+        let pathname2 = pathname.join("A_FILE").createRegularFile()
+        check true == pathname2.isRegularFile()
+        pathname.removeDirectory(isRecursive=true)
+        check false == pathname.isExisting()
+
+
+    test "#removeDirectory() should NOT delete a regular file by default":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FILE")).remove().createRegularFile()
+        check true == pathname.isRegularFile()
+        try:
+            pathname.removeDirectory()
+            fail()
+        except IOError:
+            check true
+        check true == pathname.isRegularFile()
+        pathname.removeRegularFile()
+
+
+    test "#removeDirectory(isRecursive=false) should NOT delete a regular file":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FILE")).remove().createRegularFile()
+        check true == pathname.isRegularFile()
+        try:
+            pathname.removeDirectory(isRecursive=false)
+            fail()
+        except IOError:
+            check true
+        check true == pathname.isRegularFile()
+        pathname.removeRegularFile()
+
+
+    test "#removeDirectory(isRecursive=true) should NOT delete a regular file":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FILE")).remove().createRegularFile()
+        check true == pathname.isRegularFile()
+        try:
+            pathname.removeDirectory(isRecursive=true)
+            fail()
+        except IOError:
+            check true
+        check true == pathname.isRegularFile()
+        pathname.removeRegularFile()
+
+
+
+    when not pathname.AreSymlinksSupported:
+        test "#removeDirectory() symlinks are not supported for this Architecture":
+            skip
+
+
+    when pathname.AreSymlinksSupported:
+        test "#removeDirectory() should NOT delete a symlink by default":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_SYMLINK")).remove().createSymlinkTo("NOT_EXISTING")
+            check true == pathname.isSymlink()
+            try:
+                pathname.removeDirectory()
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isSymlink()
+            pathname.removeSymlink()
+
+
+    when pathname.AreSymlinksSupported:
+        test "#removeDirectory(isRecursive=false) should NOT delete a symlink":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_SYMLINK")).remove().createSymlinkTo("NOT_EXISTING")
+            check true == pathname.isSymlink()
+            try:
+                pathname.removeDirectory(isRecursive=false)
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isSymlink()
+            pathname.removeSymlink()
+
+
+    when pathname.AreSymlinksSupported:
+        test "#removeDirectory(isRecursive=true) should NOT delete a symlink":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_SYMLINK")).remove().createSymlinkTo("NOT_EXISTING")
+            check true == pathname.isSymlink()
+            try:
+                pathname.removeDirectory(isRecursive=true)
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isSymlink()
+            pathname.removeSymlink()
+
+
+    when not pathname.ArePipesSupported:
+        test "#removeDirectory() pipes/fifos are not supported for this Architecture":
+            skip
+
+
+    when pathname.ArePipesSupported:
+        test "#removeDirectory() should NOT delete a pipe/fifo by default":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FIFO")).remove().createPipeFile()
+            check true == pathname.isPipeFile()
+            try:
+                pathname.removeDirectory()
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isPipeFile()
+            pathname.removePipeFile()
+
+
+    when pathname.ArePipesSupported:
+        test "#removeDirectory(isRecursive=false) should NOT delete a pipe/fifo":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FIFO")).remove().createPipeFile()
+            check true == pathname.isPipeFile()
+            try:
+                pathname.removeDirectory(isRecursive=false)
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isPipeFile()
+            pathname.removePipeFile()
+
+
+    when pathname.ArePipesSupported:
+        test "#removeDirectory(isRecursive=true) should NOT delete a pipe/fifo":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_WITH_FIFO")).remove().createPipeFile()
+            check true == pathname.isPipeFile()
+            try:
+                pathname.removeDirectory(isRecursive=true)
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isPipeFile()
+            pathname.removePipeFile()
+
+
 #-----------------------------------------------------------------------------------------------------------------------
-# Pathname - createEmptyDirectory()/removeEmptyDirectory()
+# Pathname - createEmptyDirectory()
 #-----------------------------------------------------------------------------------------------------------------------
 
 
     test "#createEmptyDirectory() should create an empty directory":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_EMPTY_DIRECTORY")).removeEmptyDirectory()
+        let pathname = Pathname.new(fixturePath("TEST_CREATE_EMPTY_DIRECTORY")).remove()
         check false == pathname.isExisting()
         pathname.createEmptyDirectory()
         check true == pathname.isDirectory()
@@ -493,21 +585,51 @@ suite "Pathname Tests 001":
 
 
     test "#createEmptyDirectory() should return self for Method-Chaining":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_EMPTY_DIRECTORY")).removeEmptyDirectory()
+        let pathname = Pathname.new(fixturePath("TEST_CREATE_EMPTY_DIRECTORY")).remove()
         let pathname2: Pathname = pathname.createEmptyDirectory()
         check pathname2 == pathname
         pathname.removeEmptyDirectory()
 
 
+    test "#createEmptyDirectory() should allow multiple calls":
+        let pathname = Pathname.new(fixturePath("TEST_CREATE_EMPTY_DIRECTORY")).remove()
+        check false == pathname.isExisting()
+        pathname.createEmptyDirectory()
+        check true == pathname.isDirectory()
+        pathname.createEmptyDirectory()
+        check true == pathname.isDirectory()
+        pathname.removeEmptyDirectory()
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - removeEmptyDirectory()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+    test "#removeEmptyDirectory() should return self for Method-Chaining":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_EMPTY_DIRECTORY_EMPTY"))
+        let pathname2: Pathname = pathname.removeEmptyDirectory()
+        check pathname2 == pathname
+
+
+    test "#removeEmptyDirectory() should allow multiple calls":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_EMPTY_DIRECTORY_EMPTY")).remove().createEmptyDirectory()
+        check true == pathname.isDirectory()
+        pathname.removeEmptyDirectory()
+        check false == pathname.isExisting()
+        pathname.removeEmptyDirectory()
+        check false == pathname.isExisting()
+
+
     test "#removeEmptyDirectory() should delete an empty directory":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_EMPTY_DIRECTORY_EMPTY")).createEmptyDirectory()
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_EMPTY_DIRECTORY_EMPTY")).remove().createEmptyDirectory()
         check true == pathname.isDirectory()
         pathname.removeEmptyDirectory()
         check false == pathname.isExisting()
 
 
     test "#removeEmptyDirectory() should NOT delete a full directory":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_EMPTY_DIRECTORY_FULL")).createEmptyDirectory()
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_EMPTY_DIRECTORY_FULL")).remove().createEmptyDirectory()
         check true == pathname.isDirectory()
         let pathnameContent = pathname.join("A_FILE").createRegularFile()
         check true == pathnameContent.isRegularFile()
@@ -529,7 +651,7 @@ suite "Pathname Tests 001":
 
 
     test "#removeEmptyDirectory() should NOT delete a regular file":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_EMPTY_DIRECTORY_WITH_SYMLINK")).removeRegularFile().createRegularFile()
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_EMPTY_DIRECTORY_WITH_SYMLINK")).remove().createRegularFile()
         check true == pathname.isRegularFile()
         try:
             pathname.removeEmptyDirectory()
@@ -540,23 +662,40 @@ suite "Pathname Tests 001":
         pathname.removeRegularFile()
 
 
-    test "#removeEmptyDirectory() should NOT delete a symlink":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_EMPTY_DIRECTORY_WITH_SYMLINK")).removeSymlink().createSymlinkTo("NOT_EXISTING")
-        check true == pathname.isSymlink()
-        try:
-            pathname.removeEmptyDirectory()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isSymlink()
-        pathname.removeSymlink()
+    when not pathname.AreSymlinksSupported:
+        test "#removeEmptyDirectory() pipes/fifos are not supported for this Architecture":
+            skip
 
 
-    test "#removeEmptyDirectory() should return self for Method-Chaining":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_EMPTY_DIRECTORY_EMPTY"))
-        let pathname2: Pathname = pathname.removeEmptyDirectory()
-        check pathname2 == pathname
+    when pathname.AreSymlinksSupported:
+        test "#removeEmptyDirectory() should NOT delete a symlink":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_EMPTY_DIRECTORY_WITH_SYMLINK")).remove().createSymlinkTo("NOT_EXISTING")
+            check true == pathname.isSymlink()
+            try:
+                pathname.removeEmptyDirectory()
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isSymlink()
+            pathname.removeSymlink()
 
+
+    when not pathname.ArePipesSupported:
+        test "#removeEmptyDirectory() pipes/fifos are not supported for this Architecture":
+            skip
+
+
+    when pathname.ArePipesSupported:
+        test "#removeEmptyDirectory() should NOT delete a pipe/fifo":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_EMPTY_DIRECTORY_WITH_FIFO")).remove().createPipeFile()
+            check true == pathname.isPipeFile()
+            try:
+                pathname.removeEmptyDirectory()
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isPipeFile()
+            pathname.removePipeFile()
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -565,19 +704,25 @@ suite "Pathname Tests 001":
 
 
     test "#removeDirectoryTree() should delete an empty directory":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_TREE_EMPTY")).createEmptyDirectory()
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_TREE_EMPTY")).remove().createEmptyDirectory()
         check true == pathname.isDirectory()
         pathname.removeDirectoryTree()
         check false == pathname.isExisting()
 
 
     test "#removeDirectoryTree() should delete a full directory":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_TREE_FULL")).createEmptyDirectory()
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_TREE_FULL")).remove().createEmptyDirectory()
         check true == pathname.isDirectory()
         let pathnameContent = pathname.join("A_FILE").createRegularFile()
         check true == pathnameContent.isRegularFile()
         pathname.removeDirectoryTree()
         check false == pathname.isExisting()
+
+
+    test "#removeDirectoryTree() should return self for Method-Chaining":
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_TREE"))
+        let pathname2: Pathname = pathname.removeDirectoryTree()
+        check pathname2 == pathname
 
 
     test "#removeDirectoryTree() should handle deletion of non existing file-entry":
@@ -589,7 +734,7 @@ suite "Pathname Tests 001":
 
 
     test "#removeDirectoryTree() should NOT delete a regular file":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_TREE")).createRegularFile()
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_TREE")).remove().createRegularFile()
         check true == pathname.isRegularFile()
         try:
             pathname.removeDirectoryTree()
@@ -600,331 +745,388 @@ suite "Pathname Tests 001":
         pathname.removeRegularFile()
 
 
-    test "#removeDirectoryTree() should NOT delete a symlink":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_TREE_WITH_SYMLINK")).removeSymlink().createSymlinkTo("NOT_EXISTING")
-        check true == pathname.isSymlink()
-        try:
-            pathname.removeDirectoryTree()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isSymlink()
-        pathname.removeSymlink()
+    when not pathname.AreSymlinksSupported:
+        test "#removeDirectoryTree() symlinks are not supported for this Architecture":
+            skip
 
 
-    test "#removeDirectoryTree() should NOT delete a named pipe":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_TREE")).createPipeFile()
-        check true == pathname.isPipeFile()
-        try:
-            pathname.removeDirectoryTree()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isPipeFile()
-        pathname.removePipeFile()
+    when pathname.AreSymlinksSupported:
+        test "#removeDirectoryTree() should NOT delete a symlink":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_TREE_WITH_SYMLINK")).remove().createSymlinkTo("NOT_EXISTING")
+            check true == pathname.isSymlink()
+            try:
+                pathname.removeDirectoryTree()
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isSymlink()
+            pathname.removeSymlink()
 
 
-    test "#removeDirectoryTree() should return self for Method-Chaining":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_TREE"))
-        let pathname2: Pathname = pathname.removeDirectoryTree()
-        check pathname2 == pathname
+    when not pathname.ArePipesSupported:
+        test "#removeDirectoryTree() pipes/fifos are not supported for this Architecture":
+            skip
 
+
+    when pathname.ArePipesSupported:
+        test "#removeDirectoryTree() should NOT delete a pipe/fifo":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_DIRECTORY_TREE_FIFO")).remove().createPipeFile()
+            check true == pathname.isPipeFile()
+            try:
+                pathname.removeDirectoryTree()
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isPipeFile()
+            pathname.removePipeFile()
 
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Pathname - createSymlinkTo()/removeSymlink()
+# Pathname - createSymlinkTo()
 #-----------------------------------------------------------------------------------------------------------------------
 
 
-    test "#createSymlinkTo() should create a symlink":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_SYMLINK_TO")).removeSymlink()
-        check false == pathname.isExisting()
-        pathname.createSymlinkTo("NOT_EXISTING")
-        check true == pathname.isSymlink()
-        pathname.removeSymlink()
+    when not pathname.AreSymlinksSupported:
+        test "#createSymlinkTo() symlinks are not supported for this Architecture":
+            skip
 
 
-    test "#createSymlinkTo() should NOT allow multiple calls":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_SYMLINK_TO")).removeSymlink()
-        check false == pathname.isExisting()
-        pathname.createSymlinkTo("NOT_EXISTING")
-        check true == pathname.isSymlink()
-        try:
+    when not pathname.AreSymlinksSupported:
+        test "#createSymlinkTo() should raise NotSupported-Error for this Architecture":
+            let pathname = Pathname.new(fixturePath("TEST_CREATE_SYMLINK_TO")).remove()
+            try:
+                pathname.createSymlinkTo("NOT_EXISTING")
+                fail
+            except NotSupportedError:
+                check true
+            except Exception:
+                fail
+
+
+    when pathname.AreSymlinksSupported:
+        test "#createSymlinkTo() should create a symlink":
+            let pathname = Pathname.new(fixturePath("TEST_CREATE_SYMLINK_TO")).remove()
+            check false == pathname.isExisting()
             pathname.createSymlinkTo("NOT_EXISTING")
-            fail()
-        except IOError:
-            check true
-        pathname.removeSymlink()
+            check true == pathname.isSymlink()
+            pathname.removeSymlink()
 
 
-    test "#createSymlinkTo() should return self for Method-Chaining":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_SYMLINK_TO")).removeSymlink()
-        let pathname2: Pathname = pathname.createSymlinkTo("NOT_EXISTING")
-        check pathname2 == pathname
-        pathname.removeSymlink()
+    when pathname.AreSymlinksSupported:
+        test "#createSymlinkTo() should return self for Method-Chaining":
+            let pathname = Pathname.new(fixturePath("TEST_CREATE_SYMLINK_TO")).remove()
+            let pathname2: Pathname = pathname.createSymlinkTo("NOT_EXISTING")
+            check pathname2 == pathname
+            pathname.removeSymlink()
 
 
-    test "#createSymlinkFrom() should create a symlink":
-        let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
-        let pathnameSymlink = Pathname.new(fixturePath("TEST_CREATE_SYMLINK_FROM")).removeSymlink()
-        check false == pathnameSymlink.isExisting()
-        pathname.createSymlinkFrom(fixturePath("TEST_CREATE_SYMLINK_FROM"))
-        check true == pathnameSymlink.isSymlink()
-        pathnameSymlink.removeSymlink()
+    when pathname.AreSymlinksSupported:
+        test "#createSymlinkTo() should NOT allow multiple calls":
+            let pathname = Pathname.new(fixturePath("TEST_CREATE_SYMLINK_TO")).remove()
+            check false == pathname.isExisting()
+            pathname.createSymlinkTo("NOT_EXISTING")
+            check true == pathname.isSymlink()
+            try:
+                pathname.createSymlinkTo("NOT_EXISTING")
+                fail()
+            except IOError:
+                check true
+            pathname.removeSymlink()
 
 
-    test "#createSymlinkFrom() should NOT allow multiple calls":
-        let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
-        let pathnameSymlink = Pathname.new(fixturePath("TEST_CREATE_SYMLINK_FROM")).removeSymlink()
-        check false == pathnameSymlink.isExisting()
-        pathname.createSymlinkFrom(fixturePath("TEST_CREATE_SYMLINK_FROM"))
-        check true == pathnameSymlink.isSymlink()
-        try:
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - createSymlinkFrom()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+    when not pathname.AreSymlinksSupported:
+        test "#createSymlinkFrom() symlinks are not supported for this Architecture":
+            skip
+
+
+    when not pathname.AreSymlinksSupported:
+        test "#createSymlinkFrom() should raise NotSupported-Error for this Architecture":
+            let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
+            try:
+                pathname.createSymlinkFrom("TEST_CREATE_SYMLINK_FROM")
+                fail
+            except NotSupportedError:
+                check true
+            except Exception:
+                fail
+
+
+    when pathname.AreSymlinksSupported:
+        test "#createSymlinkFrom() should create a symlink":
+            let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+            let pathnameSymlink = Pathname.new(fixturePath("TEST_CREATE_SYMLINK_FROM")).remove()
+            check false == pathnameSymlink.isExisting()
             pathname.createSymlinkFrom(fixturePath("TEST_CREATE_SYMLINK_FROM"))
-            fail()
-        except IOError:
-            check true
-        pathnameSymlink.removeSymlink()
+            check true == pathnameSymlink.isSymlink()
+            pathnameSymlink.removeSymlink()
 
 
-    test "#createSymlinkFrom() should return self for Method-Chaining":
-        let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
-        let pathname2: Pathname = pathname.createSymlinkFrom(fixturePath("TEST_CREATE_SYMLINK_FROM"))
-        check pathname2 == pathname
-        Pathname.new(fixturePath("TEST_CREATE_SYMLINK_FROM")).removeSymlink()
+    when pathname.AreSymlinksSupported:
+        test "#createSymlinkFrom() should return self for Method-Chaining":
+            let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+            let pathname2: Pathname = pathname.createSymlinkFrom(fixturePath("TEST_CREATE_SYMLINK_FROM"))
+            check pathname2 == pathname
+            Pathname.new(fixturePath("TEST_CREATE_SYMLINK_FROM")).removeSymlink()
 
 
-    test "#removeSymlink() should delete a pipe file":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_SYMLINK_WITH_PIPE")).removeSymlink().createSymlinkTo("NOT_EXISTING")
-        check true == pathname.isSymlink()
-        pathname.removeSymlink()
-        check false == pathname.isExisting()
+    when pathname.AreSymlinksSupported:
+        test "#createSymlinkFrom() should NOT allow multiple calls":
+            let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
+            let pathnameSymlink = Pathname.new(fixturePath("TEST_CREATE_SYMLINK_FROM")).remove()
+            check false == pathnameSymlink.isExisting()
+            pathname.createSymlinkFrom(fixturePath("TEST_CREATE_SYMLINK_FROM"))
+            check true == pathnameSymlink.isSymlink()
+            try:
+                pathname.createSymlinkFrom(fixturePath("TEST_CREATE_SYMLINK_FROM"))
+                fail()
+            except IOError:
+                check true
+            pathnameSymlink.removeSymlink()
 
 
-    test "#removeSymlink() should handle deletion of non existing file-entry":
-        let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
-        check false == pathname.isExisting()
-        pathname.removeSymlink()
-        pathname.removeSymlink()
-        check false == pathname.isExisting()
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - removeSymlink()
+#-----------------------------------------------------------------------------------------------------------------------
 
 
-    test "#removeSymlink() should NOT delete a regular file":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_SYMLINK_WITH_REGULAR_FILE")).createRegularFile()
-        check true == pathname.isRegularFile()
-        try:
+    when not pathname.AreSymlinksSupported:
+        test "#removeSymlink() symlinks are not supported for this Architecture":
+            skip
+
+
+    when not pathname.AreSymlinksSupported:
+        test "#removeSymlink() should raise NotSupported-Error for this Architecture":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_SYMLINK")).remove()
+            try:
+                pathname.removeSymlink()
+                fail
+            except NotSupportedError:
+                check true
+            except Exception:
+                fail
+
+
+    when pathname.AreSymlinksSupported:
+        test "#removeSymlink() should return self for Method-Chaining":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_SYMLINK")).remove().createSymlinkTo("NOT_EXISTING")
+            let pathname2: Pathname = pathname.removeSymlink()
+            check pathname2 == pathname
+
+
+    when pathname.AreSymlinksSupported:
+        test "#removeSymlink() should allow multiple calls":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_SYMLINK")).remove().createSymlinkTo("NOT_EXISTING")
+            check true == pathname.isSymlink()
             pathname.removeSymlink()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isRegularFile()
-        pathname.removeRegularFile()
-
-
-    test "#removeSymlink() should NOT delete a directory":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_SYMLINK_WITH_DIRECTORY")).createEmptyDirectory()
-        check true == pathname.isDirectory()
-        try:
+            check false == pathname.isExisting()
             pathname.removeSymlink()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isDirectory()
-        pathname.removeEmptyDirectory()
+            check false == pathname.isExisting()
 
 
-    test "#removeSymlink() should NOT delete a pipe/fifo":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_SYMLINK_WITH_SYMLINK")).createPipeFile()
-        check true == pathname.isPipeFile()
-        try:
+    when pathname.AreSymlinksSupported:
+        test "#removeSymlink() should delete a pipe file":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_SYMLINK_WITH_PIPE")).remove().createSymlinkTo("NOT_EXISTING")
+            check true == pathname.isSymlink()
             pathname.removeSymlink()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isPipeFile()
-        pathname.removePipeFile()
+            check false == pathname.isExisting()
 
 
-    test "#removeSymlink() should return self for Method-Chaining":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_SYMLINK")).removeSymlink().createSymlinkTo("NOT_EXISTING")
-        let pathname2: Pathname = pathname.removeSymlink()
-        check pathname2 == pathname
+    when pathname.AreSymlinksSupported:
+        test "#removeSymlink() should handle deletion of non existing file-entry":
+            let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+            check false == pathname.isExisting()
+            pathname.removeSymlink()
+            pathname.removeSymlink()
+            check false == pathname.isExisting()
 
 
-
-#-----------------------------------------------------------------------------------------------------------------------
-# Pathname - createPipeFile()/removePipeFile()
-#-----------------------------------------------------------------------------------------------------------------------
-
-
-    test "#createPipeFile() should create a named pipe":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_PIPE_FILE")).removePipeFile()
-        check false == pathname.isExisting()
-        pathname.createPipeFile()
-        check true == pathname.isPipeFile()
-        pathname.removePipeFile()
-
-
-    test "#createPipeFile() should allow multiple calls":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_PIPE_FILE")).removePipeFile()
-        check false == pathname.isExisting()
-        pathname.createPipeFile()
-        check true == pathname.isPipeFile()
-        pathname.createPipeFile()
-        check true == pathname.isPipeFile()
-        pathname.removePipeFile()
+    when pathname.AreSymlinksSupported:
+        test "#removeSymlink() should NOT delete a regular file":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_SYMLINK_WITH_REGULAR_FILE")).remove().createRegularFile()
+            check true == pathname.isRegularFile()
+            try:
+                pathname.removeSymlink()
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isRegularFile()
+            pathname.removeRegularFile()
 
 
-    test "#createPipeFile() should return self for Method-Chaining":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_PIPE_FILE")).removePipeFile()
-        let pathname2: Pathname = pathname.createPipeFile()
-        check pathname2 == pathname
-        pathname.removePipeFile()
+    when pathname.AreSymlinksSupported:
+        test "#removeSymlink() should NOT delete a directory":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_SYMLINK_WITH_DIRECTORY")).remove().createEmptyDirectory()
+            check true == pathname.isDirectory()
+            try:
+                pathname.removeSymlink()
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isDirectory()
+            pathname.removeEmptyDirectory()
 
 
-    test "#removePipeFile() should delete a pipe file":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE_PIPE")).createPipeFile()
-        check true == pathname.isPipeFile()
-        pathname.removePipeFile()
-        check false == pathname.isExisting()
-
-
-    test "#removePipeFile() should handle deletion of non existing file-entry":
-        let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
-        check false == pathname.isExisting()
-        pathname.removePipeFile()
-        pathname.removePipeFile()
-        check false == pathname.isExisting()
-
-
-    test "#removePipeFile() should NOT delete a regular file":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE_REGULAR")).createRegularFile()
-        check true == pathname.isRegularFile()
-        try:
+    when pathname.AreSymlinksSupported:
+        test "#removeSymlink() should NOT delete a pipe/fifo":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_SYMLINK_WITH_FIFO")).remove().createPipeFile()
+            check true == pathname.isPipeFile()
+            try:
+                pathname.removeSymlink()
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isPipeFile()
             pathname.removePipeFile()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isRegularFile()
-        pathname.removeRegularFile()
-
-
-    test "#removePipeFile() should NOT delete a directory":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE_DIRECTORY")).createEmptyDirectory()
-        check true == pathname.isDirectory()
-        try:
-            pathname.removePipeFile()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isDirectory()
-        pathname.removeEmptyDirectory()
-
-
-    test "#removePipeFile() should NOT delete a symlink":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE_WITH_SYMLINK")).removeSymlink().createSymlinkTo("NOT_EXISTING")
-        check true == pathname.isSymlink()
-        try:
-            pathname.removePipeFile()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isSymlink()
-        pathname.removeSymlink()
-
-
-    test "#removePipeFile() should return self for Method-Chaining":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE_PIPE"))
-        let pathname2: Pathname = pathname.removePipeFile()
-        check pathname2 == pathname
 
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Pathname - createFifo()/removeFifo() (alias for createPipeFile()/removePipeFile())
+# Pathname - createPipeFile()
 #-----------------------------------------------------------------------------------------------------------------------
 
 
-    test "#createFifo() should create a named pipe":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_PIPE_FILE")).removePipeFile()
-        check false == pathname.isExisting()
-        pathname.createFifo()
-        check true == pathname.isPipeFile()
-        pathname.removePipeFile()
+    when not pathname.ArePipesSupported:
+        test "#createPipeFile() pipes/fifos are not supported for this Architecture":
+            skip
 
 
-    test "#createFifo() should allow multiple calls":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_PIPE_FILE")).removePipeFile()
-        check false == pathname.isExisting()
-        pathname.createFifo()
-        check true == pathname.isPipeFile()
-        pathname.createFifo()
-        check true == pathname.isPipeFile()
-        pathname.removePipeFile()
+    when not pathname.ArePipesSupported:
+        test "#createPipeFile() should raise NotSupported-Error for this Architecture":
+            let pathname = Pathname.new(fixturePath("TEST_CREATE_PIPE_FILE")).remove()
+            try:
+                pathname.createPipeFile()
+                fail
+            except NotSupportedError:
+                check true
+            except Exception:
+                fail
 
 
-    test "#createFifo() should return self for Method-Chaining":
-        let pathname = Pathname.new(fixturePath("TEST_CREATE_PIPE_FILE")).removePipeFile()
-        let pathname2: Pathname = pathname.createFifo()
-        check pathname2 == pathname
-        pathname.removePipeFile()
+    when pathname.ArePipesSupported:
+        test "#createPipeFile() should create a named pipe":
+            let pathname = Pathname.new(fixturePath("TEST_CREATE_PIPE_FILE")).remove()
+            check false == pathname.isExisting()
+            pathname.createPipeFile()
+            check true == pathname.isPipeFile()
+            pathname.removePipeFile()
 
 
-    test "#removeFifo() should delete a pipe file":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE_PIPE")).createFifo()
-        check true == pathname.isPipeFile()
-        pathname.removeFifo()
-        check false == pathname.isExisting()
+    when pathname.ArePipesSupported:
+        test "#createPipeFile() should allow multiple calls":
+            let pathname = Pathname.new(fixturePath("TEST_CREATE_PIPE_FILE")).remove()
+            check false == pathname.isExisting()
+            pathname.createPipeFile()
+            check true == pathname.isPipeFile()
+            pathname.createPipeFile()
+            check true == pathname.isPipeFile()
+            pathname.removePipeFile()
 
 
-    test "#removeFifo() should handle deletion of non existing file-entry":
-        let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
-        check false == pathname.isExisting()
-        pathname.removeFifo()
-        pathname.removeFifo()
-        check false == pathname.isExisting()
+    when pathname.ArePipesSupported:
+        test "#createPipeFile() should return self for Method-Chaining":
+            let pathname = Pathname.new(fixturePath("TEST_CREATE_PIPE_FILE")).remove()
+            let pathname2: Pathname = pathname.createPipeFile()
+            check pathname2 == pathname
+            pathname.removePipeFile()
 
 
-    test "#removeFifo() should NOT delete a regular file":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE_REGULAR")).createRegularFile()
-        check true == pathname.isRegularFile()
-        try:
-            pathname.removeFifo()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isRegularFile()
-        pathname.removeRegularFile()
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - removePipeFile()
+#-----------------------------------------------------------------------------------------------------------------------
 
 
-    test "#removeFifo() should NOT delete a directory":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE_DIRECTORY")).createEmptyDirectory()
-        check true == pathname.isDirectory()
-        try:
-            pathname.removeFifo()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isDirectory()
-        pathname.removeEmptyDirectory()
+    when not pathname.ArePipesSupported:
+        test "#removePipeFile() pipes/fifos are not supported for this Architecture":
+            skip
 
 
-    test "#removeFifo() should NOT delete a symlink":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE_WITH_SYMLINK")).removeSymlink().createSymlinkTo("NOT_EXISTING")
-        check true == pathname.isSymlink()
-        try:
-            pathname.removeFifo()
-            fail()
-        except IOError:
-            check true
-        check true == pathname.isSymlink()
-        pathname.removeSymlink()
+    when not pathname.ArePipesSupported:
+        test "#removePipeFile() should raise NotSupported-Error for this Architecture":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE")).remove()
+            try:
+                pathname.removePipeFile()
+                fail
+            except NotSupportedError:
+                check true
+            except Exception:
+                fail
 
 
-    test "#removeFifo() should return self for Method-Chaining":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE_PIPE"))
-        let pathname2: Pathname = pathname.removeFifo()
-        check pathname2 == pathname
+    when pathname.ArePipesSupported:
+        test "#removePipeFile() should return self for Method-Chaining":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE"))
+            let pathname2: Pathname = pathname.removePipeFile()
+            check pathname2 == pathname
 
+
+    when pathname.ArePipesSupported:
+        test "#removePipeFile() should allow multiple calls":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE")).remove().createPipeFile()
+            check true == pathname.isPipeFile()
+            pathname.removePipeFile()
+            check false == pathname.isExisting()
+            pathname.removePipeFile()
+            check false == pathname.isExisting()
+
+
+    when pathname.ArePipesSupported:
+        test "#removePipeFile() should delete a pipe file":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE")).remove().createPipeFile()
+            check true == pathname.isPipeFile()
+            pathname.removePipeFile()
+            check false == pathname.isExisting()
+
+
+    when pathname.ArePipesSupported:
+        test "#removePipeFile() should handle deletion of non existing file-entry":
+            let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+            check false == pathname.isExisting()
+            pathname.removePipeFile()
+            pathname.removePipeFile()
+            check false == pathname.isExisting()
+
+
+    when pathname.ArePipesSupported:
+        test "#removePipeFile() should NOT delete a regular file":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE_REGULAR")).remove().createRegularFile()
+            check true == pathname.isRegularFile()
+            try:
+                pathname.removePipeFile()
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isRegularFile()
+            pathname.removeRegularFile()
+
+
+    when pathname.ArePipesSupported:
+        test "#removePipeFile() should NOT delete a directory":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE_DIRECTORY")).remove().createEmptyDirectory()
+            check true == pathname.isDirectory()
+            try:
+                pathname.removePipeFile()
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isDirectory()
+            pathname.removeEmptyDirectory()
+
+
+    when pathname.ArePipesSupported:
+        test "#removePipeFile() should NOT delete a symlink":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_PIPE_FILE_WITH_SYMLINK")).remove().createSymlinkTo("NOT_EXISTING")
+            check true == pathname.isSymlink()
+            try:
+                pathname.removePipeFile()
+                fail()
+            except IOError:
+                check true
+            check true == pathname.isSymlink()
+            pathname.removeSymlink()
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -948,21 +1150,21 @@ suite "Pathname Tests 001":
 
 
     test "#remove() should delete a regular file":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_WITH_REGULAR_FILE")).createRegularFile()
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_WITH_REGULAR_FILE")).remove().createRegularFile()
         check true == pathname.isRegularFile()
         pathname.remove()
         check false == pathname.isExisting()
 
 
     test "#remove() should delete an empty directory":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_WITH_EMPTY_DIRECTORY")).createEmptyDirectory()
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_WITH_EMPTY_DIRECTORY")).remove().createEmptyDirectory()
         check true == pathname.isDirectory()
         pathname.remove()
         check false == pathname.isExisting()
 
 
     test "#remove() should delete a full directory":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_WITH_FULL_DIRECTORY")).createEmptyDirectory()
+        let pathname = Pathname.new(fixturePath("TEST_REMOVE_WITH_FULL_DIRECTORY")).remove().createEmptyDirectory()
         check true == pathname.isDirectory()
         let pathname2 = pathname.join("A_FILE").createRegularFile()
         check true == pathname2.isRegularFile()
@@ -970,15 +1172,27 @@ suite "Pathname Tests 001":
         check false == pathname.isExisting()
 
 
-    test "#remove() should delete a symlink":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_WITH_SYMLINK")).removeSymlink().createSymlinkTo("NOT_EXISTING")
-        check true == pathname.isSymlink()
-        pathname.remove()
-        check false == pathname.isExisting()
+    when not pathname.AreSymlinksSupported:
+        test "#remove() symlinks are not supported for this Architecture":
+            skip
 
 
-    test "#remove() should delete a pipe/fifo":
-        let pathname = Pathname.new(fixturePath("TEST_REMOVE_WITH_PIPE")).createPipeFile()
-        check true == pathname.isPipeFile()
-        pathname.remove()
-        check false == pathname.isExisting()
+    when pathname.AreSymlinksSupported:
+        test "#remove() should delete a symlink":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_WITH_SYMLINK")).remove().createSymlinkTo("NOT_EXISTING")
+            check true == pathname.isSymlink()
+            pathname.remove()
+            check false == pathname.isExisting()
+
+
+    when not pathname.AreSymlinksSupported:
+        test "#remove() pipes/fifos are not supported for this Architecture":
+            skip
+
+
+    when pathname.ArePipesSupported:
+        test "#remove() should delete a pipe/fifo":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_WITH_PIPE")).remove().createPipeFile()
+            check true == pathname.isPipeFile()
+            pathname.remove()
+            check false == pathname.isExisting()

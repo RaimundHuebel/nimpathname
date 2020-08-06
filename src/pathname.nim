@@ -58,17 +58,25 @@ when defined(Windows):
     import sequtils
 
 
-## Import/Export FileType-Implementation.
-import pathname/file_type as file_type
-export file_type
+## Import/Export FileType-Implementation ...
+import pathname/file_type
+export pathname.file_type
 
 
-## Import/Export FileInfo-Implementation.
-import pathname/file_status as file_status
-export file_status
+## Import/Export FileInfo-Implementation ...
+import pathname/file_status
+export pathname.file_status
 
 ## Export os.FileInfo
 export os.FileInfo
+
+
+
+## Export Support-Matrix, Exceptions ...
+export pathname.file_utils.AreSymlinksSupported
+export pathname.file_utils.ArePipesSupported
+export pathname.file_utils.NotSupportedError
+
 
 
 ### Import: realpath (@see module posix)
@@ -95,10 +103,6 @@ export os.FileInfo
 #    let realSize = result.cstring.len
 #    result.setLen(realSize)
 #    return result
-
-
-
-
 
 
 
@@ -1028,16 +1032,13 @@ proc removeDirectoryTree*(self: Pathname, optionalPathComponents: varargs[string
 
 
 
-proc createPipeFile*(self: Pathname, optionalPathComponents: varargs[string], mode: uint32 = 0o660): Pathname {.discardable,raises: [IOError].} =
+proc createPipeFile*(self: Pathname, optionalPathComponents: varargs[string], mode: uint32 = 0o660): Pathname {.discardable,raises: [IOError,NotSupportedError].} =
     ## Creates a named Pipe (aka Fifo).
     ## If the fs-entry already exists and it is a named pipe nothing happens.
     ## If the fs-entry already exists but is not a named pipe an IOError is raised.
     ## @param mode The unix-Mode (OPTIONAL, default: ug=rw,o= respecting the active umask)
     ## @raises An IOError if the fs-entry already exists but is not a named pipe.
     ## @raises An IOError if the fs-entry could not be created.
-    ## Alias:
-    ## * `createPipeFile() proc <#createPipeFile,Pathname>`_
-    ## * `createFifo() proc <#createFifo,Pathname>`_
     # @see man 3 mkfifo
     var targetPathname = self
     if optionalPathComponents.len > 0:
@@ -1047,12 +1048,9 @@ proc createPipeFile*(self: Pathname, optionalPathComponents: varargs[string], mo
 
 
 
-proc removePipeFile*(self: Pathname, optionalPathComponents: varargs[string]): Pathname {.discardable,raises: [IOError].} =
+proc removePipeFile*(self: Pathname, optionalPathComponents: varargs[string]): Pathname {.discardable,raises: [IOError,NotSupportedError].} =
     ## Removes a named pipe file and only that.
     ## @raises An IOError if the referenced FS-Entry is existing but is not a pipe file, or could not be deleted.
-    ## Alias:
-    ## * `removePipeFile() proc <#removePipeFile,Pathname>`_
-    ## * `removeFifo() proc <#removeFifo,Pathname>`_
     # @see https://stackoverflow.com/questions/15335223/what-happens-when-unlink-a-directory/15335559#15335559
     # @see man 2 unlink
     var targetPathname = self
@@ -1060,37 +1058,6 @@ proc removePipeFile*(self: Pathname, optionalPathComponents: varargs[string]): P
         targetPathname = self.join(optionalPathComponents)
     file_utils.removePipeFile(targetPathname.path)
     return self
-
-
-
-#-----------------------------------------------------------------------------------------------------------------------
-# Pathname - createFifo()/removeFifo() (alias from createPipeFile()/removePipeFile())
-#-----------------------------------------------------------------------------------------------------------------------
-
-
-
-proc createFifo*(self: Pathname, optionalPathComponents: varargs[string], mode: uint32 = 0o660): Pathname {.inline,discardable,raises: [IOError].} =
-    ## Creates a named Pipe (aka Fifo).
-    ## If the fs-entry already exists and it is a named pipe nothing happens.
-    ## If the fs-entry already exists but is not a named pipe an IOError is raised.
-    ## @param mode The unix-Mode (OPTIONAL, default: ug=rw,o= respecting the active umask)
-    ## @raises An IOError if the fs-entry already exists but is not a named pipe.
-    ## @raises An IOError if the fs-entry could not be created.
-    ## Alias:
-    ## * `createPipeFile() proc <#createPipeFile,Pathname>`_
-    ## * `createFifo() proc <#createFifo,Pathname>`_
-    # @see man 3 mkfifo
-    return self.createPipeFile(optionalPathComponents, mode)
-
-
-
-proc removeFifo*(self: Pathname, optionalPathComponents: varargs[string]): Pathname {.inline,discardable,raises: [IOError].} =
-    ## Removes a named pipe file and only that.
-    ## @raises An IOError if the referenced FS-Entry is existing but is not a pipe file, or could not be deleted.
-    ## Alias:
-    ## * `removePipeFile() proc <#removePipeFile,Pathname>`_
-    ## * `removeFifo() proc <#removeFifo,Pathname>`_
-    return self.removePipeFile(optionalPathComponents)
 
 
 
@@ -1117,7 +1084,6 @@ proc createCharacterDeviceFile*(self: Pathname, mode: uint32 = 0o600, major: uin
     # @see man 3 makedev
     file_utils.createCharacterDeviceFile(self.path, mode, major, minor)
     return self
-
 
 
 
@@ -1195,15 +1161,13 @@ proc removeDeviceFile*(self: Pathname): Pathname {.inline,discardable,raises: [I
 
 
 
-
-
 #-----------------------------------------------------------------------------------------------------------------------
 # Pathname - createSymlinkFrom() / createSymlinkTo() / removeSymlink()
 #-----------------------------------------------------------------------------------------------------------------------
 
 
 
-proc createSymlinkFrom*(self: Pathname, dstPath: string): Pathname {.inline,discardable,raises: [IOError].} =
+proc createSymlinkFrom*(self: Pathname, dstPath: string): Pathname {.inline,discardable,raises: [IOError,NotSupportedError].} =
     ## Creates a Symlink at the Pathname-Location (== srcPath) pointing to the given dstPath.
     ## @raises An IOError if the fs-entry already exists.
     # @see man 2 symlink
@@ -1211,7 +1175,8 @@ proc createSymlinkFrom*(self: Pathname, dstPath: string): Pathname {.inline,disc
     return self
 
 
-proc createSymlinkTo*(self: Pathname, srcPath: string): Pathname {.inline,discardable,raises: [IOError].} =
+
+proc createSymlinkTo*(self: Pathname, srcPath: string): Pathname {.inline,discardable,raises: [IOError,NotSupportedError].} =
     ## Creates a Symlink at the Pathname-Location (== dstPath) pointing to the given srcPath.
     ## @raises An IOError if the fs-entry already exists.
     # @see man 2 symlink
@@ -1219,7 +1184,8 @@ proc createSymlinkTo*(self: Pathname, srcPath: string): Pathname {.inline,discar
     return self
 
 
-proc removeSymlink*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+
+proc removeSymlink*(self: Pathname): Pathname {.inline,discardable,raises: [IOError,NotSupportedError].} =
     ## Removes a character-device-file and only that.
     ## @raises An IOError if the referenced FS-Entry is existing but is not a character-device-file, or could not be deleted.
     ## See also:

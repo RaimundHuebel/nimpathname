@@ -49,6 +49,20 @@ export file_status
 export os.FileInfo
 
 
+
+## Support-Matrix ...
+const AreSymlinksSupported*: bool = defined(Posix)
+const ArePipesSupported*: bool    = defined(Posix)
+
+
+
+
+## Error to indicate, that the Feature is not supported by the current Architecture.
+type NotSupportedError* = object of CatchableError
+
+
+
+
 proc getRootDirPath*(): string =
     ## Constructs a new Pathname with the Root Directory Path.
     ## In Windows the first drive containing system/ will be returned. Otherwise the first.
@@ -1157,7 +1171,7 @@ proc removeDirectoryTree*(pathStr: string): void {.raises: [IOError].} =
 
 
 
-proc createPipeFile*(pathStr: string, mode: uint32 = 0o660): void {.raises: [IOError].} =
+proc createPipeFile*(pathStr: string, mode: uint32 = 0o660): void {.raises: [IOError,NotSupportedError].} =
     ## Creates a named Pipe (aka Fifo). May not be supported on some platforms.
     ## If the fs-entry already exists and it is a named pipe nothing happens.
     ## If the fs-entry already exists but is not a named pipe an IOError is raised.
@@ -1168,29 +1182,35 @@ proc createPipeFile*(pathStr: string, mode: uint32 = 0o660): void {.raises: [IOE
     ## * `createPipeFile() proc <#createPipeFile,Pathname>`_
     ## * `createFifo() proc <#createFifo,Pathname>`_
     # @see man 3 mkfifo
-    let fileType = file_utils.getFileType(pathStr)
-    if fileType.isPipeFile():
-        return
-    assert(not fileType.isPipeFile())
-    if fileType.isExisting():
-        raise newException(system.IOError, "Cannot create named pipe '" & pathStr & "' (does already exist as non pipe)")
-    assert(fileType.isNotExisting())
-    when defined(Posix):
-        if posix.mkfifo(pathStr, mode) != 0:
+    when file_utils.ArePipesSupported:
+        let fileType = file_utils.getFileType(pathStr)
+        if fileType.isPipeFile():
+            return
+        assert(not fileType.isPipeFile())
+        if fileType.isExisting():
+            raise newException(system.IOError, "Cannot create named pipe '" & pathStr & "' (does already exist as non pipe)")
+        assert(fileType.isNotExisting())
+        when defined(Posix):
+            if posix.mkfifo(pathStr, mode) != 0:
+                raise newException(
+                    system.IOError,
+                    "Failed to create named pipe '" & pathStr & "' (CAUSE: '" & $posix.strerror(posix.errno) & "')"
+                )
+            assert(file_utils.getFileType(pathStr).isPipeFile())
+        else:
             raise newException(
-                system.IOError,
-                "Failed to create named pipe '" & pathStr & "' (CAUSE: '" & $posix.strerror(posix.errno) & "')"
+                file_utils.NotSupportedError,
+                "createPipeFile is not supported by the current architecture"
             )
-        assert(file_utils.getFileType(pathStr).isPipeFile())
     else:
         raise newException(
-            system.IOError,
-            "createPipeFile is not supported by the current architecture"
+            file_utils.NotSupportedError,
+            "createPipeFile() is not supported by the current architecture"
         )
 
 
 
-proc removePipeFile*(pathStr: string): void {.raises: [IOError].} =
+proc removePipeFile*(pathStr: string): void {.raises: [IOError,NotSupportedError].} =
     ## Removes a named pipe file and only that. May not be supported on some platforms.
     ## @raises An IOError if the referenced FS-Entry is existing but is not a pipe file, or could not be deleted.
     ## Alias:
@@ -1198,23 +1218,29 @@ proc removePipeFile*(pathStr: string): void {.raises: [IOError].} =
     ## * `removeFifo() proc <#removeFifo,Pathname>`_
     # @see https://stackoverflow.com/questions/15335223/what-happens-when-unlink-a-directory/15335559#15335559
     # @see man 2 unlink
-    let fileType = file_utils.getFileType(pathStr)
-    if fileType.isNotExisting():
-        return
-    assert(fileType.isExisting())
-    if not fileType.isPipeFile():
-        raise newException(system.IOError, "Cannot remove '" & pathStr & "' because it is not a pipe file")
-    assert(fileType.isPipeFile())
-    when defined(Posix):
-        if posix.unlink(pathStr) != 0 and posix.errno != posix.ENOENT:
+    when file_utils.ArePipesSupported:
+        let fileType = file_utils.getFileType(pathStr)
+        if fileType.isNotExisting():
+            return
+        assert(fileType.isExisting())
+        if not fileType.isPipeFile():
+            raise newException(system.IOError, "Cannot remove '" & pathStr & "' because it is not a pipe file")
+        assert(fileType.isPipeFile())
+        when defined(Posix):
+            if posix.unlink(pathStr) != 0 and posix.errno != posix.ENOENT:
+                raise newException(
+                    system.IOError,
+                    "Failed to remove pipe file '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
+                )
+            assert(not file_utils.getFileType(pathStr).isExisting())
+        else:
             raise newException(
-                system.IOError,
-                "Failed to remove pipe file '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
+                file_utils.NotSupportedError,
+                "removePipeFile is not supported by the current architecture"
             )
-        assert(not file_utils.getFileType(pathStr).isExisting())
     else:
         raise newException(
-            system.IOError,
+            file_utils.NotSupportedError,
             "removePipeFile is not supported by the current architecture"
         )
 
@@ -1226,7 +1252,7 @@ proc removePipeFile*(pathStr: string): void {.raises: [IOError].} =
 
 
 
-proc createFifo*(pathStr: string, mode: uint32 = 0o660): void {.inline,raises: [IOError].} =
+proc createFifo*(pathStr: string, mode: uint32 = 0o660): void {.inline,raises: [IOError,NotSupportedError].} =
     ## Creates a named Pipe (aka Fifo). May not be supported on some platforms.
     ## If the fs-entry already exists and it is a named pipe nothing happens.
     ## If the fs-entry already exists but is not a named pipe an IOError is raised.
@@ -1242,7 +1268,7 @@ proc createFifo*(pathStr: string, mode: uint32 = 0o660): void {.inline,raises: [
 
 
 
-proc removeFifo*(pathStr: string): void {.inline,raises: [IOError].} =
+proc removeFifo*(pathStr: string): void {.inline,raises: [IOError,NotSupportedError].} =
     ## Removes a named pipe file and only that. May not be supported on some platforms.
     ## @raises An IOError if the referenced FS-Entry is existing but is not a pipe file, or could not be deleted.
     ## Alias:
@@ -1449,44 +1475,55 @@ proc removeDeviceFile*(pathStr: string): void {.raises: [IOError].} =
 
 
 
-proc createSymlink*(srcPath: string, dstPath: string): void {.raises: [IOError].} =
+proc createSymlink*(srcPath: string, dstPath: string): void {.raises: [IOError,NotSupportedError].} =
     ## Creates a Symlink dstPath pointing to srcPath.
     ## @raises An IOError if the fs-entry already exists.
-    if file_utils.getFileType(dstPath).isExisting():
-        raise newException(system.IOError, "Cannot create symlink '" & dstPath & "' -> '" & srcPath & "' (does already exist)")
-    try:
-        os.createSymlink(srcPath, dstPath)
-    except CatchableError as e:
+    when file_utils.ArePipesSupported:
+        if file_utils.getFileType(dstPath).isExisting():
+            raise newException(system.IOError, "Cannot create symlink '" & dstPath & "' -> '" & srcPath & "' (does already exist)")
+        try:
+            os.createSymlink(srcPath, dstPath)
+        except CatchableError as e:
+            raise newException(
+                system.IOError,
+                "Failed to create symlink '" & dstPath & "' -> '" & srcPath & "' (CAUSE: '" & e.msg & "')"
+            )
+        assert(file_utils.getFileType(dstPath).isSymlink())
+    else:
         raise newException(
-            system.IOError,
-            "Failed to create symlink '" & dstPath & "' -> '" & srcPath & "' (CAUSE: '" & e.msg & "')"
+            file_utils.NotSupportedError,
+            "createSymlink() is not supported by the current architecture"
         )
-    assert(file_utils.getFileType(dstPath).isSymlink())
 
 
 
-#TODO: Testen ...
-proc removeSymlink*(pathStr: string): void {.raises: [IOError].} =
+proc removeSymlink*(pathStr: string): void {.raises: [IOError,NotSupportedError].} =
     ## Removes a symlink and only that.
     ## @raises An IOError if the referenced FS-Entry is existing but is not a symlink, or could not be deleted.
     # @see man 2 unlink
-    let fileType = file_utils.getFileType(pathStr)
-    if fileType.isNotExisting():
-        return
-    assert(fileType.isExisting())
-    if not fileType.isSymlink():
-        raise newException(system.IOError, "Cannot remove '" & pathStr & "' because it is not a symlink")
-    assert(fileType.isSymlink())
-    when defined(Posix):
-        if posix.unlink(pathStr) != 0 and posix.errno != posix.ENOENT:
+    when file_utils.ArePipesSupported:
+        let fileType = file_utils.getFileType(pathStr)
+        if fileType.isNotExisting():
+            return
+        assert(fileType.isExisting())
+        if not fileType.isSymlink():
+            raise newException(system.IOError, "Cannot remove '" & pathStr & "' because it is not a symlink")
+        assert(fileType.isSymlink())
+        when defined(Posix):
+            if posix.unlink(pathStr) != 0 and posix.errno != posix.ENOENT:
+                raise newException(
+                    system.IOError,
+                    "Failed to remove symlink '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
+                )
+            assert(not file_utils.getFileType(pathStr).isExisting())
+        else:
             raise newException(
-                system.IOError,
-                "Failed to remove symlink '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
+                file_utils.NotSupportedError,
+                "removeSymlink is not supported by the current architecture"
             )
-        assert(not file_utils.getFileType(pathStr).isExisting())
     else:
         raise newException(
-            system.IOError,
+            file_utils.NotSupportedError,
             "removeSymlink is not supported by the current architecture"
         )
 
@@ -1512,7 +1549,7 @@ proc remove*(pathStr: string): void {.raises: [IOError].} =
         except CatchableError as e:
             raise newException(
                 system.IOError,
-                "Failed to remove '" & pathStr & "' (CAUSE: '" & e.msg & "')"
+                "Failed to remove directory '" & pathStr & "' (CAUSE: '" & e.msg & "')"
             )
         return
 
@@ -1521,14 +1558,17 @@ proc remove*(pathStr: string): void {.raises: [IOError].} =
             if posix.unlink(pathStr) != 0 and posix.errno != posix.ENOENT:
                 raise newException(
                     system.IOError,
-                    "Failed to remove '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
+                    "Failed to remove file '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
                 )
             return
         else:
-            raise newException(
-                system.IOError,
-                "remove is not supported by the current architecture"
-            )
+            try:
+                os.removeFile(pathStr)
+            except CatchableError as e:
+                raise newException(
+                    system.IOError,
+                    "Failed to remove file '" & pathStr & "' (CAUSE: '" & e.msg & "')"
+                )
 
     else:
         raise newException(
