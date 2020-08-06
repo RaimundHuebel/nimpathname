@@ -825,7 +825,6 @@ proc read*(self: Pathname, length: Natural, offset: int64 = -1): TaintedString {
 
 
 
-#TODO: testen
 proc open*(self: Pathname, mode: FileMode = FileMode.fmRead; bufSize: int = -1): File {.inline,raises: [IOError].} =
     ## Opens the given File-System-Entry with given mode (default: Readonly) .
     ## @raises An IOError if something went wrong.
@@ -833,10 +832,9 @@ proc open*(self: Pathname, mode: FileMode = FileMode.fmRead; bufSize: int = -1):
 
 
 
-#TODO: testen
 proc touch*(self: Pathname, optionalPathComponents: varargs[string], mode: uint32 = 0o664): Pathname {.discardable,raises: [IOError].} =
-    ## Updates modification time (mtime) and access time (atime) of file(s) in list.
-    ## If no File/Directory exists, they will get created.
+    ## Updates modification time (mtime) and access time (atime) of the File-System-Entries in list.
+    ## If no File-System-Entry exists, then a Regular File will be created, with the given unix-access-mode.
     ## @raises An IOError if something went wrong.
     ## The difference to #createFile is, that #touch does not throw an error if the target is not a regular file.
     var targetPathname = self
@@ -1204,7 +1202,6 @@ proc removeSymlink*(self: Pathname): Pathname {.inline,discardable,raises: [IOEr
 
 
 
-#TODO: Testen ...
 proc remove*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
     ## Removes the FS-Entry, regardles of the type of the FS-Entry or it is a directory with content.
     ## Please be cautious if using this proc, and use one of the specific remove-Procs if possible.

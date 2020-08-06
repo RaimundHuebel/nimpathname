@@ -10,6 +10,7 @@
 
 
 import pathname
+import times
 
 import unittest
 import test_helper
@@ -105,6 +106,152 @@ suite "Pathname Tests 001":
 
 
 #-----------------------------------------------------------------------------------------------------------------------
+# Pathname - touch() - with non existing File-System-Entries
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+    test "#touch() should create a regular File, if file-system-entry does not exist":
+        let pathname = Pathname.new(fixturePath("sample_dir", "TEST_TOUCH_FILE")).remove()
+        check false == pathname.isExisting()
+        pathname.touch()
+        check true == pathname.isRegularFile()
+        pathname.remove()
+
+
+    test "#touch(simple_file_path) should create a regular File, if file-system-entry does not exist":
+        let pathname = Pathname.new(fixturePath())
+        check pathname.join("TEST_TOUCH_FILE_00").remove().isNotExisting()
+        pathname.touch("TEST_TOUCH_FILE_00")
+        check pathname.join("TEST_TOUCH_FILE_00").isExisting()
+        pathname.join("TEST_TOUCH_FILE_00").remove()
+
+
+    test "#touch([deep_file_path,...]) should create a regular File, if file-system-entry does not exist":
+        let pathname = Pathname.new(fixturePath())
+        check pathname.join("sample_dir","TEST_TOUCH_FILE_01").remove().isNotExisting()
+        pathname.touch(["sample_dir", "TEST_TOUCH_FILE_01"])
+        check pathname.join("sample_dir","TEST_TOUCH_FILE_01").isExisting()
+        pathname.join("sample_dir", "TEST_TOUCH_FILE_01").remove()
+
+
+    test "#touch() should create a regular File, if file-system-entry does not exist, with correct file-times":
+        let pathname = Pathname.new(fixturePath("TEST_TOUCH_FILE")).remove()
+        defer:
+            pathname.remove()
+        # Check file-creation ...
+        let time_begin = times.getTime()
+        check false == pathname.isExisting()
+        pathname.touch()
+        check true == pathname.isRegularFile()
+        let time_end    = times.getTime()
+        # Check File-Times ...
+        #debugEcho time_begin.toUnix(), " <= ", pathname.getLastAccessTime().toUnix(), " <= ", time_end.toUnix()
+        #debugEcho time_begin.toUnix(), " <= ", pathname.getLastChangeTime.toUnix(), " <= ", time_end.toUnix()
+        #debugEcho time_begin.toUnix(), " <= ", pathname.getLastStatusChangeTime.toUnix(), " <= ", time_end.toUnix()
+        check time_begin <= time_end
+        check pathname.getLastAccessTime()      .toUnix() >= time_begin.toUnix()
+        check pathname.getLastAccessTime()      .toUnix() <= time_end.toUnix()
+        check pathname.getLastChangeTime()      .toUnix() == pathname.getLastAccessTime().toUnix()
+        check pathname.getLastStatusChangeTime().toUnix() == pathname.getLastAccessTime().toUnix()
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - touch() - with existing File-System-Entries
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+    test "#touch() should update time of existing regular file":
+        let pathname = Pathname.new(fixturePath("touch_file_test.txt"))
+        check pathname.isRegularFile()
+        # Touch file, with timing ...
+        let time_begin = times.getTime()
+        pathname.touch()
+        let time_end = times.getTime()
+        check pathname.isRegularFile()
+        # Check file-times ...
+        #debugEcho time_begin.toUnix(), " <= ", pathname.getLastAccessTime()    .toUnix(), " <= ", time_end.toUnix()
+        #debugEcho time_begin.toUnix(), " <= ", pathname.getLastChangeTime()    .toUnix(), " <= ", time_end.toUnix()
+        #debugEcho time_begin.toUnix(), " <= ", pathname.getLastStatusChangeTime.toUnix(), " <= ", time_end.toUnix()
+        check time_begin <= time_end
+        check pathname.getLastAccessTime().toUnix() >= time_begin.toUnix()
+        check pathname.getLastAccessTime().toUnix() <= time_end.toUnix()
+        check pathname.getLastChangeTime().toUnix()     == pathname.getLastAccessTime().toUnix()
+        check pathname.getLastStatusChangeTime.toUnix() == pathname.getLastAccessTime().toUnix()
+
+
+    when defined(Posix):
+        test "#touch() should update time of existing directory in posix":
+            let pathname = Pathname.new(fixturePath("touch_directory_test.d"))
+            check pathname.isDirectory()
+            # Touch file, with timing ...
+            let time_begin = times.getTime()
+            pathname.touch()
+            let time_end = times.getTime()
+            check pathname.isDirectory()
+            # Check file-times ...
+            #debugEcho time_begin.toUnix(), " <= ", pathname.getLastAccessTime()    .toUnix(), " <= ", time_end.toUnix()
+            #debugEcho time_begin.toUnix(), " <= ", pathname.getLastChangeTime()    .toUnix(), " <= ", time_end.toUnix()
+            #debugEcho time_begin.toUnix(), " <= ", pathname.getLastStatusChangeTime.toUnix(), " <= ", time_end.toUnix()
+            check time_begin <= time_end
+            check pathname.getLastAccessTime().toUnix() >= time_begin.toUnix()
+            check pathname.getLastAccessTime().toUnix() <= time_end.toUnix()
+            check pathname.getLastChangeTime().toUnix()     == pathname.getLastAccessTime().toUnix()
+            check pathname.getLastStatusChangeTime.toUnix() == pathname.getLastAccessTime().toUnix()
+
+
+    when defined(Windows):
+        test "#touch() can NOT update time of existing directory because it is NOT supported in Windows":
+            let pathname = Pathname.new(fixturePath("touch_directory_test.d"))
+            check pathname.isDirectory()
+            # Touch file, with timing ...
+            let access_time_before = pathname.getLastAccessTime()
+            let change_time_before = pathname.getLastChangeTime()
+            let status_time_before = pathname.getLastStatusChangeTime()
+            pathname.touch()
+            # Check file-times ...
+            check access_time_before.toUnix() == pathname.getLastAccessTime().toUnix()
+            check change_time_before.toUnix() == pathname.getLastChangeTime().toUnix()
+            check status_time_before.toUnix() == pathname.getLastStatusChangeTime.toUnix()
+
+
+    when not pathname.AreSymlinksSupported:
+        test "#touch() symlinks are NOT supported for this Architecture":
+            skip
+
+
+    when pathname.AreSymlinksSupported:
+        test "#touch() should update time of existing and valid symlink in posix":
+            let pathname = Pathname.new(fixturePath("TEST_TOUCH_SYMLINK")).remove().createSymlinkTo("touch_file_test.txt")
+            defer:
+                pathname.remove()
+            check pathname.isSymlink()
+            # Touch file, with timing ...
+            let time_begin = times.getTime()
+            pathname.touch()
+            let time_end = times.getTime()
+            check pathname.isSymlink()
+            # Check file-times ...
+            #debugEcho time_begin.toUnix(), " <= ", pathname.getLastAccessTime()    .toUnix(), " <= ", time_end.toUnix()
+            #debugEcho time_begin.toUnix(), " <= ", pathname.getLastChangeTime()    .toUnix(), " <= ", time_end.toUnix()
+            #debugEcho time_begin.toUnix(), " <= ", pathname.getLastStatusChangeTime.toUnix(), " <= ", time_end.toUnix()
+            check time_begin <= time_end
+            check pathname.getLastAccessTime().toUnix() >= time_begin.toUnix()
+            check pathname.getLastAccessTime().toUnix() <= time_end.toUnix()
+            check pathname.getLastChangeTime().toUnix()     == pathname.getLastAccessTime().toUnix()
+            check pathname.getLastStatusChangeTime.toUnix() == pathname.getLastAccessTime().toUnix()
+
+
+    when not pathname.ArePipesSupported:
+        test "#touch() pipes/fifos are NOT supported for this Architecture":
+            skip
+
+
+    when pathname.ArePipesSupported:
+        test "#touch() pipes/fifos - TODO: IMPLEMENT TEST":
+            fail
+
+
+#-----------------------------------------------------------------------------------------------------------------------
 # Pathname - createFile()
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -184,7 +331,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.AreSymlinksSupported:
-        test "#removeFile() symlinks are not supported for this Architecture":
+        test "#removeFile() symlinks are NOT supported for this Architecture":
             skip
 
 
@@ -197,7 +344,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.ArePipesSupported:
-        test "#removeFile() pipes/fifos are not supported for this Architecture":
+        test "#removeFile() pipes/fifos are NOT supported for this Architecture":
             skip
 
 
@@ -287,7 +434,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.AreSymlinksSupported:
-        test "#removeRegularFile() symlinks are not supported for this Architecture":
+        test "#removeRegularFile() symlinks are NOT supported for this Architecture":
             skip
 
 
@@ -305,7 +452,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.ArePipesSupported:
-        test "#removeRegularFile() pipes/fifos are not supported for this Architecture":
+        test "#removeRegularFile() pipes/fifos are NOT supported for this Architecture":
             skip
 
 
@@ -484,7 +631,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.AreSymlinksSupported:
-        test "#removeDirectory() symlinks are not supported for this Architecture":
+        test "#removeDirectory() symlinks are NOT supported for this Architecture":
             skip
 
 
@@ -528,7 +675,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.ArePipesSupported:
-        test "#removeDirectory() pipes/fifos are not supported for this Architecture":
+        test "#removeDirectory() pipes/fifos are NOT supported for this Architecture":
             skip
 
 
@@ -663,7 +810,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.AreSymlinksSupported:
-        test "#removeEmptyDirectory() pipes/fifos are not supported for this Architecture":
+        test "#removeEmptyDirectory() pipes/fifos are NOT supported for this Architecture":
             skip
 
 
@@ -681,7 +828,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.ArePipesSupported:
-        test "#removeEmptyDirectory() pipes/fifos are not supported for this Architecture":
+        test "#removeEmptyDirectory() pipes/fifos are NOT supported for this Architecture":
             skip
 
 
@@ -746,7 +893,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.AreSymlinksSupported:
-        test "#removeDirectoryTree() symlinks are not supported for this Architecture":
+        test "#removeDirectoryTree() symlinks are NOT supported for this Architecture":
             skip
 
 
@@ -764,7 +911,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.ArePipesSupported:
-        test "#removeDirectoryTree() pipes/fifos are not supported for this Architecture":
+        test "#removeDirectoryTree() pipes/fifos are NOT supported for this Architecture":
             skip
 
 
@@ -787,7 +934,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.AreSymlinksSupported:
-        test "#createSymlinkTo() symlinks are not supported for this Architecture":
+        test "#createSymlinkTo() symlinks are NOT supported for this Architecture":
             skip
 
 
@@ -840,7 +987,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.AreSymlinksSupported:
-        test "#createSymlinkFrom() symlinks are not supported for this Architecture":
+        test "#createSymlinkFrom() symlinks are NOT supported for this Architecture":
             skip
 
 
@@ -895,7 +1042,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.AreSymlinksSupported:
-        test "#removeSymlink() symlinks are not supported for this Architecture":
+        test "#removeSymlink() symlinks are NOT supported for this Architecture":
             skip
 
 
@@ -990,7 +1137,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.ArePipesSupported:
-        test "#createPipeFile() pipes/fifos are not supported for this Architecture":
+        test "#createPipeFile() pipes/fifos are NOT supported for this Architecture":
             skip
 
 
@@ -1040,7 +1187,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.ArePipesSupported:
-        test "#removePipeFile() pipes/fifos are not supported for this Architecture":
+        test "#removePipeFile() pipes/fifos are NOT supported for this Architecture":
             skip
 
 
@@ -1173,7 +1320,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.AreSymlinksSupported:
-        test "#remove() symlinks are not supported for this Architecture":
+        test "#remove() symlinks are NOT supported for this Architecture":
             skip
 
 
@@ -1186,7 +1333,7 @@ suite "Pathname Tests 001":
 
 
     when not pathname.AreSymlinksSupported:
-        test "#remove() pipes/fifos are not supported for this Architecture":
+        test "#remove() pipes/fifos are NOT supported for this Architecture":
             skip
 
 

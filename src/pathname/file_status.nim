@@ -71,7 +71,7 @@ proc init*(fileStatus: var FileStatus) =
         fileStatus.isExecutable = false
         zeroMem(addr fileStatus.winFileAttribs, sizeof(winlean.BY_HANDLE_FILE_INFORMATION))
     else:
-        debugEcho "[WARN] FileStatus.init() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.init() is not implemented for the current architecture."
 
 
 
@@ -123,11 +123,13 @@ proc fromPathStr*(class: typedesc[FileStatus], pathStr: string): FileStatus =
         ## isReadable ...
         # see https://nim-lang.org/docs/winlean.html#createFileW%2CWideCString%2CDWORD%2CDWORD%2Cpointer%2CDWORD%2CDWORD%2CHandle
         # see https://stackoverflow.com/questions/60199313/how-to-check-whether-a-directory-is-readable-or-writable
+        # see https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea
+        # see https://docs.microsoft.com/en-us/windows/win32/fileio/file-access-rights-constants
         result.isReadable = false
         if (result.fileType != FileType.NOT_EXISTING):
             let fileHandle = winlean.createFileW(
                 widePathStr,
-                winlean.GENERIC_READ,
+                0x00000080, # == WINLEAN_FILE_READ_ATTRIBUTES | winlean.GENERIC_READ,
                 0,
                 nil,
                 winlean.OPEN_EXISTING,
@@ -141,11 +143,13 @@ proc fromPathStr*(class: typedesc[FileStatus], pathStr: string): FileStatus =
         ## isWritable ...
         # see https://nim-lang.org/docs/winlean.html#createFileW%2CWideCString%2CDWORD%2CDWORD%2Cpointer%2CDWORD%2CDWORD%2CHandle
         # see https://stackoverflow.com/questions/60199313/how-to-check-whether-a-directory-is-readable-or-writable
+        # see https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea
+        # see https://docs.microsoft.com/en-us/windows/win32/fileio/file-access-rights-constants
         result.isWritable = false
         if (result.fileType != FileType.NOT_EXISTING):
             let fileHandle = winlean.createFileW(
                 widePathStr,
-                winlean.GENERIC_WRITE,
+                0x00000100, # == winlean.FILE_WRITE_ATTRIBUTES | winlean.GENERIC_WRITE,
                 0,
                 nil,
                 winlean.OPEN_EXISTING,
@@ -198,7 +202,7 @@ proc fileSizeInBytes*(self: FileStatus): int64 {.noSideEffect.} =
     elif defined(Windows):
         return (self.winFileAttribs.nFileSizeLow.uint64 shl 32 + self.winFileAttribs.nFileSizeHigh.uint64 shl 0).int64
     else:
-        debugEcho "[WARN] FileStatus.fileSizeInBytes() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.fileSizeInBytes() is not implemented for the current architecture."
         return -1
 
 
@@ -213,7 +217,7 @@ proc ioBlockSizeInBytes*(self: FileStatus): int64 {.noSideEffect.} =
     elif defined(Windows):
         return -1
     else:
-        debugEcho "[WARN] FileStatus.ioBlockSizeInBytes() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.ioBlockSizeInBytes() is not implemented for the current architecture."
         return -1
 
 
@@ -228,7 +232,7 @@ proc ioBlockCount*(self: FileStatus): int64 {.noSideEffect.} =
     elif defined(Windows):
         return -1
     else:
-        debugEcho "[WARN] FileStatus.ioBlockCount() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.ioBlockCount() is not implemented for the current architecture."
         return -1
 
 
@@ -243,7 +247,7 @@ proc userId*(self: FileStatus): int32 {.noSideEffect.} =
     elif defined(Windows):
         return -1
     else:
-        debugEcho "[WARN] FileStatus.userId() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.userId() is not implemented for the current architecture."
         return -1
 
 
@@ -258,7 +262,7 @@ proc groupId*(self: FileStatus): int32 {.noSideEffect.} =
     elif defined(Windows):
         return -1
     else:
-        debugEcho "[WARN] FileStatus.groupId() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.groupId() is not implemented for the current architecture."
         return -1
 
 
@@ -273,7 +277,7 @@ proc countHardlinks*(self: FileStatus): int32 {.noSideEffect.} =
     elif defined(Windows):
         return self.winFileAttribs.nNumberOfLinks.int32 + 1
     else:
-        debugEcho "[WARN] FileStatus.countHardlinks() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.countHardlinks() is not implemented for the current architecture."
         return 0
 
 
@@ -394,7 +398,7 @@ proc hasSetUidBit*(self: FileStatus): bool {.noSideEffect.} =
     elif defined(Windows):
         return false
     else:
-        debugEcho "[WARN] FileStatus.hasSetUidBit() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.hasSetUidBit() is not implemented for the current architecture."
         return false
 
 
@@ -407,7 +411,7 @@ proc hasSetGidBit*(self: FileStatus): bool {.noSideEffect.} =
     elif defined(Windows):
         return false
     else:
-        debugEcho "[WARN] FileStatus.hasSetGidBit() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.hasSetGidBit() is not implemented for the current architecture."
         return false
 
 
@@ -420,7 +424,7 @@ proc hasStickyBit*(self: FileStatus): bool {.noSideEffect.} =
     elif defined(Windows):
         return false
     else:
-        debugEcho "[WARN] FileStatus.hasStickyBit() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.hasStickyBit() is not implemented for the current architecture."
         return false
 
 
@@ -435,7 +439,7 @@ proc getLastAccessTime*(self: FileStatus): times.Time {.noSideEffect.} =
     elif defined(Windows):
         return times.fromWinTime(winlean.rdFileTime(self.winFileAttribs.ftLastAccessTime))
     else:
-        debugEcho "[WARN] FileStatus.getLastAccessTime() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.getLastAccessTime() is not implemented for the current architecture."
         return times.initTime(0, 0)
 
 
@@ -450,7 +454,7 @@ proc getLastChangeTime*(self: FileStatus): times.Time {.noSideEffect.} =
     elif defined(Windows):
         return times.fromWinTime(winlean.rdFileTime(self.winFileAttribs.ftLastWriteTime))
     else:
-        debugEcho "[WARN] FileStatus.getLastChangeTime() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.getLastChangeTime() is not implemented for the current architecture."
         return times.initTime(0, 0)
 
 
@@ -465,7 +469,7 @@ proc getLastStatusChangeTime*(self: FileStatus): times.Time {.noSideEffect.} =
     elif defined(Windows):
         return times.fromWinTime(winlean.rdFileTime(self.winFileAttribs.ftLastWriteTime))
     else:
-        debugEcho "[WARN] FileStatus.getLastStatusChangeTime() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.getLastStatusChangeTime() is not implemented for the current architecture."
         return times.initTime(0, 0)
 
 
@@ -482,7 +486,7 @@ proc isUserOwned*(self: FileStatus): bool {.sideEffect.} =
     elif defined(Windows):
         return false
     else:
-        debugEcho "[WARN] FileStatus.isUserOwned() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isUserOwned() is not implemented for the current architecture."
         return false
 
 
@@ -499,7 +503,7 @@ proc isGroupOwned*(self: FileStatus): bool {.sideEffect.} =
     elif defined(Windows):
         return false
     else:
-        debugEcho "[WARN] FileStatus.isGroupOwned() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isGroupOwned() is not implemented for the current architecture."
         return false
 
 
@@ -514,7 +518,7 @@ proc isGroupMember*(self: FileStatus): bool {.sideEffect.} =
     elif defined(Windows):
         return false
     else:
-        debugEcho "[WARN] FileStatus.isGroupMember() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isGroupMember() is not implemented for the current architecture."
         return false
 
 
@@ -537,7 +541,7 @@ proc isReadable*(self: FileStatus): bool {.sideEffect.} =
     elif defined(Windows):
         return self.isReadable
     else:
-        debugEcho "[WARN] FileStatus.isReadable() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isReadable() is not implemented for the current architecture."
         return false
 
 
@@ -553,7 +557,7 @@ proc isReadableByUser*(self: FileStatus): bool {.sideEffect.} =
     elif defined(Windows):
         return self.isReadable
     else:
-        debugEcho "[WARN] FileStatus.isReadableByUser() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isReadableByUser() is not implemented for the current architecture."
         return false
 
 
@@ -569,7 +573,7 @@ proc isReadableByGroup*(self: FileStatus): bool {.sideEffect.} =
     elif defined(Windows):
         return self.isReadable
     else:
-        debugEcho "[WARN] FileStatus.isReadableByGroup() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isReadableByGroup() is not implemented for the current architecture."
         return false
 
 
@@ -585,7 +589,7 @@ proc isReadableByOther*(self: FileStatus): bool {.sideEffect.} =
     elif defined(Windows):
         return self.isReadable
     else:
-        debugEcho "[WARN] FileStatus.isReadableByOther() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isReadableByOther() is not implemented for the current architecture."
         return false
 
 
@@ -608,7 +612,7 @@ proc isWritable*(self: FileStatus): bool {.sideEffect.} =
     elif defined(Windows):
         return self.isWritable
     else:
-        debugEcho "[WARN] FileStatus.isWritable() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isWritable() is not implemented for the current architecture."
         return false
 
 
@@ -624,7 +628,7 @@ proc isWritableByUser*(self: FileStatus): bool {.sideEffect.} =
     elif defined(Windows):
         return self.isWritable
     else:
-        debugEcho "[WARN] FileStatus.isWritableByUser() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isWritableByUser() is not implemented for the current architecture."
         return false
 
 
@@ -640,7 +644,7 @@ proc isWritableByGroup*(self: FileStatus): bool {.sideEffect.} =
     elif defined(Windows):
         return self.isWritable
     else:
-        debugEcho "[WARN] FileStatus.isWritableByGroup() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isWritableByGroup() is not implemented for the current architecture."
         return false
 
 
@@ -656,7 +660,7 @@ proc isWritableByOther*(self: FileStatus): bool {.sideEffect.} =
     elif defined(Windows):
         return self.isWritable
     else:
-        debugEcho "[WARN] FileStatus.isWritableByOther() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isWritableByOther() is not implemented for the current architecture."
         return false
 
 
@@ -679,7 +683,7 @@ proc isExecutable*(self: FileStatus): bool {.sideEffect.} =
     elif defined(Windows):
         return self.isExecutable
     else:
-        debugEcho "[WARN] FileStatus.isExecutable() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isExecutable() is not implemented for the current architecture."
         return false
 
 
@@ -695,7 +699,7 @@ proc isExecutableByUser*(self: FileStatus): bool {.sideEffect.} =
     elif defined(Windows):
         return self.isExecutable
     else:
-        debugEcho "[WARN] FileStatus.isExecutableByUser() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isExecutableByUser() is not implemented for the current architecture."
         return false
 
 
@@ -711,7 +715,7 @@ proc isExecutableByGroup*(self: FileStatus): bool {.sideEffect.} =
     elif defined(Windows):
         return self.isExecutable
     else:
-        debugEcho "[WARN] FileStatus.isExecutableByGroup() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isExecutableByGroup() is not implemented for the current architecture."
         return false
 
 
@@ -727,7 +731,7 @@ proc isExecutableByOther*(self: FileStatus): bool {.sideEffect.} =
     elif defined(Windows):
         return self.isExecutable
     else:
-        debugEcho "[WARN] FileStatus.isExecutableByOther() is not implemented for current Architecture."
+        debugEcho "[WARN] FileStatus.isExecutableByOther() is not implemented for the current architecture."
         return false
 
 

@@ -57,7 +57,7 @@ const ArePipesSupported*: bool    = defined(Posix)
 
 
 
-## Error to indicate, that the Feature is not supported by the current Architecture.
+## Error to indicate, that the Feature is not supported for the current architecture.
 type NotSupportedError* = object of CatchableError
 
 
@@ -73,7 +73,7 @@ proc getRootDirPath*(): string =
     elif defined(Windows):
         return "C:"
     else:
-        raise newException(IOError, "file_utils.getRootDirPath() is not supported for current architecture")
+        raise newException(IOError, "file_utils.getRootDirPath() is NOT supported for current architecture")
 
 
 proc getCurrentWorkDirPath*(): string =
@@ -858,7 +858,7 @@ proc read*(pathStr: string, length: Natural, offset: int64 = -1): TaintedString 
     return result
 
 
-#TODO: testen
+
 proc open*(pathStr: string, mode: FileMode = FileMode.fmRead; bufSize: int = -1): File {.raises: [IOError].} =
     ## Opens the given File-System-Entry with given mode (default: Readonly) .
     ## @raises An IOError if something went wrong.
@@ -872,13 +872,14 @@ proc open*(pathStr: string, mode: FileMode = FileMode.fmRead; bufSize: int = -1)
 
 
 
-#TODO: testen
+
 proc touch*(pathStr: string, mode: uint32 = 0o664): void {.raises: [IOError].} =
     ## Updates modification time (mtime) and access time (atime) of file(s) in list.
     ## If no File/Directory exists, they will get created.
     ## @raises An IOError if something went wrong.
     ## The difference to #createFile is, that #touch does not throw an error if the target is not a regular file.
-    let fileType = file_utils.getFileType(pathStr)
+    # Create Regular-File if not already existing ...
+    var fileType = file_utils.getFileType(pathStr)
     if not fileType.isExisting():
         when defined(Posix):
             let fileHandle = posix.open(pathStr, posix.O_CREAT or posix.O_WRONLY, mode)
@@ -888,10 +889,65 @@ proc touch*(pathStr: string, mode: uint32 = 0o664): void {.raises: [IOError].} =
                     "Failed to touch file '" & pathStr & "' (CAUSE: '" & $posix.strerror(posix.errno) & "')"
                 )
             discard posix.close(fileHandle)
+            assert(file_utils.getFileType(pathStr).isExisting())
         else:
             file_utils.open(pathStr, FileMode.fmAppend, 0).close()
-    assert(file_utils.getFileType(pathStr).isExisting())
-    #TODO: Zeitstempel der Dateien aktualisieren
+            assert(file_utils.getFileType(pathStr).isExisting())
+            return
+
+    # Update access and modification timestamps ...
+    fileType = file_utils.getFileType(pathStr)
+    assert(fileType.isExisting())
+    when defined(Posix):
+
+        if posix.utimes(pathStr, nil) != 0:
+            raise newException(
+                system.IOError,
+                "Failed to update access and modification timestamps of '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
+            )
+        return
+
+    elif defined(Windows):
+
+        if not fileType.isRegularFile():
+            debugEcho "[WARN] touch() update of access/change-time of directories is NOT supported in Windows."
+            return
+
+        # see https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilea
+        # see https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfiletime
+        # see https://docs.microsoft.com/en-us/windows/win32/fileio/file-access-rights-constants
+        let widePathStr = newWideCString(pathStr)
+        let fileHandle = winlean.createFileW(
+            widePathStr,
+            0x00000100, # == winlean.FILE_WRITE_ATTRIBUTES,
+            0,
+            nil,
+            winlean.OPEN_EXISTING,
+            winlean.FILE_ATTRIBUTE_NORMAL,
+            winlean.Handle(0)
+        )
+        if fileHandle == winlean.INVALID_HANDLE_VALUE:
+            let lastError = winlean.getLastError()
+            raise newException(
+                system.IOError,
+                "Failed to update access and modification time of '" & pathStr & "', CAUSE: 'could not open (" & $lastError & ")'"
+            )
+        defer:
+            discard winlean.closeHandle(fileHandle)
+        let currWinFileTime: FILETIME = winlean.toFILETIME(times.toWinTime(times.getTime()))
+        let isSetTimeFailed: bool = winlean.setFileTime(fileHandle, nil, unsafeAddr currWinFileTime, unsafeAddr currWinFileTime) == 0
+        if isSetTimeFailed:
+            let lastError = winlean.getLastError()
+            raise newException(
+                system.IOError,
+                "Failed to update access and modification time of '" & pathStr & "', CAUSE: 'could not set time (" & $lastError & ")'"
+            )
+        return
+
+    else:
+
+        debugEcho "[WARN] touch() update of file-access/change-time NOT supported for the current architecture."
+        return
 
 
 
@@ -1129,7 +1185,7 @@ proc removeEmptyDirectory*(pathStr: string): void {.raises: [IOError].} =
     else:
         raise newException(
             system.IOError,
-            "removeEmptyDirectory is not supported by the current architecture"
+            "removeEmptyDirectory is NOT supported for the current architecture"
         )
     assert(not file_utils.getFileType(pathStr).isExisting())
 
@@ -1200,12 +1256,12 @@ proc createPipeFile*(pathStr: string, mode: uint32 = 0o660): void {.raises: [IOE
         else:
             raise newException(
                 file_utils.NotSupportedError,
-                "createPipeFile is not supported by the current architecture"
+                "createPipeFile is NOT supported for the current architecture"
             )
     else:
         raise newException(
             file_utils.NotSupportedError,
-            "createPipeFile() is not supported by the current architecture"
+            "createPipeFile() is NOT supported for the current architecture"
         )
 
 
@@ -1236,12 +1292,12 @@ proc removePipeFile*(pathStr: string): void {.raises: [IOError,NotSupportedError
         else:
             raise newException(
                 file_utils.NotSupportedError,
-                "removePipeFile is not supported by the current architecture"
+                "removePipeFile is NOT supported for the current architecture"
             )
     else:
         raise newException(
             file_utils.NotSupportedError,
-            "removePipeFile is not supported by the current architecture"
+            "removePipeFile is NOT supported for the current architecture"
         )
 
 
@@ -1319,7 +1375,7 @@ proc createCharacterDeviceFile*(pathStr: string, mode: uint32 = 0o600, major: ui
     else:
         raise newException(
             system.IOError,
-            "createCharacterDeviceFile is not supported by the current architecture"
+            "createCharacterDeviceFile is NOT supported for the current architecture"
         )
 
 
@@ -1350,7 +1406,7 @@ proc removeCharacterDeviceFile*(pathStr: string): void {.raises: [IOError].} =
     else:
         raise newException(
             system.IOError,
-            "removeCharacterDeviceFile is not supported by the current architecture"
+            "removeCharacterDeviceFile is NOT supported for the current architecture"
         )
 
 
@@ -1395,7 +1451,7 @@ proc createBlockDeviceFile*(pathStr: string, mode: uint32 = 0o600, major: uint8,
     else:
         raise newException(
             system.IOError,
-            "createBlockDeviceFile is not supported by the current architecture"
+            "createBlockDeviceFile is NOT supported for the current architecture"
         )
 
 
@@ -1426,7 +1482,7 @@ proc removeBlockDeviceFile*(pathStr: string): void {.raises: [IOError].} =
     else:
         raise newException(
             system.IOError,
-            "removeBlockDeviceFile is not supported by the current architecture"
+            "removeBlockDeviceFile is NOT supported for the current architecture"
         )
 
 
@@ -1463,9 +1519,8 @@ proc removeDeviceFile*(pathStr: string): void {.raises: [IOError].} =
     else:
         raise newException(
             system.IOError,
-            "removeDeviceFile is not supported by the current architecture"
+            "removeDeviceFile is NOT supported for the current architecture"
         )
-
 
 
 
@@ -1492,7 +1547,7 @@ proc createSymlink*(srcPath: string, dstPath: string): void {.raises: [IOError,N
     else:
         raise newException(
             file_utils.NotSupportedError,
-            "createSymlink() is not supported by the current architecture"
+            "createSymlink() is NOT supported for the current architecture"
         )
 
 
@@ -1519,12 +1574,12 @@ proc removeSymlink*(pathStr: string): void {.raises: [IOError,NotSupportedError]
         else:
             raise newException(
                 file_utils.NotSupportedError,
-                "removeSymlink is not supported by the current architecture"
+                "removeSymlink is NOT supported for the current architecture"
             )
     else:
         raise newException(
             file_utils.NotSupportedError,
-            "removeSymlink is not supported by the current architecture"
+            "removeSymlink is NOT supported for the current architecture"
         )
 
 
