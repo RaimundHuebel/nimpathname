@@ -51,8 +51,9 @@ export os.FileInfo
 
 
 ## Support-Matrix ...
-const AreSymlinksSupported*: bool = defined(Posix)
-const ArePipesSupported*: bool    = defined(Posix)
+const AreSymlinksSupported*:    bool = defined(Posix)
+const ArePipesSupported*:       bool = defined(Posix)
+const AreDeviceFilesSupported*: bool = defined(Posix)
 
 
 
@@ -1342,13 +1343,13 @@ proc removeFifo*(pathStr: string): void {.inline,raises: [IOError,NotSupportedEr
 
 
 #TODO: Testen ...
-proc createCharacterDeviceFile*(pathStr: string, mode: uint32 = 0o600, major: uint8, minor: uint8): void {.raises: [IOError].} =
+proc createCharacterDeviceFile*(pathStr: string, major: uint8, minor: uint8, mode: uint32 = 0o600): void {.raises: [IOError,NotSupportedError].} =
     ## Creates a character-device-file (only unix/linux).
     ## If the fs-entry already exists and it is a character-device-file, nothing happens.
     ## If the fs-entry already exists but is not a device file an IOError is raised.
-    ## @param mode The unix-Mode (OPTIONAL, default: u=rw,go= respecting the active umask)
     ## @param major The Major-Number of the Device-File
     ## @param minor The Minor-Number of the Device-File
+    ## @param mode The unix-Mode (OPTIONAL, default: u=rw,go= respecting the active umask)
     ## @raises An IOError if the fs-entry already exists but is not a device-file.
     ## @raises An IOError if the fs-entry could not be created.
     ## See also:
@@ -1356,32 +1357,38 @@ proc createCharacterDeviceFile*(pathStr: string, mode: uint32 = 0o600, major: ui
     ## * `createBlockDeviceFile() proc <#createBlockDeviceFile,Pathname>`_
     # @see man 2 mknod
     # @see man 3 makedev
-    let fileType = file_utils.getFileType(pathStr)
-    if fileType.isCharacterDeviceFile():
-        return
-    assert(not fileType.isCharacterDeviceFile())
-    if fileType.isExisting():
-        raise newException(system.IOError, "Cannot create character device file '" & pathStr & "' (does already exist as non character device file)")
-    assert(fileType.isNotExisting())
-    when defined(Posix):
-        proc posixMakeDev(major: uint, minor: uint): Dev {.importc: "makedev",header: "<sys/sysmacros.h>", sideEffect.}
-        let dev = posixMakeDev(major, minor) and Dev(posix.S_IFCHR)
-        if posix.mknod(pathStr, mode, dev) != 0:
+    when file_utils.AreDeviceFilesSupported:
+        let fileType = file_utils.getFileType(pathStr)
+        if fileType.isCharacterDeviceFile():
+            return
+        assert(not fileType.isCharacterDeviceFile())
+        if fileType.isExisting():
+            raise newException(system.IOError, "Cannot create character device file '" & pathStr & "' (does already exist as non character device file)")
+        assert(fileType.isNotExisting())
+        when defined(Posix):
+            proc posixMakeDev(major: uint, minor: uint): Dev {.importc: "makedev",header: "<sys/sysmacros.h>", sideEffect.}
+            let dev = posixMakeDev(major, minor) and Dev(posix.S_IFCHR)
+            if posix.mknod(pathStr, mode, dev) != 0:
+                raise newException(
+                    system.IOError,
+                    "Failed to create character device file '" & pathStr & "' (CAUSE: '" & $posix.strerror(posix.errno) & "')"
+                )
+            assert(file_utils.getFileType(pathStr).isCharacterDeviceFile())
+        else:
             raise newException(
-                system.IOError,
-                "Failed to create character device file '" & pathStr & "' (CAUSE: '" & $posix.strerror(posix.errno) & "')"
+                file_utils.NotSupportedError,
+                "createCharacterDeviceFile() is NOT supported for the current architecture"
             )
-        assert(file_utils.getFileType(pathStr).isCharacterDeviceFile())
     else:
         raise newException(
-            system.IOError,
-            "createCharacterDeviceFile is NOT supported for the current architecture"
+            file_utils.NotSupportedError,
+            "createCharacterDeviceFile() is NOT supported for the current architecture"
         )
 
 
 
 #TODO: Testen ...
-proc removeCharacterDeviceFile*(pathStr: string): void {.raises: [IOError].} =
+proc removeCharacterDeviceFile*(pathStr: string): void {.raises: [IOError,NotSupportedError].} =
     ## Removes a character-device-file and only that.
     ## @raises An IOError if the referenced FS-Entry is existing but is not a character-device-file, or could not be deleted.
     ## See also:
@@ -1389,24 +1396,30 @@ proc removeCharacterDeviceFile*(pathStr: string): void {.raises: [IOError].} =
     ## * `removeBlockDeviceFile() proc <#removeBlockDeviceFile,Pathname>`_
     ## * `removeDeviceFile() proc <#removeDeviceFile,Pathname>`_
     # @see man 2 unlink
-    let fileType = file_utils.getFileType(pathStr)
-    if fileType.isNotExisting():
-        return
-    assert(fileType.isExisting())
-    if not fileType.isCharacterDeviceFile():
-        raise newException(system.IOError, "Cannot remove '" & pathStr & "' because it is not a character device file")
-    assert(fileType.isCharacterDeviceFile())
-    when defined(Posix):
-        if posix.unlink(pathStr) != 0 and posix.errno != posix.ENOENT:
+    when file_utils.AreDeviceFilesSupported:
+        let fileType = file_utils.getFileType(pathStr)
+        if fileType.isNotExisting():
+            return
+        assert(fileType.isExisting())
+        if not fileType.isCharacterDeviceFile():
+            raise newException(system.IOError, "Cannot remove '" & pathStr & "' because it is not a character device file")
+        assert(fileType.isCharacterDeviceFile())
+        when defined(Posix):
+            if posix.unlink(pathStr) != 0 and posix.errno != posix.ENOENT:
+                raise newException(
+                    system.IOError,
+                    "Failed to remove character device file '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
+                )
+            assert(not file_utils.getFileType(pathStr).isExisting())
+        else:
             raise newException(
-                system.IOError,
-                "Failed to remove character device file '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
+                file_utils.NotSupportedError,
+                "removeCharacterDeviceFile() is NOT supported for the current architecture"
             )
-        assert(not file_utils.getFileType(pathStr).isExisting())
     else:
         raise newException(
-            system.IOError,
-            "removeCharacterDeviceFile is NOT supported for the current architecture"
+            file_utils.NotSupportedError,
+            "removeCharacterDeviceFile() is NOT supported for the current architecture"
         )
 
 
@@ -1418,7 +1431,7 @@ proc removeCharacterDeviceFile*(pathStr: string): void {.raises: [IOError].} =
 
 
 #TODO: Testen ...
-proc createBlockDeviceFile*(pathStr: string, mode: uint32 = 0o600, major: uint8, minor: uint8): void {.raises: [IOError].} =
+proc createBlockDeviceFile*(pathStr: string, major: uint8, minor: uint8, mode: uint32 = 0o600): void {.raises: [IOError,NotSupportedError].} =
     ## Creates a block-device-file (only unix/linux).
     ## If the fs-entry already exists and it is a block-device-file, nothing happens.
     ## If the fs-entry already exists but is not a block-device file an IOError is raised.
@@ -1432,32 +1445,38 @@ proc createBlockDeviceFile*(pathStr: string, mode: uint32 = 0o600, major: uint8,
     ## * `createBlockDeviceFile() proc <#createBlockDeviceFile,Pathname>`_
     # @see man 2 mknod
     # @see man 3 makedev
-    let fileType = file_utils.getFileType(pathStr)
-    if fileType.isBlockDeviceFile():
-        return
-    assert(not fileType.isBlockDeviceFile())
-    if fileType.isExisting():
-        raise newException(system.IOError, "Cannot create block device file'" & pathStr & "' (does already exist as non block device file)")
-    assert(fileType.isNotExisting())
-    when defined(Posix):
-        proc posixMakeDev(major: uint, minor: uint): Dev {.importc: "makedev",header: "<sys/sysmacros.h>", sideEffect.}
-        let dev = posixMakeDev(major, minor) and Dev(posix.S_IFBLK)
-        if posix.mknod(pathStr, mode, dev) != 0:
+    when file_utils.AreDeviceFilesSupported:
+        let fileType = file_utils.getFileType(pathStr)
+        if fileType.isBlockDeviceFile():
+            return
+        assert(not fileType.isBlockDeviceFile())
+        if fileType.isExisting():
+            raise newException(system.IOError, "Cannot create block device file'" & pathStr & "' (does already exist as non block device file)")
+        assert(fileType.isNotExisting())
+        when defined(Posix):
+            proc posixMakeDev(major: uint, minor: uint): Dev {.importc: "makedev",header: "<sys/sysmacros.h>", sideEffect.}
+            let dev = posixMakeDev(major, minor) and Dev(posix.S_IFBLK)
+            if posix.mknod(pathStr, mode, dev) != 0:
+                raise newException(
+                    system.IOError,
+                    "Failed to create block device file '" & pathStr & "' (CAUSE: '" & $posix.strerror(posix.errno) & "')"
+                )
+            assert(file_utils.getFileType(pathStr).isBlockDeviceFile())
+        else:
             raise newException(
-                system.IOError,
-                "Failed to create block device file '" & pathStr & "' (CAUSE: '" & $posix.strerror(posix.errno) & "')"
+                file_utils.NotSupportedError,
+                "createBlockDeviceFile() is NOT supported for the current architecture"
             )
-        assert(file_utils.getFileType(pathStr).isBlockDeviceFile())
     else:
         raise newException(
-            system.IOError,
-            "createBlockDeviceFile is NOT supported for the current architecture"
+            file_utils.NotSupportedError,
+            "createBlockDeviceFile() is NOT supported for the current architecture"
         )
 
 
 
 #TODO: Testen ...
-proc removeBlockDeviceFile*(pathStr: string): void {.raises: [IOError].} =
+proc removeBlockDeviceFile*(pathStr: string): void {.raises: [IOError,NotSupportedError].} =
     ## Removes a character-device-file and only that.
     ## @raises An IOError if the referenced FS-Entry is existing but is not a character-device-file, or could not be deleted.
     ## See also:
@@ -1465,24 +1484,30 @@ proc removeBlockDeviceFile*(pathStr: string): void {.raises: [IOError].} =
     ## * `removeBlockDeviceFile() proc <#removeBlockDeviceFile,Pathname>`_
     ## * `removeDeviceFile() proc <#removeDeviceFile,Pathname>`_
     # @see man 2 unlink
-    let fileType = FileStatus.fromPathStr(pathStr)
-    if fileType.isNotExisting():
-        return
-    assert(fileType.isExisting())
-    if not fileType.isBlockDeviceFile():
-        raise newException(system.IOError, "Cannot remove '" & pathStr & "' because it is not a block device file")
-    assert(fileType.isBlockDeviceFile())
-    when defined(Posix):
-        if posix.unlink(pathStr) != 0 and posix.errno != posix.ENOENT:
+    when file_utils.AreDeviceFilesSupported:
+        let fileType = FileStatus.fromPathStr(pathStr)
+        if fileType.isNotExisting():
+            return
+        assert(fileType.isExisting())
+        if not fileType.isBlockDeviceFile():
+            raise newException(system.IOError, "Cannot remove '" & pathStr & "' because it is not a block device file")
+        assert(fileType.isBlockDeviceFile())
+        when defined(Posix):
+            if posix.unlink(pathStr) != 0 and posix.errno != posix.ENOENT:
+                raise newException(
+                    system.IOError,
+                    "Failed to remove block device file '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
+                )
+            assert(not file_utils.getFileType(pathStr).isExisting())
+        else:
             raise newException(
-                system.IOError,
-                "Failed to remove block device file '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
+                file_utils.NotSupportedError,
+                "removeBlockDeviceFile() is NOT supported for the current architecture"
             )
-        assert(not file_utils.getFileType(pathStr).isExisting())
     else:
         raise newException(
-            system.IOError,
-            "removeBlockDeviceFile is NOT supported for the current architecture"
+            file_utils.NotSupportedError,
+            "removeBlockDeviceFile() is NOT supported for the current architecture"
         )
 
 
@@ -1494,7 +1519,7 @@ proc removeBlockDeviceFile*(pathStr: string): void {.raises: [IOError].} =
 
 
 #TODO: Testen ...
-proc removeDeviceFile*(pathStr: string): void {.raises: [IOError].} =
+proc removeDeviceFile*(pathStr: string): void {.raises: [IOError,NotSupportedError].} =
     ## Removes a device-file (block- and character) and only that.
     ## @raises An IOError if the referenced FS-Entry is existing but is not a device-file, or could not be deleted.
     ## See also:
@@ -1502,24 +1527,30 @@ proc removeDeviceFile*(pathStr: string): void {.raises: [IOError].} =
     ## * `removeBlockDeviceFile() proc <#removeBlockDeviceFile,Pathname>`_
     ## * `removeDeviceFile() proc <#removeDeviceFile,Pathname>`_
     # @see man 2 unlink
-    let fileType = file_utils.getFileType(pathStr)
-    if fileType.isNotExisting():
-        return
-    assert(fileType.isExisting())
-    if not fileType.isDeviceFile():
-        raise newException(system.IOError, "Cannot remove '" & pathStr & "' because it is not a device file")
-    assert(fileType.isDeviceFile())
-    when defined(Posix):
-        if posix.unlink(pathStr) != 0 and posix.errno != posix.ENOENT:
+    when file_utils.AreDeviceFilesSupported:
+        let fileType = file_utils.getFileType(pathStr)
+        if fileType.isNotExisting():
+            return
+        assert(fileType.isExisting())
+        if not fileType.isDeviceFile():
+            raise newException(system.IOError, "Cannot remove '" & pathStr & "' because it is not a device file")
+        assert(fileType.isDeviceFile())
+        when defined(Posix):
+            if posix.unlink(pathStr) != 0 and posix.errno != posix.ENOENT:
+                raise newException(
+                    system.IOError,
+                    "Failed to remove device file '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
+                )
+            assert(not file_utils.getFileType(pathStr).isExisting())
+        else:
             raise newException(
-                system.IOError,
-                "Failed to remove device file '" & pathStr & "', CAUSE: '" & $posix.strerror(posix.errno) & "'"
+                file_utils.NotSupportedError,
+                "removeDeviceFile() is NOT supported for the current architecture"
             )
-        assert(not file_utils.getFileType(pathStr).isExisting())
     else:
         raise newException(
-            system.IOError,
-            "removeDeviceFile is NOT supported for the current architecture"
+            file_utils.NotSupportedError,
+            "removeDeviceFile() is NOT supported for the current architecture"
         )
 
 

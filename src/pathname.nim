@@ -75,6 +75,7 @@ export os.FileInfo
 ## Export Support-Matrix, Exceptions ...
 export pathname.file_utils.AreSymlinksSupported
 export pathname.file_utils.ArePipesSupported
+export pathname.file_utils.AreDeviceFilesSupported
 export pathname.file_utils.NotSupportedError
 
 
@@ -1066,13 +1067,13 @@ proc removePipeFile*(self: Pathname, optionalPathComponents: varargs[string]): P
 
 
 #TODO: Testen ...
-proc createCharacterDeviceFile*(self: Pathname, mode: uint32 = 0o600, major: uint8, minor: uint8): Pathname {.inline,discardable,raises: [IOError].} =
+proc createCharacterDeviceFile*(self: Pathname, major: uint8, minor: uint8, mode: uint32 = 0o600): Pathname {.inline,discardable,raises: [IOError,NotSupportedError].} =
     ## Creates a character-device-file (only unix/linux).
     ## If the fs-entry already exists and it is a character-device-file, nothing happens.
     ## If the fs-entry already exists but is not a device file an IOError is raised.
-    ## @param mode The unix-Mode (OPTIONAL, default: u=rw,go= respecting the active umask)
     ## @param major The Major-Number of the Device-File
     ## @param minor The Minor-Number of the Device-File
+    ## @param mode The unix-Mode (OPTIONAL, default: u=rw,go= respecting the active umask)
     ## @raises An IOError if the fs-entry already exists but is not a device-file.
     ## @raises An IOError if the fs-entry could not be created.
     ## See also:
@@ -1080,13 +1081,13 @@ proc createCharacterDeviceFile*(self: Pathname, mode: uint32 = 0o600, major: uin
     ## * `createBlockDeviceFile() proc <#createBlockDeviceFile,Pathname>`_
     # @see man 2 mknod
     # @see man 3 makedev
-    file_utils.createCharacterDeviceFile(self.path, mode, major, minor)
+    file_utils.createCharacterDeviceFile(self.path, major, minor, mode)
     return self
 
 
 
 #TODO: Testen ...
-proc removeCharacterDeviceFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+proc removeCharacterDeviceFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError,NotSupportedError].} =
     ## Removes a character-device-file and only that.
     ## @raises An IOError if the referenced FS-Entry is existing but is not a character-device-file, or could not be deleted.
     ## See also:
@@ -1106,13 +1107,13 @@ proc removeCharacterDeviceFile*(self: Pathname): Pathname {.inline,discardable,r
 
 
 #TODO: Testen ...
-proc createBlockDeviceFile*(self: Pathname, mode: uint32 = 0o600, major: uint8, minor: uint8): Pathname {.inline,discardable,raises: [IOError].} =
+proc createBlockDeviceFile*(self: Pathname, major: uint8, minor: uint8, mode: uint32 = 0o600): Pathname {.inline,discardable,raises: [IOError,NotSupportedError].} =
     ## Creates a block-device-file (only unix/linux).
     ## If the fs-entry already exists and it is a block-device-file, nothing happens.
     ## If the fs-entry already exists but is not a block-device file an IOError is raised.
-    ## @param mode The unix-Mode (OPTIONAL, default: u=rw,go= respecting the active umask)
     ## @param major The Major-Number of the Device-File
     ## @param minor The Minor-Number of the Device-File
+    ## @param mode The unix-Mode (OPTIONAL, default: u=rw,go= respecting the active umask)
     ## @raises An IOError if the fs-entry already exists but is not a device-file.
     ## @raises An IOError if the fs-entry could not be created.
     ## See also:
@@ -1120,13 +1121,13 @@ proc createBlockDeviceFile*(self: Pathname, mode: uint32 = 0o600, major: uint8, 
     ## * `createBlockDeviceFile() proc <#createBlockDeviceFile,Pathname>`_
     # @see man 2 mknod
     # @see man 3 makedev
-    file_utils.createBlockDeviceFile(self.path, mode, major, minor)
+    file_utils.createBlockDeviceFile(self.path, major, minor, mode)
     return self
 
 
 
 #TODO: Testen ...
-proc removeBlockDeviceFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+proc removeBlockDeviceFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError,NotSupportedError].} =
     ## Removes a character-device-file and only that.
     ## @raises An IOError if the referenced FS-Entry is existing but is not a character-device-file, or could not be deleted.
     ## See also:
@@ -1146,7 +1147,7 @@ proc removeBlockDeviceFile*(self: Pathname): Pathname {.inline,discardable,raise
 
 
 #TODO: Testen ...
-proc removeDeviceFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+proc removeDeviceFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError,NotSupportedError].} =
     ## Removes a device-file (block- and character) and only that.
     ## @raises An IOError if the referenced FS-Entry is existing but is not a device-file, or could not be deleted.
     ## See also:
@@ -1241,12 +1242,19 @@ proc remove*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} 
 #TODO: testen
 proc listDir*(self: Pathname, isAbsolute: bool = false): seq[Pathname] =
     ## Lists the files of the addressed directory as Pathnames.
-    return file_utils.dirEntries(self.path, isAbsolute).map( proc (pathStr: string): Pathname = Pathname.new(pathStr) )
+    # Folgendes ist nicht GC:ARC-Kompatibel ...
+    #return file_utils.dirEntries(self.path, isAbsolute).map( proc (pathStr: string): Pathname = Pathname.new(pathStr) )
+    # Workaround (GC:ARC-Kompatibel) ...
+    let dirEntries = file_utils.dirEntries(self.path, isAbsolute)
+    result = newSeq[Pathname](dirEntries.len)
+    for i in 0..<dirEntries.len:
+        result[i] = Pathname.new(dirEntries[i])
+    return result
 
 
 
 #TODO: testen
-proc listDirStrings*(self: Pathname, isAbsolute: bool = false): seq[string] =
+proc listDirStrings*(self: Pathname, isAbsolute: bool = false): seq[string] {.inline.} =
     ## Lists the files of the addressed directory as plain Strings.
     return file_utils.dirEntries(self.path, isAbsolute)
 
