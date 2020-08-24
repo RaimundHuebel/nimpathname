@@ -2848,6 +2848,26 @@ suite "Pathname Tests 000":
 
 
 
+    test "#isMountpoint()":
+        when defined(Posix):
+            check true  == Pathname.new("/").isMountpoint()
+            check true  == Pathname.new("//").isMountpoint()
+            check true  == Pathname.new("/proc" ).isMountpoint()
+            check true  == Pathname.new("/proc/").isMountpoint()
+            check true  == Pathname.new("/sys" ).isMountpoint()
+            check true  == Pathname.new("/sys/").isMountpoint()
+
+            check false == Pathname.new("/bin"    ).isMountpoint()
+            check false == Pathname.new("/etc"    ).isMountpoint()
+            check false == Pathname.new("/bin/cat").isMountpoint()
+
+        when defined(Windows):
+            check false == Pathname.new("C:").isMountpoint()
+            check false == Pathname.new("C:\\").isMountpoint()
+            check false == Pathname.new("C:\\windows").isMountpoint()
+            check false == Pathname.new("C:\\windows\\").isMountpoint()
+
+
 #-----------------------------------------------------------------------------------------------------------------------
 # Pathname#fileInfo()
 #-----------------------------------------------------------------------------------------------------------------------

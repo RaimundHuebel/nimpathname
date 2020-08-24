@@ -804,6 +804,12 @@ proc isExecutableByOther*(self: Pathname): bool =
 
 
 
+proc isMountpoint*(self: Pathname): bool =
+    ## @returns if File-System-Entry exists and is a mountpoint.
+    ## @returns false otherwise
+    return file_utils.isMountpoint(self.path)
+
+
 
 proc readAll*(self: Pathname): TaintedString {.inline,raises: [IOError].} =
     ## @returns Returns ALL data from the current File (Regular, Character Devices, Pipes).

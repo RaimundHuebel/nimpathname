@@ -828,6 +828,13 @@ proc isExecutableByOther*(pathStr: string): bool =
     return file_utils.getFileStatus(pathStr).isExecutableByOther()
 
 
+
+proc isMountpoint*(pathStr: string): bool =
+    ## @returns true if File-System-Entry exists and is a mountpoint.
+    ## @returns false otherwise
+    return file_utils.getFileStatus(pathStr).isMountpoint()
+
+
 proc readAll*(pathStr: string): TaintedString {.raises: [IOError].} =
     ## @returns Returns ALL data from the given File (Regular, Character Devices, Pipes).
     ## @raises An IOError if the file could not be read.
@@ -1241,11 +1248,8 @@ proc createPipeFile*(pathStr: string, mode: uint32 = 0o660): void {.raises: [IOE
     # @see man 3 mkfifo
     when file_utils.ArePipesSupported:
         let fileType = file_utils.getFileType(pathStr)
-        if fileType.isPipeFile():
-            return
-        assert(not fileType.isPipeFile())
         if fileType.isExisting():
-            raise newException(system.IOError, "Cannot create named pipe '" & pathStr & "' (does already exist as non pipe)")
+            raise newException(system.IOError, "Cannot create named pipe '" & pathStr & "' (file does already exist)")
         assert(fileType.isNotExisting())
         when defined(Posix):
             if posix.mkfifo(pathStr, mode) != 0:
@@ -1359,19 +1363,28 @@ proc createCharacterDeviceFile*(pathStr: string, major: uint8, minor: uint8, mod
     # @see man 3 makedev
     when file_utils.AreDeviceFilesSupported:
         let fileType = file_utils.getFileType(pathStr)
-        if fileType.isCharacterDeviceFile():
-            return
-        assert(not fileType.isCharacterDeviceFile())
         if fileType.isExisting():
-            raise newException(system.IOError, "Cannot create character device file '" & pathStr & "' (does already exist as non character device file)")
+            raise newException(system.IOError, "Cannot create character device file '" & pathStr & "' (file does already exist)")
         assert(fileType.isNotExisting())
         when defined(Posix):
             proc posixMakeDev(major: uint, minor: uint): Dev {.importc: "makedev",header: "<sys/sysmacros.h>", sideEffect.}
             let dev = posixMakeDev(major, minor) and Dev(posix.S_IFCHR)
             if posix.mknod(pathStr, mode, dev) != 0:
+                let errorNumber = posix.errno;
+                if file_utils.getFileType(pathStr).isExisting():
+                    discard posix.unlink(pathStr)
                 raise newException(
                     system.IOError,
-                    "Failed to create character device file '" & pathStr & "' (CAUSE: '" & $posix.strerror(posix.errno) & "')"
+                    "Failed to create character device file '" & pathStr & "' (CAUSE: '" & $posix.strerror(errorNumber) & "')"
+                )
+            # mknod scheint irgendeine Art von Fehler aufzuweisen, so dass eine normale Datei erstellt wird,
+            # statt ein Fehler zu liefern, wenn der User keine ausreichenden Privilegien besitzt ...
+            let fileTypeAfter = file_utils.getFileType(pathStr)
+            if fileTypeAfter.isExisting() and not fileTypeAfter.isBlockDeviceFile():
+                discard posix.unlink(pathStr)
+                raise newException(
+                    system.IOError,
+                    "Failed to create block device file '" & pathStr & "' (CAUSE: 'block device file was not properly created')"
                 )
             assert(file_utils.getFileType(pathStr).isCharacterDeviceFile())
         else:
@@ -1447,19 +1460,28 @@ proc createBlockDeviceFile*(pathStr: string, major: uint8, minor: uint8, mode: u
     # @see man 3 makedev
     when file_utils.AreDeviceFilesSupported:
         let fileType = file_utils.getFileType(pathStr)
-        if fileType.isBlockDeviceFile():
-            return
-        assert(not fileType.isBlockDeviceFile())
         if fileType.isExisting():
-            raise newException(system.IOError, "Cannot create block device file'" & pathStr & "' (does already exist as non block device file)")
+            raise newException(system.IOError, "Cannot create block device file'" & pathStr & "' (file does already exist)")
         assert(fileType.isNotExisting())
         when defined(Posix):
             proc posixMakeDev(major: uint, minor: uint): Dev {.importc: "makedev",header: "<sys/sysmacros.h>", sideEffect.}
             let dev = posixMakeDev(major, minor) and Dev(posix.S_IFBLK)
             if posix.mknod(pathStr, mode, dev) != 0:
+                let errorNumber = posix.errno;
+                if file_utils.getFileType(pathStr).isExisting():
+                    discard posix.unlink(pathStr)
                 raise newException(
                     system.IOError,
-                    "Failed to create block device file '" & pathStr & "' (CAUSE: '" & $posix.strerror(posix.errno) & "')"
+                    "Failed to create block device file '" & pathStr & "' (CAUSE: '" & $posix.strerror(errorNumber) & "')"
+                )
+            # mknod scheint irgendeine Art von Fehler aufzuweisen, so dass eine normale Datei erstellt wird,
+            # statt ein Fehler zu liefern, wenn der User keine ausreichenden Privilegien besitzt ...
+            let fileTypeAfter = file_utils.getFileType(pathStr)
+            if fileTypeAfter.isExisting() and not fileTypeAfter.isBlockDeviceFile():
+                discard posix.unlink(pathStr)
+                raise newException(
+                    system.IOError,
+                    "Failed to create block device file '" & pathStr & "' (CAUSE: 'block device file was not properly created')"
                 )
             assert(file_utils.getFileType(pathStr).isBlockDeviceFile())
         else:

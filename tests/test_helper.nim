@@ -14,6 +14,10 @@ import os
 import strutils
 
 
+when defined(Posix):
+    import posix
+
+
 ## The Path to the Fixture-Directory.
 const FixtureDirectoryPath*: string =
     currentSourcePath().parentDir().joinPath("_fixtures")
@@ -34,7 +38,17 @@ proc fixturePath*(additionalPathComponents: varargs[string]): string =
     return resultPathComponents.join($os.DirSep)
 
 
+
 proc readFixtureFile*(relativeToFixturesPath: string): string =
     ## Reads a file from Fixture-Directory and returns it contents as string.
     ## Raises an error if this is not possible.
     return fixturePath(relativeToFixturesPath).readFile()
+
+
+
+proc isRootUser*(): bool =
+    ## Tells if the current effective user ist root. This is needed for Tests which need privileged access to the system.
+    when defined(Posix):
+        return posix.getuid() == 0
+    else:
+        return false

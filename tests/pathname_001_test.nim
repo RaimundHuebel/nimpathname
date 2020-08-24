@@ -324,7 +324,7 @@ suite "Pathname Tests 001":
 
 
     test "#removeFile() should handle deletion of non existing file-entry":
-        let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+        let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
         check pathname.isNotExisting()
         pathname.removeFile()
         pathname.removeFile()
@@ -431,7 +431,7 @@ suite "Pathname Tests 001":
 
 
     test "#removeRegularFile() should handle deletion of non existing file-entry":
-        let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+        let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
         check pathname.isNotExisting()
         pathname.removeRegularFile()
         pathname.removeRegularFile()
@@ -557,7 +557,7 @@ suite "Pathname Tests 001":
 
 
     test "#removeDirectory() should handle deletion of non existing file-entry":
-        let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+        let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
         check pathname.isNotExisting()
         pathname.removeDirectory()
         pathname.removeDirectory(isRecursive=true)
@@ -834,7 +834,7 @@ suite "Pathname Tests 001":
 
 
     test "#removeEmptyDirectory() should handle deletion of non existing file-entry":
-        let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+        let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
         check pathname.isNotExisting()
         pathname.removeEmptyDirectory()
         pathname.removeEmptyDirectory()
@@ -920,7 +920,7 @@ suite "Pathname Tests 001":
 
 
     test "#removeDirectoryTree() should handle deletion of non existing file-entry":
-        let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+        let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
         check pathname.isNotExisting()
         pathname.removeDirectoryTree()
         pathname.removeDirectoryTree()
@@ -992,7 +992,7 @@ suite "Pathname Tests 001":
         test "#createSymlinkTo() should raise NotSupported-Error for this Architecture":
             let pathname = Pathname.new(fixturePath("TEST_CREATE_SYMLINK_TO")).remove()
             try:
-                pathname.createSymlinkTo("NOT_EXISTING")
+                pathname.createSymlinkTo("NOT_EXISTING").remove()
                 fail
             except NotSupportedError:
                 check true
@@ -1058,7 +1058,7 @@ suite "Pathname Tests 001":
 
     when pathname.AreSymlinksSupported:
         test "#createSymlinkFrom() should create a symlink":
-            let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+            let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
             let pathnameSymlink = Pathname.new(fixturePath("TEST_CREATE_SYMLINK_FROM")).remove()
             defer:
                 check pathnameSymlink.removeSymlink().isNotExisting()
@@ -1069,7 +1069,7 @@ suite "Pathname Tests 001":
 
     when pathname.AreSymlinksSupported:
         test "#createSymlinkFrom() should return self for Method-Chaining":
-            let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+            let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
             let pathname2: Pathname = pathname.createSymlinkFrom(fixturePath("TEST_CREATE_SYMLINK_FROM"))
             defer:
                 check Pathname.new(fixturePath("TEST_CREATE_SYMLINK_FROM")).removeSymlink().isNotExisting()
@@ -1141,7 +1141,7 @@ suite "Pathname Tests 001":
 
     when pathname.AreSymlinksSupported:
         test "#removeSymlink() should handle deletion of non existing file-entry":
-            let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+            let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
             check pathname.isNotExisting()
             pathname.removeSymlink()
             pathname.removeSymlink()
@@ -1223,14 +1223,18 @@ suite "Pathname Tests 001":
 
 
     when pathname.ArePipesSupported:
-        test "#createPipeFile() should allow multiple calls":
+        test "#createPipeFile() should NOT allow multiple calls, because the target may otherwise not as expected":
             let pathname = Pathname.new(fixturePath("TEST_CREATE_PIPE_FILE")).remove()
             defer:
                 check pathname.removePipeFile().isNotExisting()
             check pathname.isNotExisting()
             pathname.createPipeFile()
             check pathname.isPipeFile()
-            pathname.createPipeFile()
+            try:
+                pathname.createPipeFile()
+                fail
+            except IOError:
+                check true
             check pathname.isPipeFile()
 
 
@@ -1292,7 +1296,7 @@ suite "Pathname Tests 001":
 
     when pathname.ArePipesSupported:
         test "#removePipeFile() should handle deletion of non existing file-entry":
-            let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+            let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
             check pathname.isNotExisting()
             pathname.removePipeFile()
             pathname.removePipeFile()
@@ -1353,7 +1357,7 @@ suite "Pathname Tests 001":
 
     when not pathname.AreDeviceFilesSupported:
         test "#createCharacterDeviceFile() should raise NotSupported-Error for this Architecture":
-            let pathname = Pathname.new(fixturePath("TEST_CREATE_CHARACTER_DEVICE_FILE")).remove()
+            let pathname = Pathname.new(fixturePath("TEST_CREATE_CHARACTER_DEVICE_FILE1")).remove()
             try:
                 pathname.createCharacterDeviceFile(1, 1)
                 fail
@@ -1364,8 +1368,86 @@ suite "Pathname Tests 001":
 
 
     when pathname.AreDeviceFilesSupported:
-        test "#createCharacterDeviceFile() TODO: write tests":
-            fail
+        test "#createCharacterDeviceFile() should raise IOError when not root":
+            if not isRootUser():
+                let pathname = Pathname.new(fixturePath("TEST_CREATE_CHARACTER_DEVICE_FILE2")).remove()
+                try:
+                    defer:
+                        check pathname.removeCharacterDeviceFile().isNotExisting()
+                    check pathname.isNotExisting()
+                    pathname.createCharacterDeviceFile(1, 3)  # /dev/null
+                    fail
+                except IOError:
+                    check true
+                except Exception:
+                    fail
+                check pathname.isNotExisting()
+            else:
+                echo "Test can not be applied, because it needs to be run as non root user"
+                skip
+
+
+    when pathname.ArePipesSupported:
+        test "#createCharacterDeviceFile() should NOT allow multiple calls, because the target may otherwise not as expected":
+            if isRootUser():
+                let pathname = Pathname.new(fixturePath("TEST_CREATE_CHARACTER_DEVICE_FILE3")).remove()
+                defer:
+                    check pathname.removeCharacterDeviceFile().isNotExisting()
+                check pathname.isNotExisting()
+                pathname.createCharacterDeviceFile(1, 3)  # /dev/null
+                check pathname.isCharacterDeviceFile()
+                try:
+                    pathname.createCharacterDeviceFile(1, 3)  # /dev/null
+                    fail
+                except IOError:
+                    check true
+                check pathname.isCharacterDeviceFile()
+            else:
+                echo "Test can not be applied, because it needs to be run as root user"
+                skip
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#createCharacterDeviceFile() should create a character device (needs root)":
+            if isRootUser():
+                let pathname = Pathname.new(fixturePath("TEST_CREATE_CHARACTER_DEVICE_FILE4")).remove()
+                defer:
+                    check pathname.removeCharacterDeviceFile().isNotExisting()
+                check pathname.isNotExisting()
+                pathname.createCharacterDeviceFile(1, 3)  # /dev/null
+                check pathname.isCharacterDeviceFile()
+            else:
+                echo "Test can not be applied, because it needs to be run as root user"
+                skip
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#createCharacterDeviceFile() should allow multiple calls (needs root)":
+            if isRootUser():
+                let pathname = Pathname.new(fixturePath("TEST_CREATE_CHARACTER_DEVICE_FILE5")).remove()
+                defer:
+                    check pathname.removeCharacterDeviceFile().isNotExisting()
+                check pathname.isNotExisting()
+                pathname.createCharacterDeviceFile(1, 3)  # /dev/null
+                check pathname.isCharacterDeviceFile()
+                pathname.createCharacterDeviceFile(1, 3)  # /dev/null
+                check pathname.isCharacterDeviceFile()
+            else:
+                echo "Test can not be applied, because it needs to be run as root user"
+                skip
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#createCharacterDeviceFile() should return self for Method-Chaining (needs root)":
+            if isRootUser():
+                let pathname = Pathname.new(fixturePath("TEST_CREATE_CHARACTER_DEVICE_FILE6")).remove()
+                let pathname2: Pathname = pathname.createCharacterDeviceFile(1, 3)
+                defer:
+                    check pathname.removeCharacterDeviceFile().isNotExisting()
+                check pathname2 == pathname
+            else:
+                echo "Test can not be applied, because it needs to be run as root user"
+                skip
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -1391,8 +1473,111 @@ suite "Pathname Tests 001":
 
 
     when pathname.AreDeviceFilesSupported:
-        test "#removeCharacterDeviceFile() TODO: write tests":
-            fail
+        test "#removeCharacterDeviceFile() should return self for Method-Chaining":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_CHARACTER_DEVICE_FILE")).remove()
+            let pathname2: Pathname = pathname.removeCharacterDeviceFile()
+            check pathname2 == pathname
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeCharacterDeviceFile() should allow multiple calls":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_CHARACTER_DEVICE_FILE")).remove()
+            pathname.removeCharacterDeviceFile()
+            pathname.removeCharacterDeviceFile()
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeCharacterDeviceFile() should handle deletion of non existing file-entry":
+            let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
+            check pathname.isNotExisting()
+            pathname.removeCharacterDeviceFile()
+            check pathname.isNotExisting()
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeCharacterDeviceFile() should delete a character device file (needs root)":
+            if isRootUser():
+                let pathname = Pathname.new(fixturePath("TEST_REMOVE_CHARACTER_DEVICE_FILE_WITH_CHAR_DEVICE")).remove().createCharacterDeviceFile(1, 3) # /dev/null
+                check pathname.isCharacterDeviceFile()
+                pathname.removeCharacterDeviceFile()
+                check pathname.isNotExisting()
+            else:
+                echo "Test can not be applied, because it needs to be run as root user"
+                skip
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeCharacterDeviceFile() should NOT delete a block device file (needs root)":
+            if isRootUser():
+                let pathname = Pathname.new(fixturePath("TEST_REMOVE_CHARACTER_DEVICE_FILE_WITH_BLOCK_DEVICE")).remove().createBlockDeviceFile(1, 3) # /dev/null
+                defer:
+                    check pathname.removeCharacterDeviceFile().isNotExisting()
+                check pathname.isBlockDeviceFile()
+                try:
+                    pathname.removeCharacterDeviceFile()
+                    fail()
+                except IOError:
+                    check true
+                check pathname.isCharacterDeviceFile()
+            else:
+                echo "Test can not be applied, because it needs to be run as root user"
+                skip
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeCharacterDeviceFile() should NOT delete a regular file":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_CHARACTER_DEVICE_FILE_WITH_REGULAR_FILE")).remove().createRegularFile()
+            defer:
+                check pathname.removeRegularFile().isNotExisting()
+            check pathname.isRegularFile()
+            try:
+                pathname.removeCharacterDeviceFile()
+                fail()
+            except IOError:
+                check true
+            check pathname.isRegularFile()
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeCharacterDeviceFile() should NOT delete a directory":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_CHARACTER_DEVICE_FILE_WITH_DIRECTORY")).remove().createEmptyDirectory()
+            defer:
+                check pathname.removeEmptyDirectory().isNotExisting()
+            check pathname.isDirectory()
+            try:
+                pathname.removeCharacterDeviceFile()
+                fail()
+            except IOError:
+                check true
+            check pathname.isDirectory()
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeCharacterDeviceFile() should NOT delete a symlink":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_CHARACTER_DEVICE_FILE_WITH_SYMLINK")).remove().createSymlinkTo("NOT_EXISTING")
+            defer:
+                check pathname.removeSymlink().isNotExisting()
+            check pathname.isSymlink()
+            try:
+                pathname.removeCharacterDeviceFile()
+                fail()
+            except IOError:
+                check true
+            check pathname.isSymlink()
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeCharacterDeviceFile() should NOT delete a pipe/fifo":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_CHARACTER_DEVICE_FILE_WITH_PIPE")).remove().createPipeFile()
+            defer:
+                check pathname.removePipeFile().isNotExisting()
+            check pathname.isPipeFile()
+            try:
+                pathname.removeCharacterDeviceFile()
+                fail()
+            except IOError:
+                check true
+            check pathname.isPipeFile()
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -1407,7 +1592,7 @@ suite "Pathname Tests 001":
 
     when not pathname.AreDeviceFilesSupported:
         test "#createBlockDeviceFile() should raise NotSupported-Error for this Architecture":
-            let pathname = Pathname.new(fixturePath("TEST_CREATE_BLOCK_DEVICE_FILE")).remove()
+            let pathname = Pathname.new(fixturePath("TEST_CREATE_BLOCK_DEVICE_FILE1")).remove()
             try:
                 pathname.createBlockDeviceFile(1, 1)
                 fail
@@ -1418,8 +1603,86 @@ suite "Pathname Tests 001":
 
 
     when pathname.AreDeviceFilesSupported:
-        test "#createBlockDeviceFile() TODO: write tests":
-            fail
+        test "#createBlockDeviceFile() should raise IOError when not root":
+            if not isRootUser():
+                let pathname = Pathname.new(fixturePath("TEST_CREATE_BLOCK_DEVICE_FILE2")).remove()
+                try:
+                    defer:
+                        check pathname.removeBlockDeviceFile().isNotExisting()
+                    check pathname.isNotExisting()
+                    pathname.createBlockDeviceFile(1, 3)  # /dev/null
+                    fail
+                except IOError:
+                    check true
+                except Exception:
+                    fail
+                check pathname.isNotExisting()
+            else:
+                echo "Test can not be applied, because it needs to be run as non root user"
+                skip
+
+
+    when pathname.ArePipesSupported:
+        test "#createBlockDeviceFile() should NOT allow multiple calls, because the target may otherwise not as expected":
+            if isRootUser():
+                let pathname = Pathname.new(fixturePath("TEST_CREATE_BLOCK_DEVICE_FILE3")).remove()
+                defer:
+                    check pathname.removeBlockDeviceFile().isNotExisting()
+                check pathname.isNotExisting()
+                pathname.createBlockDeviceFile(1, 3)  # /dev/null
+                check pathname.isBlockDeviceFile()
+                try:
+                    pathname.createBlockDeviceFile(1, 3)  # /dev/null
+                    fail
+                except IOError:
+                    check true
+                check pathname.isBlockDeviceFile()
+            else:
+                echo "Test can not be applied, because it needs to be run as root user"
+                skip
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#createBlockDeviceFile() should create a character device (needs root)":
+            if isRootUser():
+                let pathname = Pathname.new(fixturePath("TEST_CREATE_BLOCK_DEVICE_FILE4")).remove()
+                defer:
+                    check pathname.removeBlockDeviceFile().isNotExisting()
+                check pathname.isNotExisting()
+                pathname.createBlockDeviceFile(1, 3)  # /dev/null
+                check pathname.isCharacterDeviceFile()
+            else:
+                echo "Test can not be applied, because it needs to be run as root user"
+                skip
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#createBlockDeviceFile() should allow multiple calls (needs root)":
+            if isRootUser():
+                let pathname = Pathname.new(fixturePath("TEST_CREATE_BLOCK_DEVICE_FILE5")).remove()
+                defer:
+                    check pathname.removeBlockDeviceFile().isNotExisting()
+                check pathname.isNotExisting()
+                pathname.createBlockDeviceFile(1, 3)  # /dev/null
+                check pathname.isCharacterDeviceFile()
+                pathname.createBlockDeviceFile(1, 3)  # /dev/null
+                check pathname.isCharacterDeviceFile()
+            else:
+                echo "Test can not be applied, because it needs to be run as root user"
+                skip
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#createBlockDeviceFile() should return self for Method-Chaining (needs root)":
+            if isRootUser():
+                let pathname = Pathname.new(fixturePath("TEST_CREATE_BLOCK_DEVICE_FILE6")).remove()
+                let pathname2: Pathname = pathname.createBlockDeviceFile(1, 3)
+                defer:
+                    check pathname.removeBlockDeviceFile().isNotExisting()
+                check pathname2 == pathname
+            else:
+                echo "Test can not be applied, because it needs to be run as root user"
+                skip
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -1445,8 +1708,111 @@ suite "Pathname Tests 001":
 
 
     when pathname.AreDeviceFilesSupported:
-        test "#removeBlockDeviceFile() TODO: write tests":
-            fail
+        test "#removeBlockDeviceFile() should return self for Method-Chaining":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_BLOCK_DEVICE_FILE")).remove()
+            let pathname2: Pathname = pathname.removeBlockDeviceFile()
+            check pathname2 == pathname
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeBlockDeviceFile() should allow multiple calls":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_BLOCK_DEVICE_FILE")).remove()
+            pathname.removeBlockDeviceFile()
+            pathname.removeBlockDeviceFile()
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeBlockDeviceFile() should handle deletion of non existing file-entry":
+            let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
+            check pathname.isNotExisting()
+            pathname.removeBlockDeviceFile()
+            check pathname.isNotExisting()
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeBlockDeviceFile() should delete a block device file (needs root)":
+            if isRootUser():
+                let pathname = Pathname.new(fixturePath("TEST_REMOVE_BLOCK_DEVICE_FILE_WITH_BLOCK_DEVICE")).remove().createBlockDeviceFile(1, 3) # /dev/null
+                check pathname.isBlockDeviceFile()
+                pathname.removeBlockDeviceFile()
+                check pathname.isNotExisting()
+            else:
+                echo "Test can not be applied, because it needs to be run as root user"
+                skip
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeBlockDeviceFile() should NOT delete a character device file (needs root)":
+            if isRootUser():
+                let pathname = Pathname.new(fixturePath("TEST_REMOVE_BLOCK_DEVICE_FILE_WITH_BLOCK_DEVICE")).remove().createCharacterDeviceFile(1, 3) # /dev/null
+                defer:
+                    check pathname.removeCharacterDeviceFile().isNotExisting()
+                check pathname.isBlockDeviceFile()
+                try:
+                    pathname.removeBlockDeviceFile()
+                    fail()
+                except IOError:
+                    check true
+                check pathname.isBlockDeviceFile()
+            else:
+                echo "Test can not be applied, because it needs to be run as root user"
+                skip
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeBlockDeviceFile() should NOT delete a regular file":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_BLOCK_DEVICE_FILE_WITH_REGULAR_FILE")).remove().createRegularFile()
+            defer:
+                check pathname.removeRegularFile().isNotExisting()
+            check pathname.isRegularFile()
+            try:
+                pathname.removeBlockDeviceFile()
+                fail()
+            except IOError:
+                check true
+            check pathname.isRegularFile()
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeBlockDeviceFile() should NOT delete a directory":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_BLOCK_DEVICE_FILE_WITH_DIRECTORY")).remove().createEmptyDirectory()
+            defer:
+                check pathname.removeEmptyDirectory().isNotExisting()
+            check pathname.isDirectory()
+            try:
+                pathname.removeBlockDeviceFile()
+                fail()
+            except IOError:
+                check true
+            check pathname.isDirectory()
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeBlockDeviceFile() should NOT delete a symlink":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_BLOCK_DEVICE_FILE_WITH_SYMLINK")).remove().createSymlinkTo("NOT_EXISTING")
+            defer:
+                check pathname.removeSymlink().isNotExisting()
+            check pathname.isSymlink()
+            try:
+                pathname.removeBlockDeviceFile()
+                fail()
+            except IOError:
+                check true
+            check pathname.isSymlink()
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeBlockDeviceFile() should NOT delete a pipe/fifo":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_BLOCK_DEVICE_FILE_WITH_PIPE")).remove().createPipeFile()
+            defer:
+                check pathname.removePipeFile().isNotExisting()
+            check pathname.isPipeFile()
+            try:
+                pathname.removeBlockDeviceFile()
+                fail()
+            except IOError:
+                check true
+            check pathname.isPipeFile()
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -1472,8 +1838,106 @@ suite "Pathname Tests 001":
 
 
     when pathname.AreDeviceFilesSupported:
-        test "#removeDeviceFile() TODO: write tests":
-            fail
+        test "#removeDeviceFile() should return self for Method-Chaining":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_DEVICE_FILE")).remove()
+            let pathname2: Pathname = pathname.removeDeviceFile()
+            check pathname2 == pathname
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeDeviceFile() should allow multiple calls":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_DEVICE_FILE")).remove()
+            pathname.removeDeviceFile()
+            pathname.removeDeviceFile()
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeDeviceFile() should handle deletion of non existing file-entry":
+            let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
+            check pathname.isNotExisting()
+            pathname.removeDeviceFile()
+            check pathname.isNotExisting()
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeDeviceFile() should delete a character device file (needs root)":
+            if isRootUser():
+                let pathname = Pathname.new(fixturePath("TEST_REMOVE_DEVICE_FILE_WITH_BLOCK_DEVICE")).remove().createCharacterDeviceFile(1, 3) # /dev/null
+                check pathname.isCharacterDeviceFile()
+                pathname.removeDeviceFile()
+                check pathname.isNotExisting()
+            else:
+                echo "Test can not be applied, because it needs to be run as root user"
+                skip
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeDeviceFile() should delete a block device file (needs root)":
+            if isRootUser():
+                let pathname = Pathname.new(fixturePath("TEST_REMOVE_DEVICE_FILE_WITH_BLOCK_DEVICE")).remove().createBlockDeviceFile(1, 3) # /dev/null
+                check pathname.isBlockDeviceFile()
+                pathname.removeDeviceFile()
+                check pathname.isNotExisting()
+            else:
+                echo "Test can not be applied, because it needs to be run as root user"
+                skip
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeDeviceFile() should NOT delete a regular file":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_DEVICE_FILE_WITH_REGULAR_FILE")).remove().createRegularFile()
+            defer:
+                check pathname.removeRegularFile().isNotExisting()
+            check pathname.isRegularFile()
+            try:
+                pathname.removeDeviceFile()
+                fail()
+            except IOError:
+                check true
+            check pathname.isRegularFile()
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeDeviceFile() should NOT delete a directory":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_DEVICE_FILE_WITH_DIRECTORY")).remove().createEmptyDirectory()
+            defer:
+                check pathname.removeEmptyDirectory().isNotExisting()
+            check pathname.isDirectory()
+            try:
+                pathname.removeDeviceFile()
+                fail()
+            except IOError:
+                check true
+            check pathname.isDirectory()
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeDeviceFile() should NOT delete a symlink":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_DEVICE_FILE_WITH_SYMLINK")).remove().createSymlinkTo("NOT_EXISTING")
+            defer:
+                check pathname.removeSymlink().isNotExisting()
+            check pathname.isSymlink()
+            try:
+                pathname.removeDeviceFile()
+                fail()
+            except IOError:
+                check true
+            check pathname.isSymlink()
+
+
+    when pathname.AreDeviceFilesSupported:
+        test "#removeDeviceFile() should NOT delete a pipe/fifo":
+            let pathname = Pathname.new(fixturePath("TEST_REMOVE_DEVICE_FILE_WITH_PIPE")).remove().createPipeFile()
+            defer:
+                check pathname.removePipeFile().isNotExisting()
+            check pathname.isPipeFile()
+            try:
+                pathname.removeDeviceFile()
+                fail()
+            except IOError:
+                check true
+            check pathname.isPipeFile()
+
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -1482,7 +1946,7 @@ suite "Pathname Tests 001":
 
 
     test "#remove() should return self for Method-Chaining and be multiple callable":
-        let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+        let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
         let pathname2 = pathname.remove()
         let pathname3 = pathname.remove().remove().remove()
         check pathname == pathname2
@@ -1490,7 +1954,7 @@ suite "Pathname Tests 001":
 
 
     test "#remove() should handle deletion of non existing file-entry":
-        let pathname = Pathname.new(fixturePath("NOT_EXISTING"))
+        let pathname = Pathname.new(fixturePath("NOT_EXISTING")).remove()
         check pathname.isNotExisting()
         pathname.remove()
         check pathname.isNotExisting()

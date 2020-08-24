@@ -736,6 +736,32 @@ proc isExecutableByOther*(self: FileStatus): bool {.sideEffect.} =
 
 
 
+proc isMountpoint*(self: FileStatus): bool {.sideEffect.} =
+    ## @returns if File-System-Entry exists and is a mountpoint.
+    ## @returns false otherwise
+    ## @see https://apidock.com/ruby/Pathname/mountpoint%3F
+    when defined(Posix):
+        # Ein Mountpoint muss ein Verzeichnis sein ...
+        if self.fileType != FileType.DIRECTORY:
+            return false
+        # Wenn es sich um die root-path handelt dann sollte es sich immer um ein Mountpoint handeln ...
+        if self.pathStr == "/":
+            return true
+        # Stat vom Elternverzeichnis ermitteln ...
+        let parentStat = FileStatus.fromPathStr(self.pathStr & os.DirSep & "..")
+        if parentStat.fileType != FileType.DIRECTORY:
+            return false
+        # Es handelt sich um ein Mountpoint wenn das Device verschieden ist oder Device und Inode gleich sind.
+        var isMountpoint = false
+        isMountpoint = isMountpoint or (self.posixFileStat.st_dev != parentStat.posixFileStat.st_dev)
+        isMountpoint = isMountpoint or (self.posixFileStat.st_dev == parentStat.posixFileStat.st_dev and self.posixFileStat.st_ino == parentStat.posixFileStat.st_ino)
+        return isMountpoint
+    else:
+        debugEcho "[WARN] FileStatus.isMountpoint() is not implemented for the current architecture."
+        return false
+
+
+
 
 #SPÄTER proc isEmpty*(self: FileStatus): bool {.inline.} =
 #SPÄTER     ## @returns true if File-System-Entry either:
