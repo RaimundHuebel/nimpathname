@@ -27,67 +27,67 @@ suite "FileStatus - Tests":
 
     test "FileStatus.fromPathStr()":
         let fileStatus1: FileStatus = FileStatus.fromPathStr("/")
-        check FileType.DIRECTORY == fileStatus1.getFileType()
+        check FileType.DIRECTORY == fileStatus1.fileType()
 
         let fileStatus2: FileStatus = FileStatus.fromPathStr(fixturePath("sample_dir/a_file"))
-        check FileType.REGULAR_FILE == fileStatus2.getFileType()
+        check FileType.REGULAR_FILE == fileStatus2.fileType()
 
 
 
-    test "#getPathStr()":
-        check fixturePath("sample_dir/a_file") == FileStatus.fromPathStr(fixturePath("sample_dir/a_file")).getPathStr()
-        check fixturePath("sample_dir/a_dir")  == FileStatus.fromPathStr(fixturePath("sample_dir/a_dir" )).getPathStr()
+    test "#pathStr()":
+        check fixturePath("sample_dir/a_file") == FileStatus.fromPathStr(fixturePath("sample_dir/a_file")).pathStr()
+        check fixturePath("sample_dir/a_dir")  == FileStatus.fromPathStr(fixturePath("sample_dir/a_dir" )).pathStr()
 
 
 
-    test "#getFileType()":
-        check FileType.REGULAR_FILE == FileStatus.fromPathStr(fixturePath("sample_dir/a_file")).getFileType()
+    test "#fileType()":
+        check FileType.REGULAR_FILE == FileStatus.fromPathStr(fixturePath("sample_dir/a_file")).fileType()
 
-        check FileType.DIRECTORY == FileStatus.fromPathStr(fixturePath("sample_dir/a_dir")).getFileType()
+        check FileType.DIRECTORY == FileStatus.fromPathStr(fixturePath("sample_dir/a_dir")).fileType()
 
-        check FileType.SYMLINK      == FileStatus.fromPathStr(fixturePath("sample_dir/a_symlink_to_file")).getFileType()
-        check FileType.NOT_EXISTING == FileStatus.fromPathStr(fixturePath("sample_dir/a_symlink_to_file/")).getFileType()
+        check FileType.SYMLINK      == FileStatus.fromPathStr(fixturePath("sample_dir/a_symlink_to_file")).fileType()
+        check FileType.NOT_EXISTING == FileStatus.fromPathStr(fixturePath("sample_dir/a_symlink_to_file/")).fileType()
 
-        check FileType.SYMLINK   == FileStatus.fromPathStr(fixturePath("sample_dir/a_symlink_to_dir" )).getFileType()
-        check FileType.DIRECTORY == FileStatus.fromPathStr(fixturePath("sample_dir/a_symlink_to_dir/")).getFileType()
+        check FileType.SYMLINK   == FileStatus.fromPathStr(fixturePath("sample_dir/a_symlink_to_dir" )).fileType()
+        check FileType.DIRECTORY == FileStatus.fromPathStr(fixturePath("sample_dir/a_symlink_to_dir/")).fileType()
 
-        check FileType.CHARACTER_DEVICE == FileStatus.fromPathStr("/dev/null" ).getFileType()
+        check FileType.CHARACTER_DEVICE == FileStatus.fromPathStr("/dev/null" ).fileType()
 
-        check FileType.BLOCK_DEVICE == FileStatus.fromPathStr("/dev/loop0" ).getFileType()
+        check FileType.BLOCK_DEVICE == FileStatus.fromPathStr("/dev/loop0" ).fileType()
 
-        check FileType.NOT_EXISTING == FileStatus.fromPathStr(fixturePath("NON_EXISTING_FILE" )).getFileType()
-        check FileType.NOT_EXISTING == FileStatus.fromPathStr(fixturePath("NON_EXISTING_FILE/")).getFileType()
+        check FileType.NOT_EXISTING == FileStatus.fromPathStr(fixturePath("NON_EXISTING_FILE" )).fileType()
+        check FileType.NOT_EXISTING == FileStatus.fromPathStr(fixturePath("NON_EXISTING_FILE/")).fileType()
 
-        check FileType.SOCKET_FILE == FileStatus.fromPathStr("/tmp/.X11-unix/X0").getFileType()
+        check FileType.SOCKET_FILE == FileStatus.fromPathStr("/tmp/.X11-unix/X0").fileType()
 
-        discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
-        check FileType.PIPE_FILE == FileStatus.fromPathStr(fixturePath("sample_dir/a_pipe")).getFileType()
-        discard posix.unlink( fixturePath("sample_dir/a_pipe") )
+        discard posix.mkfifo( fixturePath("sample_dir/a_pipe").cstring, 0o600)
+        check FileType.PIPE_FILE == FileStatus.fromPathStr(fixturePath("sample_dir/a_pipe")).fileType()
+        discard posix.unlink( fixturePath("sample_dir/a_pipe").cstring )
 
 
 
-    test "#getFileSizeInBytes()":
-        check 0 == FileStatus.fromPathStr(fixturePath("sample_dir/a_file")).getFileSizeInBytes()
-        check 4096 == FileStatus.fromPathStr(fixturePath("sample_dir/a_dir")).getFileSizeInBytes()
+    test "#fileSizeInBytes()":
+        check 0 == FileStatus.fromPathStr(fixturePath("sample_dir/a_file")).fileSizeInBytes()
+        check 4096 == FileStatus.fromPathStr(fixturePath("sample_dir/a_dir")).fileSizeInBytes()
         ## When needs update -> change to a file with fixed file size ...
-        check 122 == FileStatus.fromPathStr(fixturePath("README.md")).getFileSizeInBytes()
+        check 122 == FileStatus.fromPathStr(fixturePath("README.md")).fileSizeInBytes()
 
 
 
-    test "#getUserId()":
-        check 0    == FileStatus.fromPathStr("/").getUserId()
-        check 1000 == FileStatus.fromPathStr(fixturePath("sample_dir/a_file")).getUserId()
+    test "#userId()":
+        check 0    == FileStatus.fromPathStr("/").userId()
+        check 1000 == FileStatus.fromPathStr(fixturePath("sample_dir/a_file")).userId()
 
 
 
-    test "#getGroupId()":
-        check 0    == FileStatus.fromPathStr("/").getGroupId()
-        check 1000 == FileStatus.fromPathStr(fixturePath("sample_dir/a_file")).getGroupId()
+    test "#groupId()":
+        check 0    == FileStatus.fromPathStr("/").groupId()
+        check 1000 == FileStatus.fromPathStr(fixturePath("sample_dir/a_file")).groupId()
 
 
 
-    test "#fileStatus - getCountHardlinks()":
-        check 1 == FileStatus.fromPathStr(fixturePath("sample_dir/a_file")).getCountHardlinks()
+    test "#fileStatus - countHardlinks()":
+        check 1 == FileStatus.fromPathStr(fixturePath("sample_dir/a_file")).countHardlinks()
 
 
 
@@ -547,9 +547,9 @@ suite "FileStatus - Tests":
 
 
     test "#isPipeFile()":
-        discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
+        discard posix.mkfifo( fixturePath("sample_dir/a_pipe").cstring, 0o600)
         check true == FileStatus.fromPathStr(fixturePath("sample_dir/a_pipe")).isPipeFile()
-        discard posix.unlink( fixturePath("sample_dir/a_pipe") )
+        discard posix.unlink( fixturePath("sample_dir/a_pipe").cstring )
 
         check false == FileStatus.fromPathStr(fixturePath("sample_dir/a_file" )).isPipeFile()
         check false == FileStatus.fromPathStr(fixturePath("sample_dir/a_file/")).isPipeFile()

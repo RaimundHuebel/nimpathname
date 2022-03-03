@@ -242,16 +242,16 @@ suite "Pathname Tests 000":
         block:
             os.delEnv("SAMPLE_PATH_ENV_VAR")
             let noPathname: Pathname = Pathname.fromEnvVarOrNil("SAMPLE_PATH_ENV_VAR")
-            check nil == noPathname
+            check noPathname == nil
         block:
             os.putEnv("SAMPLE_PATH_ENV_VAR", "/tmp/ABC/123")
             let aPathname: Pathname = Pathname.fromEnvVarOrNil("SAMPLE_PATH_ENV_VAR")
-            check nil != aPathname
+            check aPathname != nil
             check "/tmp/ABC/123" == aPathname.toPathStr()
         block:
             os.delEnv("SAMPLE_PATH_ENV_VAR")
             let noPathname: Pathname = Pathname.fromEnvVarOrNil("SAMPLE_PATH_ENV_VAR")
-            check nil == noPathname
+            check noPathname == nil
 
 
     test "Pathname.fromNimbleDir()":
@@ -1721,9 +1721,9 @@ suite "Pathname Tests 000":
             check FileType.BLOCK_DEVICE     == Pathname.new("/dev/loop0").fileType()
 
         when defined(Posix):
-            discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
+            discard posix.mkfifo( fixturePath("sample_dir/a_pipe").cstring, 0o600)
             check FileType.PIPE_FILE == Pathname.new(fixturePath("sample_dir/a_pipe")).fileType()
-            discard posix.unlink( fixturePath("sample_dir/a_pipe") )
+            discard posix.unlink( fixturePath("sample_dir/a_pipe").cstring )
 
 
 
@@ -1759,9 +1759,9 @@ suite "Pathname Tests 000":
             check true == Pathname.new("/tmp/.X11-unix/X0").fileType().isSocketFile()
 
         when defined(Posix):
-            discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
+            discard posix.mkfifo( fixturePath("sample_dir/a_pipe").cstring, 0o600)
             check true == Pathname.new(fixturePath("sample_dir/a_pipe")).fileType().isPipeFile()
-            discard posix.unlink( fixturePath("sample_dir/a_pipe") )
+            discard posix.unlink( fixturePath("sample_dir/a_pipe").cstring )
 
 
 
@@ -2301,9 +2301,9 @@ suite "Pathname Tests 000":
 
     test "#isPipeFile()":
         when defined(Posix):
-            discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
+            discard posix.mkfifo( fixturePath("sample_dir/a_pipe").cstring, 0o600)
             check true == Pathname.new(fixturePath("sample_dir/a_pipe")).isPipeFile()
-            discard posix.unlink( fixturePath("sample_dir/a_pipe") )
+            discard posix.unlink( fixturePath("sample_dir/a_pipe").cstring )
 
         when defined(Posix):
             check false == Pathname.new(fixturePath("sample_dir/a_file" )).isPipeFile()
@@ -2926,9 +2926,9 @@ suite "Pathname Tests 000":
 
             check FileType.SOCKET_FILE == Pathname.new("/tmp/.X11-unix/X0").fileStatus().fileType()
 
-            discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
+            discard posix.mkfifo( fixturePath("sample_dir/a_pipe").cstring, 0o600)
             check FileType.PIPE_FILE == Pathname.new(fixturePath("sample_dir/a_pipe")).fileStatus().fileType()
-            discard posix.unlink( fixturePath("sample_dir/a_pipe") )
+            discard posix.unlink( fixturePath("sample_dir/a_pipe").cstring )
 
 
 
@@ -2971,9 +2971,9 @@ suite "Pathname Tests 000":
             check true  == Pathname.new(fixturePath("sample_dir","a_symlink_to_dir","")).fileStatus().isDirectory()
 
         when defined(Posix):
-            discard posix.mkfifo( fixturePath("sample_dir/a_pipe"), 0o600)
+            discard posix.mkfifo( fixturePath("sample_dir/a_pipe").cstring, 0o600)
             check true == Pathname.new(fixturePath("sample_dir/a_pipe")).fileStatus().isPipeFile()
-            discard posix.unlink( fixturePath("sample_dir/a_pipe"))
+            discard posix.unlink( fixturePath("sample_dir/a_pipe").cstring)
 
         when defined(Windows):
             check false == Pathname.new(fixturePath("sample_dir\\a_symlink_to_file"  )).fileStatus().isSymlink()

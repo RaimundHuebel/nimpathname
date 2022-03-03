@@ -29,7 +29,7 @@
 ###
 
 
-{. experimental: "codeReordering" .}
+#{. experimental: "codeReordering" .}
 
 
 
@@ -46,12 +46,12 @@
 import os
 import options
 import times
-import sequtils
+#import sequtils
 import pathname/file_utils
 
 
-when defined(Posix):
-    import posix
+#when defined(Posix):
+#    import posix
 
 
 when defined(Windows):
@@ -811,21 +811,22 @@ proc isMountpoint*(self: Pathname): bool =
 
 
 
-proc readAll*(self: Pathname): TaintedString {.inline,raises: [IOError].} =
+proc readAll*(self: Pathname): string {.inline,raises: [IOError].} =
     ## @returns Returns ALL data from the current File (Regular, Character Devices, Pipes).
     ## @raises An IOError if the file could not be read.
     return file_utils.readAll(self.path)
 
 
 
-proc read*(self: Pathname): TaintedString {.inline,raises: [IOError].} =
+proc read*(self: Pathname): string {.inline,raises: [IOError].} =
     ## @returns Returns ALL data from the current File (Regular, Character Devices, Pipes).
     ## @raises An IOError if the file could not be read.
-    return file_utils.read(self.path)
+    return self.readAll()
+    #return file_utils.read(self.path)
 
 
 
-proc read*(self: Pathname, length: Natural, offset: int64 = -1): TaintedString {.inline,raises: [IOError].} =
+proc read*(self: Pathname, length: Natural, offset: int64 = -1): string {.inline,raises: [IOError].} =
     ## @returns Returns length bytes of data from the current File (Regular, Character Devices, Pipes).
     ## @raises An IOError if the file could not be read.
     return file_utils.read(self.path, length, offset)
@@ -866,37 +867,6 @@ proc tap*(self: Pathname, tapFn: proc (pathname: Pathname)): Pathname {.discarda
 
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Pathname - createFile()/removeFile()
-#-----------------------------------------------------------------------------------------------------------------------
-
-
-
-proc createFile*(self: Pathname, optionalPathComponents: varargs[string], mode: uint32 = 0o664): Pathname {.inline,discardable,raises: [IOError],inline.} =
-    ## Creates an empty regular File.
-    ## If the fs-entry already exists and it is a regular file nothing happens.
-    ## If the fs-entry already exists but is not a regular file an IOError is raised.
-    ## @raises An IOError if the fs-entry already exists but is not a regular file.
-    ## The difference to #touch is, that #touch does not throw an error if the target is not a regular file.
-    ## Alias:
-    ## * `createFile() proc <#createFile,Pathname>`_
-    ## * `createRegularFile() proc <#createRegularFile,Pathname>`_
-    return self.createRegularFile(optionalPathComponents, mode=mode)
-
-
-
-proc removeFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
-    ## Removes a file but no directories like regular-, fifo-, link-, device-files.
-    ## This proc differs from removeRegularFile(), that it removes every file based type (regular, link, pipe, devices).
-    ## @raises An IOError if the referenced FS-Entry is existing but is not a regular file, link, pipe, or device.
-    ## @raises An IOError if the referenced FS-Entry could not be removed (due permissions).
-    # @see https://stackoverflow.com/questions/15335223/what-happens-when-unlink-a-directory/15335559#15335559
-    # @see man 2 unlink
-    file_utils.removeFile(self.path)
-    return self
-
-
-
-#-----------------------------------------------------------------------------------------------------------------------
 # Pathname - createRegularFile()/removeRegularFile()
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -925,6 +895,37 @@ proc removeRegularFile*(self: Pathname, optionalPathComponents: varargs[string])
     if optionalPathComponents.len > 0:
         targetPathname = self.join(optionalPathComponents)
     file_utils.removeRegularFile(targetPathname.path)
+    return self
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# Pathname - createFile()/removeFile()
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+
+proc createFile*(self: Pathname, optionalPathComponents: varargs[string], mode: uint32 = 0o664): Pathname {.inline,discardable,raises: [IOError],inline.} =
+    ## Creates an empty regular File.
+    ## If the fs-entry already exists and it is a regular file nothing happens.
+    ## If the fs-entry already exists but is not a regular file an IOError is raised.
+    ## @raises An IOError if the fs-entry already exists but is not a regular file.
+    ## The difference to #touch is, that #touch does not throw an error if the target is not a regular file.
+    ## Alias:
+    ## * `createFile() proc <#createFile,Pathname>`_
+    ## * `createRegularFile() proc <#createRegularFile,Pathname>`_
+    return self.createRegularFile(optionalPathComponents, mode=mode)
+
+
+
+proc removeFile*(self: Pathname): Pathname {.inline,discardable,raises: [IOError].} =
+    ## Removes a file but no directories like regular-, fifo-, link-, device-files.
+    ## This proc differs from removeRegularFile(), that it removes every file based type (regular, link, pipe, devices).
+    ## @raises An IOError if the referenced FS-Entry is existing but is not a regular file, link, pipe, or device.
+    ## @raises An IOError if the referenced FS-Entry could not be removed (due permissions).
+    # @see https://stackoverflow.com/questions/15335223/what-happens-when-unlink-a-directory/15335559#15335559
+    # @see man 2 unlink
+    file_utils.removeFile(self.path)
     return self
 
 

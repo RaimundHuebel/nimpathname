@@ -81,7 +81,7 @@ proc fromPathStr*(class: typedesc[FileStatus], pathStr: string): FileStatus =
     result.init()
     result.pathStr = pathStr
     when defined(Posix):
-        if unlikely(posix.lstat(result.pathStr, result.posixFileStat) < 0):
+        if unlikely(posix.lstat(result.pathStr.cstring, result.posixFileStat) < 0):
             result.fileType = FileType.NOT_EXISTING
             return result
 

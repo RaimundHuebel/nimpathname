@@ -835,19 +835,19 @@ proc isMountpoint*(pathStr: string): bool =
     return file_utils.getFileStatus(pathStr).isMountpoint()
 
 
-proc readAll*(pathStr: string): TaintedString {.raises: [IOError].} =
-    ## @returns Returns ALL data from the given File (Regular, Character Devices, Pipes).
+proc readAll*(pathStr: string): string {.raises: [IOError].} =
+    ## @returns Returns ALL data from the current File (Regular, Character Devices, Pipes).
     ## @raises An IOError if the file could not be read.
-    return readFile(pathStr)
+    return io.readFile(pathStr)
 
 
-proc read*(pathStr: string): TaintedString {.inline,raises: [IOError].} =
+proc read*(pathStr: string): string {.inline,raises: [IOError].} =
     ## @returns Returns ALL data from the current File (Regular, Character Devices, Pipes).
     ## @raises An IOError if the file could not be read.
     return file_utils.readAll(pathStr)
 
 
-proc read*(pathStr: string, length: Natural, offset: int64 = -1): TaintedString {.raises: [IOError].} =
+proc read*(pathStr: string, length: Natural, offset: int64 = -1): string {.raises: [IOError].} =
     ## @returns Returns length bytes of data from the current File (Regular, Character Devices, Pipes).
     ## @raises An IOError if the file could not be read.
     var file: File
